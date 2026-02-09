@@ -107,6 +107,12 @@ export default function PurchaseOrderPage() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<PurchaseOrderItem | null>(null);
+  const [editFormData, setEditFormData] = useState<{
+    status: string;
+    step_name: string;
+  }>({ status: "", step_name: "" });
 
   // Initialize auth token on client mount
   useEffect(() => {
@@ -197,6 +203,34 @@ export default function PurchaseOrderPage() {
     }
   };
 
+  const openEditModal = (item: PurchaseOrderItem) => {
+    setSelectedItem(item);
+    setEditFormData({
+      status: item.status,
+      step_name: item.step_name,
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setIsEditModalOpen(false);
+    setSelectedItem(null);
+    setEditFormData({ status: "", step_name: "" });
+  };
+
+  const handleEditFormChange = (field: string, value: string) => {
+    setEditFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleSaveEdit = () => {
+    // TODO: Implement API call to save changes
+    console.log("Saving edit:", editFormData);
+    closeEditModal();
+  };
+
   return (
     <div className="space-y-6">
       <ComponentCard title="Purchase Orders">
@@ -269,7 +303,7 @@ export default function PurchaseOrderPage() {
                         <>
                           <tr className="border-b border-gray-100 dark:border-white/[0.05] bg-blue-100 dark:bg-blue-900/40">
                             <td colSpan={4} className="px-5 py-3">
-                              <div className="grid grid-cols-8 gap-6">
+                              <div className="grid grid-cols-9 gap-6">
                                 <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Item Code</div>
                                 <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Description</div>
                                 <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Unit Price</div>
@@ -278,6 +312,7 @@ export default function PurchaseOrderPage() {
                                 <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Step</div>
                                 <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Step Name</div>
                                 <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Document</div>
+                                <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Action</div>
                               </div>
                             </td>
                           </tr>
@@ -287,7 +322,7 @@ export default function PurchaseOrderPage() {
                               className="border-b border-gray-100 dark:border-white/[0.05] bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
                             >
                               <td colSpan={4} className="px-5 py-4">
-                                <div className="grid grid-cols-8 gap-6 text-sm">
+                                <div className="grid grid-cols-9 gap-6 text-sm">
                                   <div className="text-gray-700 dark:text-gray-300">{item.item_code}</div>
                                   <div className="text-gray-700 dark:text-gray-300">{item.item}</div>
                                   <div className="text-gray-700 dark:text-gray-300">${item.unit_price}</div>
@@ -317,6 +352,14 @@ export default function PurchaseOrderPage() {
                                         <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
                                       </svg>
                                     )}
+                                  </div>
+                                  <div>
+                                    <button
+                                      onClick={() => openEditModal(item)}
+                                      className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
+                                    >
+                                      Edit
+                                    </button>
                                   </div>
                                 </div>
                               </td>
@@ -387,6 +430,165 @@ export default function PurchaseOrderPage() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {isEditModalOpen && selectedItem && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-2/3 max-h-[90vh] flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 p-6 bg-white dark:bg-gray-900">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Edit Purchase Order Item
+              </h2>
+              <button
+                onClick={closeEditModal}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="grid grid-cols-2 gap-6">
+                {/* Item Code - Disabled */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Item Code
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={selectedItem.item_code}
+                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Item Description - Disabled */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Description
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={selectedItem.item}
+                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Unit Price - Disabled */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Unit Price
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={`$${selectedItem.unit_price}`}
+                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Quantity - Disabled */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Quantity
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={selectedItem.quantity}
+                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Step - Editable Dropdown */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Step
+                  </label>
+                  <select
+                    value={editFormData.status}
+                    onChange={(e) => handleEditFormChange("status", e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Step 1">Step 1</option>
+                    <option value="Step 2">Step 2</option>
+                    <option value="Step 3">Step 3</option>
+                    <option value="Step 4">Step 4</option>
+                    <option value="Step 5">Step 5</option>
+                  </select>
+                </div>
+
+                {/* Step Name - Editable Dropdown */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Step Name
+                  </label>
+                  <select
+                    value={editFormData.step_name}
+                    onChange={(e) => handleEditFormChange("step_name", e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select a step name</option>
+                    <option value="Painting">Painting</option>
+                    <option value="Welding">Welding</option>
+                    <option value="Fitting">Fitting</option>
+                    <option value="Filing">Filing</option>
+                    <option value="Drilling">Drilling</option>
+                    <option value="Casting">Casting</option>
+                  </select>
+                </div>
+
+                {/* Document - Disabled */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Document
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={selectedItem.document || "N/A"}
+                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                  />
+                </div>
+
+                {/* PO Number - Disabled */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    PO Number
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={selectedItem.po_number}
+                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-4 border-t border-gray-200 dark:border-gray-700 p-6 bg-white dark:bg-gray-900">
+              <button
+                onClick={closeEditModal}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+              >
+                Save Changes
+              </button>
             </div>
           </div>
         </div>
