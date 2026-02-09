@@ -12,6 +12,7 @@ export default observer(function RegisterForm() {
   const { nguageStore } = useStore();
   const [isChecked, setIsChecked] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [formData, setFormData] = useState({
     companyName: "",
@@ -135,6 +136,7 @@ export default observer(function RegisterForm() {
           phoneNumber: "",
         });
         setIsChecked(false);
+        setIsSuccess(true);
       } else {
         setSubmitMessage({ type: "error", text: result.error || "Failed to submit registration" });
       }
@@ -145,6 +147,77 @@ export default observer(function RegisterForm() {
       setIsSubmitting(false);
     }
   };
+
+  const resetForm = () => {
+    setIsSuccess(false);
+    setFormData({
+      companyName: "",
+      businessAddress: "",
+      industry: "",
+      gstNumber: "",
+      documents: null,
+      uploadedFileName: "",
+      contactFirstName: "",
+      contactLastName: "",
+      jobTitle: "",
+      businessEmail: "",
+      phoneNumber: "",
+    });
+    setIsChecked(false);
+    setSubmitMessage(null);
+  };
+
+  // Success Page
+  if (isSuccess) {
+    return (
+      <div className="flex flex-col flex-1 lg:w-1/2 w-full overflow-y-auto no-scrollbar">
+        <div className="flex flex-col justify-center flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            {/* Success Icon */}
+            <div className="flex justify-center mb-6">
+              <div className="flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900">
+                <svg className="w-8 h-8 text-green-600 dark:text-green-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Success Message */}
+            <h1 className="mb-3 text-2xl font-semibold text-gray-800 dark:text-white sm:text-3xl">
+              Registration Successful!
+            </h1>
+            <p className="mb-8 text-gray-600 dark:text-gray-400 text-lg">
+              Thank you for registering with us. Your application has been submitted successfully.
+            </p>
+
+            {/* Details Box */}
+            <div className="p-6 mb-8 rounded-lg bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800">
+              <p className="text-center text-gray-700 dark:text-gray-300 text-base font-medium">
+                Your credentials are sent on the registered email address with password
+              </p>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <button
+                onClick={resetForm}
+                className="px-6 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600"
+              >
+                Register Another Company
+              </button>
+              <Link
+                href="/login"
+                className="px-6 py-3 text-sm font-medium text-brand-600 dark:text-brand-400 transition rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-center"
+              >
+                Go to Login
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col flex-1 lg:w-1/2 w-full overflow-y-auto no-scrollbar">
       <div className="flex flex-col justify-center flex-1 w-full max-w-4xl mx-auto">
