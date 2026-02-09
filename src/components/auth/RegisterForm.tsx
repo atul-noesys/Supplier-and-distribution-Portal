@@ -78,7 +78,6 @@ export default observer(function RegisterForm() {
             ...prev,
             uploadedFileName: file.name,
           }));
-          setSubmitMessage({ type: "success", text: `File "${file.name}" uploaded successfully!` });
         } else {
           setSubmitMessage({ type: "error", text: "File upload failed" });
         }
