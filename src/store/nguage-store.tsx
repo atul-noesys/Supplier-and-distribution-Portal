@@ -41,8 +41,8 @@ export class NguageStore {
     take: number | null;
     NGaugeId: string | undefined;
     filters?:
-      | { [key: string]: { items: string[]; operator: string }[] }
-      | undefined;
+    | { [key: string]: { items: string[]; operator: string }[] }
+    | undefined;
     sort?: { [keyValue: string]: string } | undefined;
   }): Promise<PaginationData | null> {
     try {

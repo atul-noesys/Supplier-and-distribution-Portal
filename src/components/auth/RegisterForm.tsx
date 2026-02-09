@@ -19,12 +19,14 @@ export default observer(function RegisterForm() {
     industry: "",
     gstNumber: "",
     documents: null as FileList | null,
+    uploadedFileName: "" as string,
     contactFirstName: "",
     contactLastName: "",
     jobTitle: "",
     businessEmail: "",
     phoneNumber: "",
   });
+  const [isUploading, setIsUploading] = useState(false);
 
   const industries = [
     { value: "", label: "Select an industry" },
@@ -52,12 +54,39 @@ export default observer(function RegisterForm() {
     }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      
       setFormData((prev) => ({
         ...prev,
         documents: e.target.files,
       }));
+
+      // Call API to upload file immediately
+      setIsUploading(true);
+      setSubmitMessage(null);
+      
+      try {
+        console.log("Uploading file:", file.name);
+        const uploadResult = await nguageStore.UploadAttachFile(file, file.name);
+        console.log("Upload result:", uploadResult);
+        
+        if (uploadResult) {
+          setFormData((prev) => ({
+            ...prev,
+            uploadedFileName: file.name,
+          }));
+          setSubmitMessage({ type: "success", text: `File "${file.name}" uploaded successfully!` });
+        } else {
+          setSubmitMessage({ type: "error", text: "File upload failed" });
+        }
+      } catch (error) {
+        console.error("Upload error:", error);
+        setSubmitMessage({ type: "error", text: "An error occurred while uploading the file" });
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -78,7 +107,7 @@ export default observer(function RegisterForm() {
         "business_address": formData.businessAddress,
         "industry": formData.industry,
         "gst_number": formData.gstNumber,
-        "documents": null,
+        "documents": formData.uploadedFileName,
         "first_name": formData.contactFirstName,
         "last_name": formData.contactLastName,
         "job_title": formData.jobTitle,
@@ -98,6 +127,7 @@ export default observer(function RegisterForm() {
           industry: "",
           gstNumber: "",
           documents: null,
+          uploadedFileName: "",
           contactFirstName: "",
           contactLastName: "",
           jobTitle: "",
