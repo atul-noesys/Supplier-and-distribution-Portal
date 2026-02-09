@@ -42,7 +42,8 @@
     "react-dom": "^19.2.0",
     "react-dropzone": "^14.3.8",
     "swiper": "^11.2.10",
-    "tailwind-merge": "^2.6.0"
+    "tailwind-merge": "^2.6.0",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@cloudflare/next-on-pages": "^1.13.16",

@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useStore } from "@/store/store-context";
 import { observer } from "mobx-react-lite";
+import { v4 as uuidv4 } from "uuid";
 
 export default observer(function RegisterForm() {
   const { nguageStore } = useStore();
@@ -58,6 +59,7 @@ export default observer(function RegisterForm() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
+      const fileNameToUpload = "Ngauge" + uuidv4() + file.name;
       
       setFormData((prev) => ({
         ...prev,
@@ -70,13 +72,13 @@ export default observer(function RegisterForm() {
       
       try {
         console.log("Uploading file:", file.name);
-        const uploadResult = await nguageStore.UploadAttachFile(file, file.name);
+        const uploadResult = await nguageStore.UploadAttachFile(file, fileNameToUpload);
         console.log("Upload result:", uploadResult);
         
         if (uploadResult) {
           setFormData((prev) => ({
             ...prev,
-            uploadedFileName: file.name,
+            uploadedFileName: fileNameToUpload,
           }));
         } else {
           setSubmitMessage({ type: "error", text: "File upload failed" });
