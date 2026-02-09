@@ -302,8 +302,15 @@ export default observer(function RegisterForm() {
                         name="documents"
                         multiple
                         onChange={handleFileChange}
-                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-500 file:text-white hover:file:bg-brand-600"
+                        disabled={isUploading}
+                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-500 file:text-white hover:file:bg-brand-600 disabled:opacity-50"
                       />
+                      {isUploading && (
+                        <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-500 border-t-transparent"></div>
+                          <span>Uploading file...</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
