@@ -116,7 +116,7 @@ export class NguageStore {
           tenant: "docms",
         },
       }).use(Tus, {
-        endpoint: "https://infoveave.app/ngaugeFileUpload/",
+        endpoint: "https://nooms.infoveave.app/ngaugeFileUpload/",
         chunkSize: 1024 * 1024 * 5,
         removeFingerprintOnSuccess: true,
       });
