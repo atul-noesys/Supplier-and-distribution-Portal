@@ -113,7 +113,7 @@ export class NguageStore {
           Length: file.size,
           Name: fileName,
           FileName: fileName,
-          tenant: "docms",
+          tenant: "nooms",
         },
       }).use(Tus, {
         endpoint: "https://nooms.infoveave.app/ngaugeFileUpload/",
