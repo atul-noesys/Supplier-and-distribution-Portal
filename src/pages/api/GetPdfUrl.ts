@@ -12,7 +12,7 @@ export default async function handler(request: NextRequest) {
       const authHeader = request.headers.get("Authorization");
 
       const response = await fetch(
-        `https://docms.infoveave.app/E/N/docms/${attachment}`,
+        `https://nooms.infoveave.app/E/N/nooms/${attachment}`,
         {
           method: "GET",
           headers: {
