@@ -12,3 +12,5 @@ export const StoreProvider = ({children} : {children :  React.ReactNode}) => {
 }
 
 export const useStore = () => useContext(storeContext);
+
+export const useRootStore = () => useContext(storeContext);

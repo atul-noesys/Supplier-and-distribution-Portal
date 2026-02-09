@@ -18,10 +18,18 @@ export type PrimaryKeyData = {
 
 export type RowData = Record<string, string | number | null>;
 
+export type CurrentUser = {
+  firstName: string;
+  email: string;
+  lastName: string;
+  userName: string;
+};
+
 export class NguageStore {
   count = 0;
   approvalData: Document[] = [];
   searchText: string = "";
+  currentUser: CurrentUser | null = null;
 
   constructor() {
     makeAutoObservable(this);
@@ -153,6 +161,37 @@ export class NguageStore {
         result: null,
         error: (e as { data: { ref: string } }).data.ref ?? "",
       };
+    }
+  }
+
+  async GetCurrentUser(): Promise<CurrentUser | null> {
+    try {
+      let token = null;
+      if (typeof window !== "undefined") {
+        token = localStorage.getItem("access_token");
+      }
+
+      const response = await axios.get(
+        "/api/GetCurrentUser",
+        {
+          headers: {
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+        },
+      );
+
+      const userData: CurrentUser = {
+        firstName: response.data.data.firstName,
+        email: response.data.data.email,
+        lastName: response.data.data.lastName,
+        userName: response.data.data.userName,
+      };
+
+      this.currentUser = userData;
+      return userData;
+    } catch (error) {
+      console.error("Error fetching current user:", error);
+      return null;
     }
   }
 }

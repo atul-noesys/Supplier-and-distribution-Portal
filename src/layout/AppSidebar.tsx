@@ -24,16 +24,16 @@ const navItems: NavItem[] = [
     name: "Dashboard",
     path: "/",
   },
+  {
+    icon: <GridIcon />,
+    name: "Purchase Order",
+    path: "/purchase-order",
+  },
   // {
   //   icon: <GridIcon />,
   //   name: "Products",
   //   path: "/products",
   // },
-  {
-    name: "Forms",
-    icon: <ListIcon />,
-    subItems: [{ name: "Form Elements", path: "/form-elements", pro: false }],
-  },
 ];
 
 const AppSidebar: React.FC = () => {

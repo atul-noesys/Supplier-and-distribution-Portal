@@ -9,7 +9,6 @@ export default async function handler(request: NextRequest) {
       const body = await request.json();
       const authHeader = request.headers.get("Authorization");
 
-      // "https://nooms.infoveave.app/api/v8/NGaugeForms/31/userregistration/Row",
       const response = await fetch("https://nooms.infoveave.app/api/v10/ngauge/forms/31/row",
         {
           method: "POST",

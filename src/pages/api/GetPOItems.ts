@@ -8,7 +8,7 @@ export default async function handler(request: NextRequest) {
     try {
       const authHeader = request.headers.get("Authorization");
       const response = await fetch(
-        "https://nooms.infoveave.app/api/v10/ngauge/forms/41/get-data",
+        "https://nooms.infoveave.app/api/v10/ngauge/forms/42/get-data",
         {
           method: "POST",
           headers: {
@@ -18,10 +18,10 @@ export default async function handler(request: NextRequest) {
             "x-web-app-version": pkg.version,
           },
           body: JSON.stringify({
-            "table": "purchase_orders",
+            "table": "purchase_order_items",
             "skip": 0,
             "take": 200,
-            "NGaugeId": "41"
+            "NGaugeId": "42"
           }),
         },
       );

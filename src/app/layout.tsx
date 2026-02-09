@@ -5,6 +5,7 @@ import { SidebarProvider } from '@/context/SidebarContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { Metadata } from 'next';
 import { StoreProvider } from '@/store/store-context';
+import { QueryProvider } from '@/providers/QueryProvider';
 
 export const metadata: Metadata = {
   title: "Infoveave - Supplier and Distributor Portal",
@@ -26,7 +27,9 @@ export default function RootLayout({
       <body className={`${outfit.className} dark:bg-gray-900`}>
         <ThemeProvider>
           <StoreProvider>
-            <SidebarProvider>{children}</SidebarProvider>
+            <QueryProvider>
+              <SidebarProvider>{children}</SidebarProvider>
+            </QueryProvider>
           </StoreProvider>
         </ThemeProvider>
       </body>

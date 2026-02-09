@@ -5,7 +5,8 @@ import { useProtectedRoute } from "@/hooks/useAuth";
 import AppHeader from "@/layout/AppHeader";
 import AppSidebar from "@/layout/AppSidebar";
 import Backdrop from "@/layout/Backdrop";
-import React from "react";
+import React, { useEffect } from "react";
+import { useStore } from "@/store/store-context";
 
 export default function AdminLayout({
   children,
@@ -14,6 +15,12 @@ export default function AdminLayout({
 }) {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
   const { isLoading } = useProtectedRoute();
+  const store = useStore();
+
+  useEffect(() => {
+    // Fetch current user once when layout loads
+    store.nguageStore.GetCurrentUser();
+  }, [store]);
 
   // Dynamic class for main content margin based on sidebar state
   const mainContentMargin = isMobileOpen

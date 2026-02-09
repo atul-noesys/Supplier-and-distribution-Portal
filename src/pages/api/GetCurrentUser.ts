@@ -4,25 +4,20 @@ import pkg from "../../../package.json";
 export const runtime = "edge";
 
 export default async function handler(request: NextRequest) {
-  if (request.method === "POST") {
+  if (request.method === "GET") {
     try {
       const authHeader = request.headers.get("Authorization");
+
       const response = await fetch(
-        "https://nooms.infoveave.app/api/v10/ngauge/forms/41/get-data",
+        "https://nooms.infoveave.app/api/v10/User/CurrentUser",
         {
-          method: "POST",
+          method: "GET",
           headers: {
             "Content-Type": "application/json",
             ...(authHeader && { Authorization: authHeader }),
             "x-web-app": "Infoveave",
             "x-web-app-version": pkg.version,
           },
-          body: JSON.stringify({
-            "table": "purchase_orders",
-            "skip": 0,
-            "take": 200,
-            "NGaugeId": "41"
-          }),
         },
       );
 
@@ -33,8 +28,13 @@ export default async function handler(request: NextRequest) {
       const data = await response.json();
       return new Response(
         JSON.stringify({
-          message: "Fetched Data Successfully",
-          data: data.data,
+          message: "User data fetched successfully",
+          data: {
+            firstName: data.firstName,
+            email: data.email,
+            lastName: data.lastName,
+            userName: data.userName,
+          },
         }),
         {
           headers: { "content-type": "application/json" },
@@ -43,7 +43,7 @@ export default async function handler(request: NextRequest) {
       );
     } catch (error) {
       console.error("Proxy error:", error);
-      return new Response(JSON.stringify({ message: "Failed to fetch data" }), {
+      return new Response(JSON.stringify({ message: "Failed to fetch user data" }), {
         headers: { "content-type": "application/json" },
         status: 401,
       });
@@ -53,7 +53,7 @@ export default async function handler(request: NextRequest) {
       JSON.stringify(
         {
           message: "Method not allowed",
-          details: "Please use post method for signup",
+          details: "Please use GET method for fetching current user",
         },
         null,
       ),
