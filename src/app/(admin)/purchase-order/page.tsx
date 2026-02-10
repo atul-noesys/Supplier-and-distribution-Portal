@@ -5,7 +5,7 @@ import Badge from "@/components/ui/badge/Badge";
 import { PDFPreview } from "@/components/pdf-preview";
 import axios from "axios";
 import { Fragment, useState, useEffect, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useStore } from "@/store/store-context";
 import { v4 as uuidv4 } from "uuid";
 
@@ -57,6 +57,7 @@ const getStatusColor = (
 
 export default function PurchaseOrderPage() {
   const { nguageStore } = useStore();
+  const queryClient = useQueryClient();
   const [expandedPO, setExpandedPO] = useState<string | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -104,8 +105,9 @@ export default function PurchaseOrderPage() {
 
       console.log("Row updated successfully:", response.data);
       closeEditModal();
-      // Optionally refresh the data after successful update
-      refetchEditData();
+      // Refetch the updated data for both tables
+      await queryClient.invalidateQueries({ queryKey: ["poItems"] });
+      await queryClient.invalidateQueries({ queryKey: ["purchaseOrders"] });
     } catch (error) {
       console.error("Failed to update row:", error);
       if (axios.isAxiosError(error) && error.response) {
