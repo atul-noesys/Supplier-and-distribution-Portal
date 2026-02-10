@@ -16,7 +16,7 @@ export default function LogInForm() {
 
   const [data, setData] = useState({
     username: "noomsuser",
-    password: "87jw7@M4",
+    password: "cmaDD&V#$g47",
     remember: false,
   });
 
