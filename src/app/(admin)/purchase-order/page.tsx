@@ -319,7 +319,6 @@ export default function PurchaseOrderPage() {
               document: fileNameToUpload,
             };
           });
-          setUploadMessage({ type: "success", text: "File uploaded successfully!" });
         } else {
           setUploadMessage({ type: "error", text: "File upload failed" });
         }
