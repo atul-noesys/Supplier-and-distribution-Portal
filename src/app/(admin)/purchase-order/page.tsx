@@ -68,6 +68,7 @@ export default function PurchaseOrderPage() {
   const [editFormData, setEditFormData] = useState<PurchaseOrderItem | null>(null);
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
   const [uploadMessage, setUploadMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
   // Fetch auth token - refresh on component mount
   const { data: authToken = null } = useQuery({
@@ -178,7 +179,14 @@ export default function PurchaseOrderPage() {
     enabled: !!authToken,
   });
 
-  const itemsByPO = poItems.reduce(
+  // Filter items based on search term
+  const filteredPoItems = searchTerm.trim() === ""
+    ? poItems
+    : poItems.filter((item) =>
+        item.item && item.item.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+
+  const itemsByPO = filteredPoItems.reduce(
     (acc, item) => {
       if (!acc[item.po_number]) {
         acc[item.po_number] = [];
@@ -188,6 +196,17 @@ export default function PurchaseOrderPage() {
     },
     {} as Record<string, PurchaseOrderItem[]>,
   );
+
+  // Auto-expand accordion when search term exists
+  useEffect(() => {
+    if (searchTerm.trim() !== "") {
+      // Find the first PO that has matching items
+      const firstMatchingPO = Object.keys(itemsByPO)[0];
+      if (firstMatchingPO) {
+        setExpandedPO(firstMatchingPO);
+      }
+    }
+  }, [searchTerm, itemsByPO]);
 
   const togglePO = (poNumber: string) => {
     setExpandedPO(expandedPO === poNumber ? null : poNumber);
@@ -342,14 +361,40 @@ export default function PurchaseOrderPage() {
 
   return (
     <div className="space-y-6">
-      <ComponentCard title="Purchase Orders">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin">
-              <div className="h-8 w-8 border-4 border-brand-500 border-t-transparent rounded-full"></div>
+      <div className="rounded-lg border border-gray-200 dark:border-white/5 bg-white dark:bg-white/3 overflow-hidden">
+        {/* Header with Title and Search */}
+        <div className="border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/5 px-6 py-4">
+          <div className="flex justify-between items-center gap-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Purchase Orders</h2>
+            <div className="flex items-center gap-3 flex-1 max-w-md">
+              <input
+                type="text"
+                placeholder="Search by item name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm"
+                >
+                  Clear
+                </button>
+              )}
             </div>
           </div>
-        ) : error ? (
+        </div>
+
+        {/* Content */}
+        <div className="px-6 py-6">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin">
+                <div className="h-8 w-8 border-4 border-brand-500 border-t-transparent rounded-full"></div>
+              </div>
+            </div>
+          ) : error ? (
           <div className="flex items-center justify-center py-8">
             <p className="text-error-600 dark:text-error-400">
               Failed to fetch purchase orders
@@ -359,10 +404,10 @@ export default function PurchaseOrderPage() {
           <div className="flex items-center justify-center py-8">
             <p className="text-gray-600 dark:text-gray-400">No purchase orders found</p>
           </div>
-        ) : (
-          <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-white/5 bg-white dark:bg-white/3">
-            <div className="max-w-full overflow-x-auto">
-              <table className="w-full">
+          ) : (
+            <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-white/5 bg-white dark:bg-white/3">
+              <div className="max-w-full overflow-x-auto">
+                <table className="w-full">
                 <thead>
                   <tr className="border-b border-blue-900 bg-blue-800 dark:bg-blue-700">
                     <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide">
@@ -482,8 +527,9 @@ export default function PurchaseOrderPage() {
               </table>
             </div>
           </div>
-        )}
-      </ComponentCard>
+          )}
+        </div>
+      </div>
 
       {/* PDF Viewer Modal */}
       {selectedDocument && (
