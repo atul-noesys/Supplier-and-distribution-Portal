@@ -25,7 +25,7 @@ const navItems: NavItem[] = [
     path: "/",
   },
   {
-    icon: <GridIcon />,
+    icon: <ListIcon />,
     name: "Purchase Order",
     path: "/purchase-order",
   },

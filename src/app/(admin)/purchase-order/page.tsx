@@ -14,6 +14,7 @@ interface PurchaseOrder {
   po_issue_date: string;
   po_status: "pending" | "approved" | "delivered" | "cancelled";
   vendor_id: string;
+  vendor_name?: string;
   InfoveaveBatchId: number;
   ROWID: number;
 }
@@ -450,7 +451,7 @@ export default function PurchaseOrderPage() {
                       Status
                     </th>
                     <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide">
-                      Vendor ID
+                      Vendor Name
                     </th>
                   </tr>
                 </thead>
@@ -471,7 +472,7 @@ export default function PurchaseOrderPage() {
                           </div>
                         </td>
                         <td className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">
-                          {po.po_issue_date}
+                          {po.po_issue_date ? new Date(po.po_issue_date).toLocaleDateString() : ""}
                         </td>
                         <td className="px-5 py-4">
                           <Badge color={getStatusColor(po.po_status)} variant="solid">
@@ -479,7 +480,7 @@ export default function PurchaseOrderPage() {
                           </Badge>
                         </td>
                         <td className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">
-                          {po.vendor_id}
+                          {po.vendor_name || po.vendor_id}
                         </td>
                       </tr>
 
