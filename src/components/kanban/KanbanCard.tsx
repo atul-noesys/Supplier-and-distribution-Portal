@@ -34,7 +34,6 @@ export default function KanbanCard({ item }: KanbanCardProps) {
     transition,
   };
 
-  const statusBadge = statusBadges[item.po_status] || statusBadges.pending;
   const totalPrice = item.unit_price * item.quantity;
 
   if (isDragging) {
@@ -81,7 +80,7 @@ export default function KanbanCard({ item }: KanbanCardProps) {
       </div>
 
       {/* Total Price */}
-      <div className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded px-2 py-2 mb-3">
+      <div className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded px-2 py-2 mb-3 flex items-center justify-between">
         <p className="text-xs text-gray-600 dark:text-gray-400">Total</p>
         <p className="text-sm font-bold text-gray-900 dark:text-white">
           ${totalPrice.toLocaleString()}
@@ -89,12 +88,22 @@ export default function KanbanCard({ item }: KanbanCardProps) {
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBadge.bg} ${statusBadge.text}`}
-        >
-          {statusBadge.label}
-        </span>
+      <div className="flex items-center gap-1 flex-wrap">
+        {item.vendor_name && (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+            {item.vendor_name}
+          </span>
+        )}
+        {item.step_name && (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
+            {item.step_name}
+          </span>
+        )}
+        {item.po_number && (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200">
+            {item.po_number}
+          </span>
+        )}
       </div>
     </div>
   );

@@ -14,6 +14,12 @@ interface KanbanItem {
   status: string;
   InfoveaveBatchId: number;
   po_status: string;
+  vendor_id: string;
+  vendor_name?: string;
+  step_name?: string;
+  remarks?: string;
+  document?: string;
+  step_history?: string;
   ROWID: number;
   [key: string]: any;
 }
@@ -42,6 +48,12 @@ const fetchPOItems = async (token: string | null): Promise<KanbanItem[]> => {
         : "Step 1",
       InfoveaveBatchId: item.InfoveaveBatchId,
       po_status: item.po_status,
+      vendor_id: item.vendor_id,
+      vendor_name: item.vendor_name,
+      step_name: item.step_name,
+      remarks: item.remarks,
+      document: item.document,
+      step_history: item.step_history,
       ROWID: item.ROWID,
     }));
   }
