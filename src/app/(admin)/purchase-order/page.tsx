@@ -84,26 +84,33 @@ export default function PurchaseOrderPage() {
     }
 
     if (!authToken) {
-      console.error("Auth token not available");
+      console.error("No auth token available");
       return;
     }
 
     try {
+      console.log("Sending edit data to API:", editFormData);
+
       const response = await axios.put(
         "/api/EditRow",
         editFormData,
         {
           headers: {
             "Content-Type": "application/json",
-            ...(authToken && { Authorization: `Bearer ${authToken}` }),
+            Authorization: `Bearer ${authToken}`,
           },
         },
       );
 
       console.log("Row updated successfully:", response.data);
       closeEditModal();
+      // Optionally refresh the data after successful update
+      refetchEditData();
     } catch (error) {
       console.error("Failed to update row:", error);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("Response error details:", error.response.data);
+      }
     }
   };
 

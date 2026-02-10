@@ -1,33 +1,20 @@
-import type { NextRequest } from "next/server";
+import type { NextApiRequest, NextApiResponse } from "next";
 import pkg from "../../../package.json";
+import axios from "axios";
 
-export const runtime = "edge";
-
-export default async function handler(request: NextRequest) {
-  if (request.method === "PUT") {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method === "PUT") {
     try {
-      const body = await request.json();
-      const authHeader = request.headers.get("Authorization");
+      const body = req.body;
+      const authHeader = req.headers.authorization;
       const rowId = body.ROWID;
 
       if (!rowId) {
-        return new Response(
-          JSON.stringify({ message: "ROWID is required" }),
-          {
-            headers: { "content-type": "application/json" },
-            status: 400,
-          },
-        );
+        return res.status(400).json({ message: "ROWID is required" });
       }
 
       if (!authHeader) {
-        return new Response(
-          JSON.stringify({ message: "Authorization header is required" }),
-          {
-            headers: { "content-type": "application/json" },
-            status: 401,
-          },
-        );
+        return res.status(401).json({ message: "Authorization header is required" });
       }
 
       // Remove ROWID and InfoveaveBatchId from body before sending to API
@@ -36,68 +23,60 @@ export default async function handler(request: NextRequest) {
       console.log("EditRow API - Sending to upstream:", {
         primaryKeyData: {
           primaryKey: "ROWID",
-          value: String(rowId)
+          value: String(rowId),
         },
-        rowDataKeys: Object.keys(rowData)
+        rowDataKeys: Object.keys(rowData),
       });
 
-      const response = await fetch(
+      const requestPayload = {
+        primaryKeyData: {
+          primaryKey: "ROWID",
+          value: String(rowId),
+        },
+        rowData: rowData,
+        tableName: "purchase_order_items",
+      };
+
+      console.log("EditRow API - Full request payload:", JSON.stringify(requestPayload, null, 2));
+      console.log("EditRow API - Auth header:", authHeader.substring(0, 20) + "...");
+
+      const response = await axios.put(
         "https://nooms.infoveave.app/api/v10/ngauge/forms/42/row",
+        requestPayload,
         {
-          method: "PUT",
           headers: {
             "Content-Type": "application/json",
             Authorization: authHeader,
             "x-web-app": "Infoveave",
             "x-web-app-version": pkg.version,
           },
-          body: JSON.stringify({
-            "primaryKeyData": {
-              "primaryKey": "ROWID",
-              "value": String(rowId)
-            },
-            "rowData": rowData
-          }),
         },
       );
 
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error("Upstream API error:", response.status, errorData);
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      console.log("Upstream API response:", response.status, response.data);
 
-      const data = await response.json();
-      return new Response(
-        JSON.stringify({
-          message: "Row Updated Successfully",
-          data: data.data,
-        }),
-        {
-          headers: { "content-type": "application/json" },
-          status: 200,
-        },
-      );
+      return res.status(200).json({
+        message: "Row Updated Successfully",
+        data: response.data.data,
+      });
     } catch (error) {
       console.error("Proxy error:", error);
-      return new Response(JSON.stringify({ message: "Failed to fetch data" }), {
-        headers: { "content-type": "application/json" },
-        status: 401,
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const statusCode = axios.isAxiosError(error) ? error.response?.status || 500 : 500;
+      const errorData = axios.isAxiosError(error) ? error.response?.data : null;
+      
+      console.error("Error details:", { statusCode, errorData, errorMessage });
+      
+      return res.status(statusCode).json({ 
+        message: "Failed to update row", 
+        error: errorMessage,
+        details: errorData,
       });
     }
   } else {
-    return new Response(
-      JSON.stringify(
-        {
-          message: "Method not allowed",
-          details: "Please use put method",
-        },
-        null,
-      ),
-      {
-        headers: { "content-type": "application/json" },
-        status: 405,
-      },
-    );
+    return res.status(405).json({
+      message: "Method not allowed",
+      details: "Please use PUT method",
+    });
   }
 }
