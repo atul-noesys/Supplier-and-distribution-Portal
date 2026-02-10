@@ -6,6 +6,8 @@ import { PDFPreview } from "@/components/pdf-preview";
 import axios from "axios";
 import { Fragment, useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useStore } from "@/store/store-context";
+import { v4 as uuidv4 } from "uuid";
 
 interface PurchaseOrder {
   po_number: string;
@@ -54,6 +56,7 @@ const getStatusColor = (
 };
 
 export default function PurchaseOrderPage() {
+  const { nguageStore } = useStore();
   const [expandedPO, setExpandedPO] = useState<string | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -62,6 +65,8 @@ export default function PurchaseOrderPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<PurchaseOrderItem | null>(null);
   const [editFormData, setEditFormData] = useState<PurchaseOrderItem | null>(null);
+  const [isUploadingDocument, setIsUploadingDocument] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Fetch auth token - refresh on component mount
   const { data: authToken = null } = useQuery({
@@ -293,6 +298,40 @@ export default function PurchaseOrderPage() {
     });
   };
 
+  const handleEditDocumentChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const fileNameToUpload = "Ngauge" + uuidv4() + file.name;
+
+      setIsUploadingDocument(true);
+      setUploadMessage(null);
+
+      try {
+        console.log("Uploading file:", file.name);
+        const uploadResult = await nguageStore.UploadAttachFile(file, fileNameToUpload);
+        console.log("Upload result:", uploadResult);
+
+        if (uploadResult) {
+          setEditFormData((prev) => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              document: fileNameToUpload,
+            };
+          });
+          setUploadMessage({ type: "success", text: "File uploaded successfully!" });
+        } else {
+          setUploadMessage({ type: "error", text: "File upload failed" });
+        }
+      } catch (error) {
+        console.error("Upload error:", error);
+        setUploadMessage({ type: "error", text: "An error occurred while uploading the file" });
+      } finally {
+        setIsUploadingDocument(false);
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       <ComponentCard title="Purchase Orders">
@@ -313,7 +352,7 @@ export default function PurchaseOrderPage() {
             <p className="text-gray-600 dark:text-gray-400">No purchase orders found</p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-white/[0.05] bg-white dark:bg-white/[0.03]">
+          <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-white/5 bg-white dark:bg-white/3">
             <div className="max-w-full overflow-x-auto">
               <table className="w-full">
                 <thead>
@@ -337,7 +376,7 @@ export default function PurchaseOrderPage() {
                     <Fragment key={po.po_number}>
                       <tr
                         key={po.po_number}
-                        className="border-b border-gray-100 dark:border-white/[0.05] hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+                        className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/2 transition-colors cursor-pointer group"
                         onClick={() => togglePO(po.po_number)}
                       >
                         <td className="px-5 py-4 text-gray-700 dark:text-gray-300 font-semibold text-sm">
@@ -363,7 +402,7 @@ export default function PurchaseOrderPage() {
 
                       {expandedPO === po.po_number && itemsByPO[po.po_number] && itemsByPO[po.po_number].length > 0 && (
                         <>
-                          <tr className="border-b border-gray-100 dark:border-white/[0.05] bg-blue-100 dark:bg-blue-900/40">
+                          <tr className="border-b border-gray-100 dark:border-white/5 bg-blue-100 dark:bg-blue-900/40">
                             <td colSpan={4} className="px-5 py-3">
                               <div className="grid grid-cols-9 gap-6">
                                 <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Item Code</div>
@@ -381,7 +420,7 @@ export default function PurchaseOrderPage() {
                           {itemsByPO[po.po_number].map((item: PurchaseOrderItem) => (
                             <tr
                               key={item.ROWID}
-                              className="border-b border-gray-100 dark:border-white/[0.05] bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                              className="border-b border-gray-100 dark:border-white/5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
                             >
                               <td colSpan={4} className="px-5 py-4">
                                 <div className="grid grid-cols-9 gap-6 text-sm">
@@ -519,7 +558,18 @@ export default function PurchaseOrderPage() {
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6">
               {editFormData ? (
-                <div className="grid grid-cols-2 gap-6">
+                <>
+                  {uploadMessage && (
+                    <div
+                      className={`mb-4 p-4 rounded-lg ${uploadMessage.type === "success"
+                        ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200"
+                        : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200"
+                        }`}
+                    >
+                      {uploadMessage.text}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-6">
                 {/* Item Code - Disabled */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -610,17 +660,28 @@ export default function PurchaseOrderPage() {
                   </select>
                 </div>
 
-                {/* Document - Disabled */}
+                {/* Document - File Upload */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Document
                   </label>
                   <input
-                    type="text"
-                    disabled
-                    value={editRowData?.document || editFormData.document || "N/A"}
-                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                    type="file"
+                    onChange={handleEditDocumentChange}
+                    disabled={isUploadingDocument}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-500 file:text-white hover:file:bg-brand-600 disabled:opacity-50"
                   />
+                  {isUploadingDocument && (
+                    <div className="mt-2 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-500 border-t-transparent"></div>
+                      <span>Uploading file...</span>
+                    </div>
+                  )}
+                  {editFormData?.document && (
+                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                      Current: {editFormData.document}
+                    </p>
+                  )}
                 </div>
 
                 {/* PO Number - Disabled */}
@@ -635,7 +696,8 @@ export default function PurchaseOrderPage() {
                     className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
                   />
                 </div>
-              </div>
+                  </div>
+                </>
               ) : null}
             </div>
 
