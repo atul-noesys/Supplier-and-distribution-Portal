@@ -99,11 +99,6 @@ export default function KanbanCard({ item }: KanbanCardProps) {
             {item.step_name}
           </span>
         )}
-        {item.po_number && (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200">
-            {item.po_number}
-          </span>
-        )}
       </div>
     </div>
   );
