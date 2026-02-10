@@ -58,7 +58,7 @@ const getStatusColor = (
 export default function PurchaseOrderPage() {
   const { nguageStore } = useStore();
   const queryClient = useQueryClient();
-  const [expandedPO, setExpandedPO] = useState<string | null>(null);
+  const [expandedPOs, setExpandedPOs] = useState<Set<string>>(new Set());
   const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
@@ -179,6 +179,25 @@ export default function PurchaseOrderPage() {
     enabled: !!authToken,
   });
 
+  // Function to highlight search term in text
+  const highlightText = (text: string | null | undefined, highlight: string) => {
+    if (!text) return text;
+    if (!highlight.trim()) return text;
+    
+    const regex = new RegExp(`(${highlight})`, "gi");
+    const parts = text.split(regex);
+    
+    return parts.map((part, index) =>
+      regex.test(part) ? (
+        <span key={index} className="bg-yellow-300 dark:bg-yellow-400 dark:text-gray-900 font-semibold">
+          {part}
+        </span>
+      ) : (
+        part
+      )
+    );
+  };
+
   // Filter items based on search term
   const filteredPoItems = searchTerm.trim() === ""
     ? poItems
@@ -200,16 +219,27 @@ export default function PurchaseOrderPage() {
   // Auto-expand accordion when search term exists
   useEffect(() => {
     if (searchTerm.trim() !== "") {
-      // Find the first PO that has matching items
-      const firstMatchingPO = Object.keys(itemsByPO)[0];
-      if (firstMatchingPO) {
-        setExpandedPO(firstMatchingPO);
-      }
+      // Expand all POs that have matching items
+      const matchingPOs = new Set(filteredPoItems.map((item) => item.po_number));
+      setExpandedPOs(matchingPOs);
+    } else {
+      // Collapse all when search is cleared
+      setExpandedPOs(new Set());
     }
-  }, [searchTerm, itemsByPO]);
+  }, [searchTerm]);
 
   const togglePO = (poNumber: string) => {
-    setExpandedPO(expandedPO === poNumber ? null : poNumber);
+    const newExpandedPOs = new Set(expandedPOs);
+    if (newExpandedPOs.has(poNumber)) {
+      newExpandedPOs.delete(poNumber);
+    } else {
+      // If no search term, only allow one accordion open at a time
+      if (searchTerm.trim() === "") {
+        newExpandedPOs.clear();
+      }
+      newExpandedPOs.add(poNumber);
+    }
+    setExpandedPOs(newExpandedPOs);
   };
 
   const fetchPdf = useCallback(async (docName: string | null) => {
@@ -435,7 +465,7 @@ export default function PurchaseOrderPage() {
                         <td className="px-5 py-4 text-gray-700 dark:text-gray-300 font-semibold text-sm">
                           <div className="flex items-center gap-3">
                             <span className="text-base text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-400 transition-colors">
-                              {expandedPO === po.po_number ? "▼" : "▶"}
+                              {expandedPOs.has(po.po_number) ? "▼" : "▶"}
                             </span>
                             {po.po_number}
                           </div>
@@ -453,7 +483,7 @@ export default function PurchaseOrderPage() {
                         </td>
                       </tr>
 
-                      {expandedPO === po.po_number && itemsByPO[po.po_number] && itemsByPO[po.po_number].length > 0 && (
+                      {expandedPOs.has(po.po_number) && itemsByPO[po.po_number] && itemsByPO[po.po_number].length > 0 && (
                         <>
                           <tr className="border-b border-gray-100 dark:border-white/5 bg-blue-100 dark:bg-blue-900/40">
                             <td colSpan={4} className="px-5 py-3">
@@ -478,7 +508,9 @@ export default function PurchaseOrderPage() {
                               <td colSpan={4} className="px-5 py-4">
                                 <div className="grid gap-6 text-sm" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 0.8fr 1fr 0.8fr 0.7fr' }}>
                                   <div className="text-gray-700 dark:text-gray-300">{item.item_code}</div>
-                                  <div className="text-gray-700 dark:text-gray-300">{item.item}</div>
+                                  <div className="text-gray-700 dark:text-gray-300">
+                                    {searchTerm ? highlightText(item.item, searchTerm) : item.item}
+                                  </div>
                                   <div className="text-gray-700 dark:text-gray-300">${item.unit_price}</div>
                                   <div className="text-gray-700 dark:text-gray-300">{item.quantity}</div>
                                   <div className="text-gray-700 dark:text-gray-300 font-semibold">${item.total}</div>
