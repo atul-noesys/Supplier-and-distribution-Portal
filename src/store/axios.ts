@@ -23,7 +23,7 @@ export const raiseEvent = (event: EventType, payload: string) => {
 const _authHeaders = (_hash?: string): AxiosRequestConfig => {
   return {
     headers: {
-      Authorization: "Bearer " + localStorage.getItem("Infoveave:Token"),
+      Authorization: "Bearer " + localStorage.getItem("access_token"),
       "x-web-app": "Infoveave",
       "x-web-app-version": pkg.version,
       "x-request-hash": _hash,

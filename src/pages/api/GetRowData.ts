@@ -4,10 +4,10 @@ import pkg from "../../../package.json";
 export const runtime = "edge";
 
 export default async function handler(request: NextRequest) {
-  if (request.method === "PUT") {
+  if (request.method === "POST") {
     try {
-      const body = await request.json();
       const authHeader = request.headers.get("Authorization");
+      const body = await request.json();
       const rowId = body.ROWID;
 
       if (!rowId) {
@@ -20,34 +20,13 @@ export default async function handler(request: NextRequest) {
         );
       }
 
-      if (!authHeader) {
-        return new Response(
-          JSON.stringify({ message: "Authorization header is required" }),
-          {
-            headers: { "content-type": "application/json" },
-            status: 401,
-          },
-        );
-      }
-
-      // Remove ROWID and InfoveaveBatchId from body before sending to API
-      const { ROWID, InfoveaveBatchId, ...rowData } = body;
-
-      console.log("EditRow API - Sending to upstream:", {
-        primaryKeyData: {
-          primaryKey: "ROWID",
-          value: String(rowId)
-        },
-        rowDataKeys: Object.keys(rowData)
-      });
-
       const response = await fetch(
-        "https://nooms.infoveave.app/api/v10/ngauge/forms/42/row",
+        "https://nooms.infoveave.app/api/v10/ngauge/forms/42/get-row",
         {
-          method: "PUT",
+          method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: authHeader,
+            ...(authHeader && { Authorization: authHeader }),
             "x-web-app": "Infoveave",
             "x-web-app-version": pkg.version,
           },
@@ -56,21 +35,19 @@ export default async function handler(request: NextRequest) {
               "primaryKey": "ROWID",
               "value": String(rowId)
             },
-            "rowData": rowData
+            "tableName": "purchase_order_items"
           }),
         },
       );
 
       if (!response.ok) {
-        const errorData = await response.text();
-        console.error("Upstream API error:", response.status, errorData);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
       return new Response(
         JSON.stringify({
-          message: "Row Updated Successfully",
+          message: "Fetched Data Successfully",
           data: data.data,
         }),
         {
@@ -90,7 +67,7 @@ export default async function handler(request: NextRequest) {
       JSON.stringify(
         {
           message: "Method not allowed",
-          details: "Please use put method",
+          details: "Please use post method for signup",
         },
         null,
       ),

@@ -28,6 +28,12 @@ interface PurchaseOrderItem {
   InfoveaveBatchId: number;
   ROWID: number;
   total?: number;
+  po_status?: string;
+  vendor_id?: string;
+  remarks?: string;
+  vendor_name?: string;
+  step_history?: string;
+  [key: string]: any;
 }
 
 const getStatusColor = (
@@ -47,60 +53,6 @@ const getStatusColor = (
   }
 };
 
-let authToken: string | null = null;
-
-const fetchPurchaseOrders = async (): Promise<PurchaseOrder[]> => {
-  const response = await axios.post(
-    "/api/GetAllData",
-    {
-      table: "PurchaseOrder",
-      skip: 0,
-      take: null,
-      NGaugeId: undefined,
-    },
-    {
-      headers: {
-        "Content-Type": "application/json",
-        ...(authToken && { Authorization: `Bearer ${authToken}` }),
-      },
-    },
-  );
-
-  return response.data.data || [];
-};
-
-const fetchPOItems = async (): Promise<PurchaseOrderItem[]> => {
-  const response = await axios.post(
-    "/api/GetPOItems",
-    {
-      table: "PurchaseOrder",
-      skip: 0,
-      take: null,
-      NGaugeId: undefined,
-    },
-    {
-      headers: {
-        "Content-Type": "application/json",
-        ...(authToken && { Authorization: `Bearer ${authToken}` }),
-      },
-    },
-  );
-
-  return (response.data.data || []).map((item: Record<string, unknown>) => ({
-    po_number: item.po_number as string,
-    item_code: item.item_code as string,
-    item: item.item as string,
-    unit_price: item.unit_price as number,
-    quantity: item.quantity as number,
-    status: item.status as string,
-    step_name: item.step_name as string,
-    document: (item.document as string) || null,
-    InfoveaveBatchId: item.InfoveaveBatchId as number,
-    ROWID: item.ROWID as number,
-    total: (item.unit_price as number) * (item.quantity as number),
-  }));
-};
-
 export default function PurchaseOrderPage() {
   const [expandedPO, setExpandedPO] = useState<string | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
@@ -109,26 +61,107 @@ export default function PurchaseOrderPage() {
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<PurchaseOrderItem | null>(null);
-  const [editFormData, setEditFormData] = useState<{
-    status: string;
-    step_name: string;
-  }>({ status: "", step_name: "" });
+  const [editFormData, setEditFormData] = useState<PurchaseOrderItem | null>(null);
 
-  // Initialize auth token on client mount
-  useEffect(() => {
-    authToken = localStorage.getItem("access_token");
-  }, []);
-
-  const { data: purchaseOrders = [], isLoading, error } = useQuery({
-    queryKey: ["purchaseOrders"],
-    queryFn: fetchPurchaseOrders,
-    staleTime: 5 * 60 * 1000,
+  // Fetch auth token - refresh on component mount
+  const { data: authToken = null } = useQuery({
+    queryKey: ["authToken"],
+    queryFn: () => localStorage.getItem("access_token"),
+    staleTime: 0,
+    gcTime: 0,
   });
 
+  // Save edit with token from state (same as other endpoints)
+  const handleSaveEdit = async () => {
+    if (!editFormData) {
+      console.error("No edit form data");
+      return;
+    }
+
+    if (!authToken) {
+      console.error("Auth token not available");
+      return;
+    }
+
+    try {
+      const response = await axios.put(
+        "/api/EditRow",
+        editFormData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(authToken && { Authorization: `Bearer ${authToken}` }),
+          },
+        },
+      );
+
+      console.log("Row updated successfully:", response.data);
+      closeEditModal();
+    } catch (error) {
+      console.error("Failed to update row:", error);
+    }
+  };
+
+  // Fetch purchase orders
+  const { data: purchaseOrders = [], isLoading, error } = useQuery({
+    queryKey: ["purchaseOrders"],
+    queryFn: async (): Promise<PurchaseOrder[]> => {
+      const response = await axios.post(
+        "/api/GetAllData",
+        {
+          table: "PurchaseOrder",
+          skip: 0,
+          take: null,
+          NGaugeId: undefined,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(authToken && { Authorization: `Bearer ${authToken}` }),
+          },
+        },
+      );
+      return response.data.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: !!authToken,
+  });
+
+  // Fetch PO items
   const { data: poItems = [] } = useQuery({
     queryKey: ["poItems"],
-    queryFn: fetchPOItems,
+    queryFn: async (): Promise<PurchaseOrderItem[]> => {
+      const response = await axios.post(
+        "/api/GetPOItems",
+        {
+          table: "PurchaseOrder",
+          skip: 0,
+          take: null,
+          NGaugeId: undefined,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(authToken && { Authorization: `Bearer ${authToken}` }),
+          },
+        },
+      );
+      return (response.data.data || []).map((item: Record<string, unknown>) => ({
+        po_number: item.po_number as string,
+        item_code: item.item_code as string,
+        item: item.item as string,
+        unit_price: item.unit_price as number,
+        quantity: item.quantity as number,
+        status: item.status as string,
+        step_name: item.step_name as string,
+        document: (item.document as string) || null,
+        InfoveaveBatchId: item.InfoveaveBatchId as number,
+        ROWID: item.ROWID as number,
+        total: (item.unit_price as number) * (item.quantity as number),
+      }));
+    },
     staleTime: 5 * 60 * 1000,
+    enabled: !!authToken,
   });
 
   const itemsByPO = poItems.reduce(
@@ -180,7 +213,7 @@ export default function PurchaseOrderPage() {
     } finally {
       setLoadingPdf(false);
     }
-  }, []);
+  }, [authToken]);
 
   useEffect(() => {
     if (pdfUrl) {
@@ -203,32 +236,61 @@ export default function PurchaseOrderPage() {
     }
   };
 
+  // Fetch detailed row data for edit modal
+  const { data: editRowData, refetch: refetchEditData } = useQuery({
+    queryKey: ["editRowData", selectedItem?.ROWID],
+    queryFn: async () => {
+      if (!selectedItem?.ROWID || !authToken) return null;
+      const response = await axios.post(
+        "/api/GetRowData",
+        {
+          ROWID: selectedItem.ROWID,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(authToken && { Authorization: `Bearer ${authToken}` }),
+          },
+        },
+      );
+      return response.data.data;
+    },
+    enabled: !!selectedItem?.ROWID && !!authToken,
+  });
+
+  // Update edit form data with full API response when data is fetched
+  useEffect(() => {
+    if (editRowData) {
+      setEditFormData((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          ...editRowData,
+        };
+      });
+    }
+  }, [editRowData]);
+
   const openEditModal = (item: PurchaseOrderItem) => {
     setSelectedItem(item);
-    setEditFormData({
-      status: item.status,
-      step_name: item.step_name,
-    });
+    setEditFormData(item);
     setIsEditModalOpen(true);
   };
 
   const closeEditModal = () => {
     setIsEditModalOpen(false);
     setSelectedItem(null);
-    setEditFormData({ status: "", step_name: "" });
+    setEditFormData(null);
   };
 
   const handleEditFormChange = (field: string, value: string) => {
-    setEditFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const handleSaveEdit = () => {
-    // TODO: Implement API call to save changes
-    console.log("Saving edit:", editFormData);
-    closeEditModal();
+    setEditFormData((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        [field]: value,
+      };
+    });
   };
 
   return (
@@ -456,7 +518,8 @@ export default function PurchaseOrderPage() {
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6">
-              <div className="grid grid-cols-2 gap-6">
+              {editFormData ? (
+                <div className="grid grid-cols-2 gap-6">
                 {/* Item Code - Disabled */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -465,7 +528,7 @@ export default function PurchaseOrderPage() {
                   <input
                     type="text"
                     disabled
-                    value={selectedItem.item_code}
+                    value={editRowData?.item_code || editFormData.item_code}
                     className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
                   />
                 </div>
@@ -478,7 +541,7 @@ export default function PurchaseOrderPage() {
                   <input
                     type="text"
                     disabled
-                    value={selectedItem.item}
+                    value={editRowData?.item || editFormData.item}
                     className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
                   />
                 </div>
@@ -491,7 +554,7 @@ export default function PurchaseOrderPage() {
                   <input
                     type="text"
                     disabled
-                    value={`$${selectedItem.unit_price}`}
+                    value={`$${editRowData?.unit_price || editFormData.unit_price}`}
                     className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
                   />
                 </div>
@@ -504,7 +567,7 @@ export default function PurchaseOrderPage() {
                   <input
                     type="text"
                     disabled
-                    value={selectedItem.quantity}
+                    value={editRowData?.quantity || editFormData.quantity}
                     className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
                   />
                 </div>
@@ -555,7 +618,7 @@ export default function PurchaseOrderPage() {
                   <input
                     type="text"
                     disabled
-                    value={selectedItem.document || "N/A"}
+                    value={editRowData?.document || editFormData.document || "N/A"}
                     className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
                   />
                 </div>
@@ -568,11 +631,12 @@ export default function PurchaseOrderPage() {
                   <input
                     type="text"
                     disabled
-                    value={selectedItem.po_number}
+                    value={editRowData?.po_number || editFormData.po_number}
                     className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
                   />
                 </div>
               </div>
+              ) : null}
             </div>
 
             {/* Footer */}
