@@ -8,6 +8,9 @@ import { Fragment, useState, useEffect, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useStore } from "@/store/store-context";
 import { v4 as uuidv4 } from "uuid";
+import { MdArrowDropDown } from "react-icons/md";
+import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+import { MdClose } from "react-icons/md";
 
 interface PurchaseOrder {
   po_number: string;
@@ -171,6 +174,7 @@ export default function PurchaseOrderPage() {
         status: item.status as string,
         step_name: item.step_name as string,
         document: (item.document as string) || null,
+        vendor_name: (item.vendor_name as string) || null,
         InfoveaveBatchId: item.InfoveaveBatchId as number,
         ROWID: item.ROWID as number,
         total: (item.unit_price as number) * (item.quantity as number),
@@ -199,11 +203,17 @@ export default function PurchaseOrderPage() {
     );
   };
 
+  // Function to format numbers with commas (Western format: 1,000,000)
+  const formatNumber = (num: number) => {
+    return Math.floor(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  };
+
   // Filter items based on search term
   const filteredPoItems = searchTerm.trim() === ""
     ? poItems
     : poItems.filter((item) =>
-        item.item && item.item.toLowerCase().includes(searchTerm.toLowerCase())
+        (item.item && item.item.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (item.vendor_name && item.vendor_name.toLowerCase().includes(searchTerm.toLowerCase()))
       );
 
   const itemsByPO = filteredPoItems.reduce(
@@ -400,7 +410,7 @@ export default function PurchaseOrderPage() {
             <div className="flex items-center gap-3 flex-1 max-w-md">
               <input
                 type="text"
-                placeholder="Search by item name..."
+                placeholder="Search by Item name/Vendor name"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
@@ -408,7 +418,7 @@ export default function PurchaseOrderPage() {
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm("")}
-                  className="px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm"
+                  className="px-3 py-2.25 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm"
                 >
                   Clear
                 </button>
@@ -418,7 +428,7 @@ export default function PurchaseOrderPage() {
         </div>
 
         {/* Content */}
-        <div className="px-6 py-6">
+        <div className="px-6 py-4">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin">
@@ -463,11 +473,11 @@ export default function PurchaseOrderPage() {
                         className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/2 transition-colors cursor-pointer group"
                         onClick={() => togglePO(po.po_number)}
                       >
-                        <td className="px-5 py-4 text-gray-700 dark:text-gray-300 font-semibold text-sm">
-                          <div className="flex items-center gap-3">
-                            <span className="text-base text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-400 transition-colors">
-                              {expandedPOs.has(po.po_number) ? "▼" : "▶"}
-                            </span>
+                        <td className="pl-1 text-gray-700 dark:text-gray-300 font-semibold text-sm">
+                          <div className="flex items-center gap-1">
+                            <MdArrowDropDown 
+                              className={`w-8 h-8 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-400 transition-transform duration-200 ${expandedPOs.has(po.po_number) ? '' : '-rotate-90'}`}
+                            />
                             {po.po_number}
                           </div>
                         </td>
@@ -480,7 +490,7 @@ export default function PurchaseOrderPage() {
                           </Badge>
                         </td>
                         <td className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">
-                          {po.vendor_name || po.vendor_id}
+                          {searchTerm ? highlightText(po.vendor_name || po.vendor_id, searchTerm) : (po.vendor_name || po.vendor_id)}
                         </td>
                       </tr>
 
@@ -512,11 +522,11 @@ export default function PurchaseOrderPage() {
                                   <div className="text-gray-700 dark:text-gray-300">
                                     {searchTerm ? highlightText(item.item, searchTerm) : item.item}
                                   </div>
-                                  <div className="text-gray-700 dark:text-gray-300">${item.unit_price}</div>
+                                  <div className="text-gray-700 dark:text-gray-300">$ {formatNumber(item.unit_price)}</div>
                                   <div className="text-gray-700 dark:text-gray-300">{item.quantity}</div>
-                                  <div className="text-gray-700 dark:text-gray-300 font-semibold">${item.total}</div>
+                                  <div className="text-gray-700 dark:text-gray-300 font-semibold">$ {formatNumber(item.total || 0)}</div>
                                   <div>
-                                    <Badge color="blue" variant="solid" size="sm">
+                                    <Badge color="green" variant="solid" size="sm">
                                       {item.status}
                                     </Badge>
                                   </div>
@@ -528,16 +538,10 @@ export default function PurchaseOrderPage() {
                                         className="cursor-pointer hover:opacity-75 transition-opacity"
                                         title="View document"
                                       >
-                                        <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                                          <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                                          <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
-                                        </svg>
+                                        <AiOutlineEye className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                                       </button>
                                     ) : (
-                                      <svg className="w-5 h-5 text-gray-400 dark:text-gray-500" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                                        <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
-                                      </svg>
+                                      <AiOutlineEyeInvisible className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                                     )}
                                   </div>
                                   <div>
@@ -577,9 +581,7 @@ export default function PurchaseOrderPage() {
                 onClick={closePdfViewer}
                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <MdClose className="w-6 h-6" />
               </button>
             </div>
 
@@ -636,9 +638,7 @@ export default function PurchaseOrderPage() {
                 onClick={closeEditModal}
                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <MdClose className="w-6 h-6" />
               </button>
             </div>
 
@@ -691,7 +691,7 @@ export default function PurchaseOrderPage() {
                   <input
                     type="text"
                     disabled
-                    value={`$${editRowData?.unit_price || editFormData.unit_price}`}
+                    value={`$ ${formatNumber(editRowData?.unit_price || editFormData.unit_price)}`}
                     className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
                   />
                 </div>
