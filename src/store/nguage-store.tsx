@@ -23,6 +23,7 @@ export type CurrentUser = {
   email: string;
   lastName: string;
   userName: string;
+  roleId: string;
 };
 
 export class NguageStore {
@@ -185,6 +186,7 @@ export class NguageStore {
         email: response.data.data.email,
         lastName: response.data.data.lastName,
         userName: response.data.data.userName,
+        roleId: response.data.data.roleId,
       };
 
       this.currentUser = userData;

@@ -112,7 +112,7 @@ export default function KanbanBoard({ initialData }: KanbanBoardProps) {
             onDragEnd={handleDragEnd}
         >
             <SortableContext items={items.map((item) => item.ROWID)} strategy={verticalListSortingStrategy}>
-                <div className="w-full h-full bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex flex-col overflow-hidden">
+                <div className="w-full h-full flex flex-col overflow-hidden">
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
                         Purchase Order
                     </h1>

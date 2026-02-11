@@ -1,8 +1,8 @@
 "use client";
 
 import { useDroppable } from "@dnd-kit/core";
-import KanbanCard from "./KanbanCard";
-import { KanbanItem } from "./KanbanBoard";
+import KanbanCard from "@/components/kanban/KanbanCard";
+import { KanbanItem } from "@/components/kanban/KanbanBoard";
 
 interface KanbanColumnProps {
   step: string;
@@ -60,7 +60,9 @@ export default function KanbanColumn({ step, items }: KanbanColumnProps) {
         <div className={`w-12 h-1 ${colors.text} rounded-full opacity-50 mt-2`}></div>
       </div>
 
-      <div className="flex-1 space-y-3 overflow-y-auto max-h-140 pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800">
+      <div className="flex-1 space-y-3 overflow-y-auto max-h-140 pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800" style={{
+        scrollbarWidth: 'thin',
+      }}>
         {items.length === 0 ? (
           <div className="flex items-center justify-center h-full text-gray-400 dark:text-gray-500 text-sm">
             <p>Drop items here</p>

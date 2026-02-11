@@ -34,6 +34,7 @@ export default async function handler(request: NextRequest) {
             email: data.email,
             lastName: data.lastName,
             userName: data.userName,
+            roleId: data.roleId,
           },
         }),
         {
