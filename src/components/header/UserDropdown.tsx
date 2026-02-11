@@ -2,15 +2,22 @@
 import Image from "next/image";
 import Link from "next/link";
 import React, { useState } from "react";
-import { Dropdown } from "../ui/dropdown/Dropdown";
-import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { useStore } from "../../store/store-context";
-import { observer } from "mobx-react-lite";
+import { Dropdown } from "../ui/dropdown/Dropdown";
+import { useQuery } from "@tanstack/react-query";
 
-const UserDropdown = observer(() => {
+const UserDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
   const store = useStore();
-  const user = store.nguageStore.currentUser;
+
+  const authToken = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+
+  const { data: user } = useQuery({
+    queryKey: ["currentUser", authToken],
+    queryFn: () => store.nguageStore.GetCurrentUser(),
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    enabled: !!authToken, // Only fetch if token exists
+  });
 
 function toggleDropdown(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
   e.stopPropagation();
@@ -96,6 +103,6 @@ function toggleDropdown(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
       </Dropdown>
     </div>
   );
-});
+};
 
 export default UserDropdown;

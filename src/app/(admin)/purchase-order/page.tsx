@@ -123,7 +123,7 @@ export default function PurchaseOrderPage() {
 
   // Fetch purchase orders
   const { data: purchaseOrders = [], isLoading, error } = useQuery({
-    queryKey: ["purchaseOrders"],
+    queryKey: ["purchaseOrders", authToken],
     queryFn: async (): Promise<PurchaseOrder[]> => {
       const response = await axios.post(
         "/api/GetAllData",
@@ -148,7 +148,7 @@ export default function PurchaseOrderPage() {
 
   // Fetch PO items
   const { data: poItems = [] } = useQuery({
-    queryKey: ["poItems"],
+    queryKey: ["poItems", authToken],
     queryFn: async (): Promise<PurchaseOrderItem[]> => {
       const response = await axios.post(
         "/api/GetPOItems",
@@ -203,7 +203,6 @@ export default function PurchaseOrderPage() {
     );
   };
 
-  // Function to format numbers with commas (Western format: 1,000,000)
   const formatNumber = (num: number) => {
     return Math.floor(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
@@ -312,7 +311,7 @@ export default function PurchaseOrderPage() {
 
   // Fetch detailed row data for edit modal
   const { data: editRowData, refetch: refetchEditData } = useQuery({
-    queryKey: ["editRowData", selectedItem?.ROWID],
+    queryKey: ["editRowData", selectedItem?.ROWID, authToken],
     queryFn: async () => {
       if (!selectedItem?.ROWID || !authToken) return null;
       const response = await axios.post(
