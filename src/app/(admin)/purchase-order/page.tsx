@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from "uuid";
 import { MdArrowDropDown } from "react-icons/md";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { MdClose } from "react-icons/md";
+import { observer } from "mobx-react-lite";
 
 interface PurchaseOrder {
   po_number: string;
@@ -59,7 +60,7 @@ const getStatusColor = (
   }
 };
 
-export default function PurchaseOrderPage() {
+export default observer(function PurchaseOrderPage() {
   const { nguageStore } = useStore();
   const queryClient = useQueryClient();
   const [expandedPOs, setExpandedPOs] = useState<Set<string>>(new Set());
@@ -81,6 +82,9 @@ export default function PurchaseOrderPage() {
     staleTime: 0,
     gcTime: 0,
   });
+
+  // Get the current user from the store
+  const user = nguageStore.currentUser;
 
   // Save edit with token from state (same as other endpoints)
   const handleSaveEdit = async () => {
@@ -212,7 +216,8 @@ export default function PurchaseOrderPage() {
     ? poItems
     : poItems.filter((item) =>
         (item.item && item.item.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (item.vendor_name && item.vendor_name.toLowerCase().includes(searchTerm.toLowerCase()))
+        (item.vendor_name && item.vendor_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (item.po_number && item.po_number.toLowerCase().includes(searchTerm.toLowerCase()))
       );
 
   const itemsByPO = filteredPoItems.reduce(
@@ -406,20 +411,30 @@ export default function PurchaseOrderPage() {
         <div className="border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/5 px-6 py-4">
           <div className="flex justify-between items-center gap-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Purchase Orders</h2>
-            <div className="flex items-center gap-3 flex-1 max-w-md">
-              <input
-                type="text"
-                placeholder="Search by Item name/Vendor name"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              />
-              {searchTerm && (
+            <div className="flex items-center gap-3 flex-1 max-w-[460px]">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder="Search by PO number/Item name/Vendor name"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-4 py-2.25 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none text-sm"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                    title="Clear search"
+                  >
+                    <MdClose className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+              {user?.roleId === 5 && (
                 <button
-                  onClick={() => setSearchTerm("")}
-                  className="px-3 py-2.25 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm"
+                  className="px-4 py-2.25 bg-blue-800 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
                 >
-                  Clear
+                  + ADD PO
                 </button>
               )}
             </div>
@@ -477,7 +492,7 @@ export default function PurchaseOrderPage() {
                             <MdArrowDropDown 
                               className={`w-8 h-8 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-400 transition-transform duration-200 ${expandedPOs.has(po.po_number) ? '' : '-rotate-90'}`}
                             />
-                            {po.po_number}
+                            {searchTerm ? highlightText(po.po_number, searchTerm) : po.po_number}
                           </div>
                         </td>
                         <td className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">
@@ -807,5 +822,5 @@ export default function PurchaseOrderPage() {
       )}
     </div>
   );
-}
+});
 

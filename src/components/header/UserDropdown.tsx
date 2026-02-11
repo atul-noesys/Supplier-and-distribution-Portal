@@ -78,11 +78,6 @@ const UserDropdown = () => {
             {user?.email || "email@example.com"}
           </span>
         </div>
-        <div>
-          <span className="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
-            User RoleId : {user?.roleId}
-          </span>
-        </div>
         <Link
           href="/login"
           className="flex items-center gap-3 px-3 py-2 mt-3 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"

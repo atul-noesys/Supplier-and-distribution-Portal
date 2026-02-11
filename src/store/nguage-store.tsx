@@ -23,7 +23,7 @@ export type CurrentUser = {
   email: string;
   lastName: string;
   userName: string;
-  roleId: string;
+  roleId: number;
 };
 
 export class NguageStore {
