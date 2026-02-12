@@ -3,14 +3,32 @@ import pkg from "../../../package.json";
 
 export const runtime = "edge";
 
+// Map tableName to formId
+const tableFormIdMap: Record<string, number> = {
+  "purchase_order_items": 42,
+};
+
 export default async function handler(request: NextRequest) {
   if (request.method === "POST") {
     try {
-      const body = await request.json();
       const authHeader = request.headers.get("Authorization");
-      const { tableNumber, tableName, ...rowData } = body;
+      const body = await request.json();
+      const formId = body.formId;
+      const rowId = body.ROWID;
+      const tableName = body.tableName || "purchase_order_items";
 
-      const response = await fetch(`https://nooms.infoveave.app/api/v10/ngauge/forms/${tableNumber}/row`,
+      if (!rowId) {
+        return new Response(
+          JSON.stringify({ message: "ROWID is required" }),
+          {
+            headers: { "content-type": "application/json" },
+            status: 400,
+          },
+        );
+      }
+
+      const response = await fetch(
+        `https://nooms.infoveave.app/api/v10/ngauge/forms/${formId}/get-row`,
         {
           method: "POST",
           headers: {
@@ -19,12 +37,13 @@ export default async function handler(request: NextRequest) {
             "x-web-app": "Infoveave",
             "x-web-app-version": pkg.version,
           },
-          body: JSON.stringify(
-            {
-              "rowData": rowData,
-              "tableName": tableName
-            }
-          ),
+          body: JSON.stringify({
+            "primaryKeyData": {
+              "primaryKey": "ROWID",
+              "value": String(rowId)
+            },
+            "tableName": tableName
+          }),
         },
       );
 
@@ -35,8 +54,8 @@ export default async function handler(request: NextRequest) {
       const data = await response.json();
       return new Response(
         JSON.stringify({
-          message: "Row Updated Successfully",
-          data: data,
+          message: "Fetched Data Successfully",
+          data: data.data,
         }),
         {
           headers: { "content-type": "application/json" },
@@ -55,7 +74,7 @@ export default async function handler(request: NextRequest) {
       JSON.stringify(
         {
           message: "Method not allowed",
-          details: "Please use put method",
+          details: "Please use post method for signup",
         },
         null,
       ),

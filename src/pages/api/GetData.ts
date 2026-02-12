@@ -6,11 +6,12 @@ export const runtime = "edge";
 export default async function handler(request: NextRequest) {
   if (request.method === "POST") {
     try {
-      const body = await request.json();
       const authHeader = request.headers.get("Authorization");
-      const { tableNumber, tableName, ...rowData } = body;
+      const body = await request.json();
+      const { table, NGaugeId, skip = 0, take = 200 } = body;
 
-      const response = await fetch(`https://nooms.infoveave.app/api/v10/ngauge/forms/${tableNumber}/row`,
+      const response = await fetch(
+        `https://nooms.infoveave.app/api/v10/ngauge/forms/${NGaugeId}/get-data`,
         {
           method: "POST",
           headers: {
@@ -19,12 +20,12 @@ export default async function handler(request: NextRequest) {
             "x-web-app": "Infoveave",
             "x-web-app-version": pkg.version,
           },
-          body: JSON.stringify(
-            {
-              "rowData": rowData,
-              "tableName": tableName
-            }
-          ),
+          body: JSON.stringify({
+            "table": table,
+            "skip": skip,
+            "take": take,
+            "NGaugeId": NGaugeId
+          }),
         },
       );
 
@@ -35,8 +36,8 @@ export default async function handler(request: NextRequest) {
       const data = await response.json();
       return new Response(
         JSON.stringify({
-          message: "Row Updated Successfully",
-          data: data,
+          message: "Fetched Data Successfully",
+          data: data.data,
         }),
         {
           headers: { "content-type": "application/json" },
@@ -55,7 +56,7 @@ export default async function handler(request: NextRequest) {
       JSON.stringify(
         {
           message: "Method not allowed",
-          details: "Please use put method",
+          details: "Please use post method for signup",
         },
         null,
       ),

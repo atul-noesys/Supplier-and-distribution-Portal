@@ -1,4 +1,4 @@
-import axios, { AxiosResponse } from "axios";
+import { axios, AxiosResponse, authConfig } from "./axios";
 import { makeAutoObservable } from "mobx";
 import Uppy from "@uppy/core";
 import Tus from "@uppy/tus";
@@ -52,8 +52,8 @@ export class NguageStore {
         token = localStorage.getItem("access_token");
       }
 
-      const { data }: AxiosResponse<PaginationData> = await axios.post(
-        "/api/GetAllData",
+      const response = await axios.post(
+        "/api/GetData",
         tableData,
         {
           headers: {
@@ -62,7 +62,7 @@ export class NguageStore {
           },
         },
       );
-      return data;
+      return response.data.data;
     } catch {
       return null;
     }
@@ -167,6 +167,29 @@ export class NguageStore {
         result: null,
         error: (e as { data: { ref: string } }).data.ref ?? "",
       };
+    }
+  }
+
+  async GetRowData(
+    formId: number,
+    rowId: string | number,
+    tableName: string,
+  ): Promise<RowData | null> {
+    try {
+      const response = await axios.post(
+        "/api/GetRowDataDynamic",
+        {
+          formId: formId,
+          ROWID: rowId,
+          tableName,
+        },
+        authConfig({}),
+      );
+
+      return response.data.data;
+    } catch (error) {
+      console.error("Error fetching row data:", error);
+      return null;
     }
   }
 
