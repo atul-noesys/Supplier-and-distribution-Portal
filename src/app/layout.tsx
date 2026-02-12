@@ -6,6 +6,7 @@ import { ThemeProvider } from '@/context/ThemeContext';
 import { Metadata } from 'next';
 import { StoreProvider } from '@/store/store-context';
 import { QueryProvider } from '@/providers/QueryProvider';
+import { ToastProvider } from '@/providers/ToastProvider';
 
 export const metadata: Metadata = {
   title: "Infoveave - Supplier and Distributor Portal",
@@ -29,6 +30,7 @@ export default function RootLayout({
           <StoreProvider>
             <QueryProvider>
               <SidebarProvider>{children}</SidebarProvider>
+              <ToastProvider />
             </QueryProvider>
           </StoreProvider>
         </ThemeProvider>

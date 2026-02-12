@@ -7,6 +7,7 @@ import axios from "axios";
 import { Fragment, useState, useEffect, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useStore } from "@/store/store-context";
+import { toast } from "react-toastify";
 import { v4 as uuidv4 } from "uuid";
 import { MdArrowDropDown } from "react-icons/md";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
@@ -89,12 +90,12 @@ export default observer(function PurchaseOrderPage() {
   // Save edit with token from state (same as other endpoints)
   const handleSaveEdit = async () => {
     if (!editFormData) {
-      console.error("No edit form data");
+      toast.error("No edit form data");
       return;
     }
 
     if (!authToken) {
-      console.error("No auth token available");
+      toast.error("No auth token available");
       return;
     }
 
@@ -113,6 +114,11 @@ export default observer(function PurchaseOrderPage() {
       );
 
       console.log("Row updated successfully:", response.data);
+      toast.success(
+        <span>
+          Purchase order item <b>{editFormData.item}</b> updated successfully!
+        </span>
+      );
       closeEditModal();
       // Refetch the updated data for both tables
       await queryClient.invalidateQueries({ queryKey: ["poItems"] });
@@ -121,6 +127,9 @@ export default observer(function PurchaseOrderPage() {
       console.error("Failed to update row:", error);
       if (axios.isAxiosError(error) && error.response) {
         console.error("Response error details:", error.response.data);
+        toast.error(`Failed to update: ${error.response.data?.message || "Unknown error"}`);
+      } else {
+        toast.error("Failed to update purchase order item");
       }
     }
   };

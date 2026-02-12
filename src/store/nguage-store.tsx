@@ -47,7 +47,6 @@ export class NguageStore {
     sort?: { [keyValue: string]: string } | undefined;
   }): Promise<PaginationData | null> {
     try {
-      // Get token from localStorage (client-side only)
       let token = null;
       if (typeof window !== "undefined") {
         token = localStorage.getItem("access_token");
