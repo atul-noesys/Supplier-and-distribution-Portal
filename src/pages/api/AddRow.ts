@@ -8,8 +8,9 @@ export default async function handler(request: NextRequest) {
     try {
       const body = await request.json();
       const authHeader = request.headers.get("Authorization");
+      const { tableNumber, tableName, ...rowData } = body;
 
-      const response = await fetch("https://nooms.infoveave.app/api/v10/ngauge/forms/31/row",
+      const response = await fetch(`https://nooms.infoveave.app/api/v10/ngauge/forms/${tableNumber}/row`,
         {
           method: "POST",
           headers: {
@@ -20,8 +21,8 @@ export default async function handler(request: NextRequest) {
           },
           body: JSON.stringify(
             {
-              "rowData": body,
-              "tableName": "userregistration"
+              "rowData": rowData,
+              "tableName": tableName
             }
           ),
         },

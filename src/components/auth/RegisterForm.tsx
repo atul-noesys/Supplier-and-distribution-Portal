@@ -60,7 +60,7 @@ export default observer(function RegisterForm() {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
       const fileNameToUpload = "Ngauge" + uuidv4() + file.name;
-      
+
       setFormData((prev) => ({
         ...prev,
         documents: e.target.files,
@@ -69,12 +69,12 @@ export default observer(function RegisterForm() {
       // Call API to upload file immediately
       setIsUploading(true);
       setSubmitMessage(null);
-      
+
       try {
         console.log("Uploading file:", file.name);
         const uploadResult = await nguageStore.UploadAttachFile(file, fileNameToUpload);
         console.log("Upload result:", uploadResult);
-        
+
         if (uploadResult) {
           setFormData((prev) => ({
             ...prev,
@@ -118,7 +118,7 @@ export default observer(function RegisterForm() {
         "approved": 0,
         "user_registration_date": new Date().toISOString().split('T')[0],
         "is_account_created": "false"
-      });
+      }, 31, "userregistration");
 
       if (result.result) {
         setSubmitMessage({ type: "success", text: "Registration submitted successfully!" });

@@ -137,6 +137,8 @@ export class NguageStore {
 
   async AddDataSourceRow(
     rowData: RowData,
+    tableNumber: number,
+    tableName: string,
   ): Promise<{ result: string | null; error: string }> {
     try {
       // Get token from localStorage (client-side only)
@@ -147,7 +149,11 @@ export class NguageStore {
 
       const { data }: AxiosResponse<string> = await axios.post(
         "/api/AddRow",
-        rowData,
+        {
+          tableNumber,
+          tableName,
+          ...rowData,
+        },
         {
           headers: {
             "Content-Type": "application/json",
