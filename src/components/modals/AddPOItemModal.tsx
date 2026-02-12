@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import * as React from 'react';
 import { MdClose } from 'react-icons/md';
 import { toast } from 'react-toastify';
+import { useQuery } from '@tanstack/react-query';
 import { useStore } from '@/store/store-context';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -19,6 +21,7 @@ interface POItem {
     vendor_name?: string;
     remarks?: string;
     document?: string;
+    total?: string;
 }
 
 interface AddPOItemModalProps {
@@ -45,6 +48,28 @@ export default function AddPOItemModal({
 }: AddPOItemModalProps) {
     const { nguageStore } = useStore();
     const [isUploadingDocument, setIsUploadingDocument] = useState(false);
+
+    // Fetch pagination data using TanStack Query
+    const { data: paginationData, isLoading, error } = useQuery({
+        queryKey: ["paginationData", "item", "33"],
+        queryFn: () =>
+            nguageStore.GetPaginationData({
+                table: "item",
+                skip: 0,
+                take: 200,
+                NGaugeId: "33",
+            }),
+        enabled: true,
+        staleTime: Infinity,
+    });
+
+    // Debug logging
+    React.useEffect(() => {
+        console.log('paginationData:', paginationData);
+        console.log('isLoading:', isLoading);
+        console.log('error:', error);
+    }, [paginationData, isLoading, error]);
+
     const [formData, setFormData] = useState<POItem>(
         initialData || {
             po_number: poData?.po_number || '',
@@ -59,14 +84,34 @@ export default function AddPOItemModal({
             vendor_name: poData?.vendor_name || '',
             remarks: '',
             document: '',
+            total: '',
         }
     );
 
     const handleInputChange = (field: string, value: string) => {
-        setFormData((prev) => ({
-            ...prev,
-            [field]: value,
-        }));
+        setFormData((prev) => {
+            const updated = {
+                ...prev,
+                [field]: value,
+            };
+
+            // Auto-populate item name and unit price when item code is selected
+            if (field === 'item_code' && Array.isArray(paginationData)) {
+                const selectedItem = paginationData.find((item: any) => item.Item_code === value);
+                if (selectedItem) {
+                    updated.item = selectedItem.Item_name;
+                    updated.unit_price = String(selectedItem.Unit_price);
+                }
+            }
+
+            // Auto-calculate total when unit_price or quantity changes
+            if (field === 'unit_price' || field === 'quantity') {
+                const unitPrice = parseFloat(updated.unit_price) || 0;
+                const quantity = parseFloat(updated.quantity) || 0;
+                updated.total = (unitPrice * quantity).toFixed(2);
+            }
+            return updated;
+        });
     };
 
     const handleDocumentChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,6 +159,7 @@ export default function AddPOItemModal({
             vendor_name: poData?.vendor_name || '',
             remarks: '',
             document: '',
+            total: '',
         });
         onClose();
     };
@@ -128,9 +174,24 @@ export default function AddPOItemModal({
         }
 
         try {
-            onSave(formData);
-            toast.success(itemIndex !== null ? 'Item updated successfully!' : 'Item added successfully!');
-            handleClose();
+            const saveItem = async () => {
+                const result = await nguageStore.AddDataSourceRow(
+                    formData as any,
+                    42,
+                    'purchase_order_items'
+                );
+
+                if (result.error) {
+                    toast.error(`Failed to save: ${result.error}`);
+                    return;
+                }
+
+                onSave(formData);
+                toast.success(itemIndex !== null ? 'Item updated successfully!' : 'Item added successfully!');
+                handleClose();
+            };
+
+            saveItem();
         } catch (error) {
             console.error('Error saving item:', error);
             toast.error('Failed to save item');
@@ -162,31 +223,30 @@ export default function AddPOItemModal({
                         <div>
                             <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Item Details</h3>
                             <div className="grid grid-cols-3 gap-6">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        PO Number
-                                    </label>
-                                    <input
-                                        type="text"
-                                        disabled
-                                        value={formData.po_number || ''}
-                                        className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
-                                    />
-                                </div>
-
                                 {/* Item Code */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         Item Code <span className="text-red-500">*</span>
                                     </label>
-                                    <input
-                                        type="text"
+                                    <select
                                         value={formData.item_code}
                                         onChange={(e) => handleInputChange('item_code', e.target.value)}
-                                        placeholder="Enter item code"
-                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         required
-                                    />
+                                    >
+                                        <option value="">Select item code</option>
+                                        {isLoading && <option disabled>Loading items...</option>}
+                                        {error && <option disabled>Error loading items</option>}
+                                        {Array.isArray(paginationData) && paginationData.length > 0 ? (
+                                            paginationData.map((item: any) => (
+                                                <option key={item.ROWID} value={item.Item_code}>
+                                                    {item.Item_code}
+                                                </option>
+                                            ))
+                                        ) : (
+                                            !isLoading && <option disabled>No items available</option>
+                                        )}
+                                    </select>
                                 </div>
 
                                 {/* Item Name */}
@@ -197,10 +257,8 @@ export default function AddPOItemModal({
                                     <input
                                         type="text"
                                         value={formData.item}
-                                        onChange={(e) => handleInputChange('item', e.target.value)}
-                                        placeholder="Enter item name"
-                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        required
+                                        disabled
+                                        className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
                                     />
                                 </div>
 
@@ -210,14 +268,10 @@ export default function AddPOItemModal({
                                         Unit Price <span className="text-red-500">*</span>
                                     </label>
                                     <input
-                                        type="number"
-                                        value={formData.unit_price}
-                                        onChange={(e) => handleInputChange('unit_price', e.target.value)}
-                                        placeholder="0.00"
-                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        step="0.01"
-                                        min="0"
-                                        required
+                                        type="text"
+                                        value={formData.unit_price ? `$${parseFloat(formData.unit_price).toFixed(2)}` : '$0.00'}
+                                        disabled
+                                        className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
                                     />
                                 </div>
 
@@ -234,6 +288,19 @@ export default function AddPOItemModal({
                                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         min="0"
                                         required
+                                    />
+                                </div>
+
+                                {/* Total */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Total
+                                    </label>
+                                    <input
+                                        type="text"
+                                        disabled
+                                        value={formData.total ? `$${parseFloat(formData.total).toFixed(2)}` : '$0.00'}
+                                        className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
                                     />
                                 </div>
 
@@ -297,6 +364,57 @@ export default function AddPOItemModal({
                                             File: <span className="font-medium">{formData.document}</span>
                                         </p>
                                     )}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        PO Number
+                                    </label>
+                                    <input
+                                        type="text"
+                                        disabled
+                                        value={formData.po_number || ''}
+                                        className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                                    />
+                                </div>
+
+                                {/* PO Status */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        PO Status
+                                    </label>
+                                    <input
+                                        type="text"
+                                        disabled
+                                        value={formData.po_status || ''}
+                                        className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                                    />
+                                </div>
+
+                                {/* Vendor ID */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Vendor ID
+                                    </label>
+                                    <input
+                                        type="text"
+                                        disabled
+                                        value={formData.vendor_id || ''}
+                                        className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                                    />
+                                </div>
+
+                                {/* Vendor Name */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Vendor Name
+                                    </label>
+                                    <input
+                                        type="text"
+                                        disabled
+                                        value={formData.vendor_name || ''}
+                                        className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                                    />
                                 </div>
                             </div>
                         </div>
