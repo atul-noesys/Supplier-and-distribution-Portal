@@ -1,18 +1,17 @@
 "use client";
 
-import ComponentCard from "@/components/common/ComponentCard";
-import Badge from "@/components/ui/badge/Badge";
+import AddPOModal from "@/components/modals/AddPOModal";
 import { PDFPreview } from "@/components/pdf-preview";
-import axios from "axios";
-import { Fragment, useState, useEffect, useCallback } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import Badge from "@/components/ui/badge/Badge";
 import { useStore } from "@/store/store-context";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
+import { observer } from "mobx-react-lite";
+import { Fragment, useCallback, useEffect, useState } from "react";
+import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+import { MdArrowDropDown, MdClose } from "react-icons/md";
 import { toast } from "react-toastify";
 import { v4 as uuidv4 } from "uuid";
-import { MdArrowDropDown } from "react-icons/md";
-import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
-import { MdClose } from "react-icons/md";
-import { observer } from "mobx-react-lite";
 
 interface PurchaseOrder {
   po_number: string;
@@ -70,6 +69,7 @@ export default observer(function PurchaseOrderPage() {
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAddPOModalOpen, setIsAddPOModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<PurchaseOrderItem | null>(null);
   const [editFormData, setEditFormData] = useState<PurchaseOrderItem | null>(null);
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
@@ -441,6 +441,7 @@ export default observer(function PurchaseOrderPage() {
               </div>
               {user?.roleId === 5 && (
                 <button
+                  onClick={() => setIsAddPOModalOpen(true)}
                   className="px-4 py-2.25 bg-blue-800 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
                 >
                   + ADD PO
@@ -653,7 +654,7 @@ export default observer(function PurchaseOrderPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-2/3 max-h-[90vh] flex flex-col overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 p-6 bg-white dark:bg-gray-900">
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4 bg-white dark:bg-gray-900">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Edit Purchase Order Item
               </h2>
@@ -812,7 +813,7 @@ export default observer(function PurchaseOrderPage() {
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-end gap-4 border-t border-gray-200 dark:border-gray-700 p-6 bg-white dark:bg-gray-900">
+            <div className="flex items-center justify-end gap-4 border-t border-gray-200 dark:border-gray-700 px-6 py-4 bg-white dark:bg-gray-900">
               <button
                 onClick={closeEditModal}
                 className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
@@ -829,6 +830,12 @@ export default observer(function PurchaseOrderPage() {
           </div>
         </div>
       )}
+
+      {/* Add PO Modal */}
+      <AddPOModal
+        isOpen={isAddPOModalOpen}
+        onClose={() => setIsAddPOModalOpen(false)}
+      />
     </div>
   );
 });
