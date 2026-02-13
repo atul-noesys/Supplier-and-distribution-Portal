@@ -7,8 +7,23 @@ import { toast } from 'react-toastify';
 import { useQuery } from '@tanstack/react-query';
 import { useStore } from '@/store/store-context';
 import { v4 as uuidv4 } from 'uuid';
-import { POItem } from '@/types/purchase-order';
+import { POItem, KeyValueRecord, RowData } from '@/types/purchase-order';
 import { observer } from 'mobx-react-lite';
+
+/**
+ * Convert KeyValueRecord to RowData for API submission
+ * Removes undefined values and ensures type compatibility
+ */
+const toRowData = (record: KeyValueRecord): RowData => {
+  const rowData: RowData = {};
+  Object.keys(record).forEach((key) => {
+    const value = record[key];
+    if (value !== null && value !== undefined && value !== '') {
+      rowData[key] = typeof value === 'boolean' ? (value ? 1 : 0) : value;
+    }
+  });
+  return rowData;
+};
 
 interface AddPOItemModalProps {
     isOpen: boolean;
@@ -48,8 +63,11 @@ function AddPOItemModalContent({
         staleTime: Infinity,
     });
 
-    // Initialize form with default values
-    const getDefaultFormData = React.useCallback((): POItem => ({
+    /**
+     * Initialize form with key-value record structure
+     * All form data treated as a flexible key-value record
+     */
+    const getDefaultFormData = React.useCallback((): KeyValueRecord => ({
         po_number: poData?.po_number || '',
         item_code: '',
         item: '',
@@ -65,7 +83,7 @@ function AddPOItemModalContent({
         total: '',
     }), [poData]);
 
-    const [formData, setFormData] = useState<POItem>(getDefaultFormData());
+    const [formData, setFormData] = useState<KeyValueRecord>(getDefaultFormData());
 
     // Update form data when modal opens or when editingItem changes
     React.useEffect(() => {
@@ -78,7 +96,7 @@ function AddPOItemModalContent({
                 setFormData(getDefaultFormData());
             }
         }
-    }, [isOpen, editingItem, poData]);
+    }, [isOpen, editingItem, getDefaultFormData, poData]);
 
     const handleInputChange = (field: string, value: string) => {
         setFormData((prev) => {
@@ -146,16 +164,22 @@ function AddPOItemModalContent({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Validate required fields
-        if (!formData.item_code || !formData.item || !formData.unit_price || !formData.quantity) {
-            toast.error('Please fill in all required fields');
+        // Validate required fields using key-value approach
+        const requiredFields = ['item_code', 'item', 'unit_price', 'quantity'];
+        const missingFields = requiredFields.filter((field) => !formData[field]);
+
+        if (missingFields.length > 0) {
+            toast.error(`Please fill in required fields: ${missingFields.join(', ')}`);
             return;
         }
 
         try {
             const saveItem = async () => {
+                // Extract only fields that have values (dynamic key-value approach)
+                const itemToSave = toRowData(formData);
+
                 const result = await nguageStore.AddDataSourceRow(
-                    formData as any,
+                    itemToSave,
                     42,
                     'purchase_order_items'
                 );
@@ -174,7 +198,7 @@ function AddPOItemModalContent({
                 const itemWithRowId: POItem = {
                     ...formData,
                     rowId: rowId || undefined,
-                };
+                } as POItem;
 
                 console.log('Item saved with rowId:', itemWithRowId.rowId, 'Full item:', itemWithRowId);
                 onSave(itemWithRowId);
@@ -193,8 +217,11 @@ function AddPOItemModalContent({
         e.preventDefault();
 
         // Validate required fields
-        if (!formData.item_code || !formData.item || !formData.unit_price || !formData.quantity) {
-            toast.error('Please fill in all required fields');
+        const requiredFields = ['item_code', 'item', 'unit_price', 'quantity'];
+        const missingFields = requiredFields.filter((field) => !formData[field]);
+
+        if (missingFields.length > 0) {
+            toast.error(`Please fill in required fields: ${missingFields.join(', ')}`);
             return;
         }
 
@@ -205,9 +232,12 @@ function AddPOItemModalContent({
                     return;
                 }
 
-                // Extract rowId and remove it from the data to send
-                const { rowId, ...rowData } = formData;
-                const rowIdString = typeof rowId === 'string' || typeof rowId === 'number' ? String(rowId) : '';
+                // Extract key-value data excluding rowId
+                const itemToUpdate = toRowData({...formData, rowId: undefined});
+
+                const rowIdString = typeof formData.rowId === 'string' || typeof formData.rowId === 'number' 
+                    ? String(formData.rowId) 
+                    : '';
 
                 if (!rowIdString) {
                     toast.error('Invalid Item ID');
@@ -215,7 +245,7 @@ function AddPOItemModalContent({
                 }
 
                 const result = await nguageStore.UpdateRowData(
-                    rowData as any,
+                    itemToUpdate,
                     rowIdString
                 );
 
@@ -224,7 +254,7 @@ function AddPOItemModalContent({
                     return;
                 }
 
-                onSave(formData);
+                onSave(formData as POItem);
                 toast.success('Item updated successfully!');
                 handleClose();
             };
@@ -266,7 +296,7 @@ function AddPOItemModalContent({
                                         Item Code <span className="text-red-500">*</span>
                                     </label>
                                     <select
-                                        value={formData.item_code}
+                                        value={String(formData.item_code ?? '')}
                                         onChange={(e) => handleInputChange('item_code', e.target.value)}
                                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         required
@@ -293,7 +323,7 @@ function AddPOItemModalContent({
                                     </label>
                                     <input
                                         type="text"
-                                        value={formData.item}
+                                        value={String(formData.item ?? '')}
                                         disabled
                                         className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
                                     />
@@ -319,7 +349,7 @@ function AddPOItemModalContent({
                                     </label>
                                     <input
                                         type="number"
-                                        value={formData.quantity}
+                                        value={String(formData.quantity ?? '')}
                                         onChange={(e) => handleInputChange('quantity', e.target.value)}
                                         placeholder="0"
                                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -347,7 +377,7 @@ function AddPOItemModalContent({
                                         Status
                                     </label>
                                     <select
-                                        value={formData.status}
+                                        value={String(formData.status ?? '')}
                                         onChange={(e) => handleInputChange('status', e.target.value)}
                                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     >
@@ -365,7 +395,7 @@ function AddPOItemModalContent({
                                         Step Name
                                     </label>
                                     <select
-                                        value={formData.step_name}
+                                        value={String(formData.step_name ?? '')}
                                         onChange={(e) => handleInputChange('step_name', e.target.value)}
                                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     >
@@ -410,7 +440,7 @@ function AddPOItemModalContent({
                                     <input
                                         type="text"
                                         disabled
-                                        value={formData.po_number || ''}
+                                        value={String(formData.po_number ?? '')}
                                         className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
                                     />
                                 </div>
@@ -423,7 +453,7 @@ function AddPOItemModalContent({
                                     <input
                                         type="text"
                                         disabled
-                                        value={formData.po_status || ''}
+                                        value={String(formData.po_status ?? '')}
                                         className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
                                     />
                                 </div>
@@ -436,7 +466,7 @@ function AddPOItemModalContent({
                                     <input
                                         type="text"
                                         disabled
-                                        value={formData.vendor_id || ''}
+                                        value={String(formData.vendor_id ?? '')}
                                         className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
                                     />
                                 </div>
@@ -449,7 +479,7 @@ function AddPOItemModalContent({
                                     <input
                                         type="text"
                                         disabled
-                                        value={formData.vendor_name || ''}
+                                        value={String(formData.vendor_name ?? '')}
                                         className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
                                     />
                                 </div>
@@ -465,7 +495,7 @@ function AddPOItemModalContent({
                                     Remarks
                                 </label>
                                 <textarea
-                                    value={formData.remarks || ''}
+                                    value={String(formData.remarks ?? '')}
                                     onChange={(e) => handleInputChange('remarks', e.target.value)}
                                     placeholder="Enter any remarks or notes"
                                     rows={4}

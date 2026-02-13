@@ -1,19 +1,21 @@
-export interface POItem {
-  ROWID?: number;
-  InfoveaveBatchId?: number;
-  po_number?: string;
-  po_status?: string;
-  item_code?: string;
-  item?: string;
-  unit_price?: string | number;
-  quantity?: string | number;
-  total?: string | number;
-  status?: string;
-  step_name?: string;
-  step_history?: string | null;
-  vendor_id?: string;
-  vendor_name?: string;
-  remarks?: string;
-  document?: string;
-  [key: string]: any;
+/**
+ * Key-value record format where each field is represented as {key, value}
+ * This allows flexible, dynamic form population from API responses
+ */
+export interface KeyValueRecord {
+  [key: string]: string | number | boolean | null | undefined;
 }
+
+/**
+ * RowData interface for API compatibility
+ * Ensures values sent to API are properly typed
+ */
+export interface RowData {
+  [key: string]: string | number | null;
+}
+
+/**
+ * POItem is a RowData record representing a purchase order item
+ * Extends RowData for proper API type compatibility
+ */
+export type POItem = RowData;

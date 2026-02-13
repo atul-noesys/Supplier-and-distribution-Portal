@@ -9,7 +9,22 @@ import { observer } from 'mobx-react-lite';
 import DatePicker from '@/components/form/date-picker';
 import { useStore } from '@/store/store-context';
 import AddPOItemModal from './AddPOItemModal';
-import { POItem } from '@/types/purchase-order';
+import { POItem, KeyValueRecord, RowData } from '@/types/purchase-order';
+
+/**
+ * Convert KeyValueRecord to RowData for API submission
+ * Removes undefined values and ensures type compatibility
+ */
+const toRowData = (record: KeyValueRecord): RowData => {
+  const rowData: RowData = {};
+  Object.keys(record).forEach((key) => {
+    const value = record[key];
+    if (value !== null && value !== undefined && value !== '') {
+      rowData[key] = typeof value === 'boolean' ? (value ? 1 : 0) : value;
+    }
+  });
+  return rowData;
+};
 
 interface AddPOModalProps {
   isOpen: boolean;
@@ -19,9 +34,9 @@ interface AddPOModalProps {
 function AddPOModalContent({ isOpen, onClose }: AddPOModalProps) {
   const { nguageStore, poStore } = useStore();
   const [isSaved, setIsSaved] = useState(false);
-  const [poData, setPoData] = useState<any>(null);
+  const [poData, setPoData] = useState<KeyValueRecord | null>(null);
   const [showItemModal, setShowItemModal] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<KeyValueRecord>({
     po_issue_date: '',
     vendor_id: '',
     vendor_name: '',
@@ -78,18 +93,25 @@ function AddPOModalContent({ isOpen, onClose }: AddPOModalProps) {
   const handleSavePO = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate required fields
-    if (!formData.po_issue_date || !formData.vendor_name) {
-      toast.error('Please fill in all required fields');
+    // Validate required key-value fields
+    const requiredFields = ['po_issue_date', 'vendor_name'];
+    const missingFields = requiredFields.filter(
+      (field) => !formData[field]
+    );
+
+    if (missingFields.length > 0) {
+      toast.error(`Please fill in required fields: ${missingFields.join(', ')}`);
       return;
     }
 
     try {
-      // Call API to save PO
+      // Call API to save PO - send only populated key-value pairs
       console.log('Saving PO:', formData);
 
+      const poToSave = toRowData(formData);
+
       const result = await nguageStore.AddDataSourceRow(
-        formData,
+        poToSave,
         41,
         'purchase_orders'
       );
@@ -106,7 +128,8 @@ function AddPOModalContent({ isOpen, onClose }: AddPOModalProps) {
       if (!rowData) {
         console.warn('Row data fetch returned null');
       } else {
-        setPoData(rowData);
+        // Normalize API response to key-value record
+        setPoData(rowData as KeyValueRecord);
       }
 
       setIsSaved(true);
@@ -147,7 +170,7 @@ function AddPOModalContent({ isOpen, onClose }: AddPOModalProps) {
       vendor_id: '',
       vendor_name: '',
       po_status: 'pending',
-    });
+    } as KeyValueRecord);
     poStore.clearItems();
     setIsSaved(false);
     setPoData(null);
@@ -169,7 +192,9 @@ function AddPOModalContent({ isOpen, onClose }: AddPOModalProps) {
 
   const handleEditItem = (index: number) => {
     const item = poStore.poItems[index];
-    if (!item?.rowId) {
+    const rowId = item?.rowId ? String(item.rowId) : null;
+    
+    if (!rowId) {
       toast.error('Item ID is missing');
       return;
     }
@@ -179,7 +204,7 @@ function AddPOModalContent({ isOpen, onClose }: AddPOModalProps) {
       try {
         const latestData = await nguageStore.GetRowData(
           42,
-          item.rowId,
+          rowId,
           'purchase_order_items'
         );
 
@@ -247,7 +272,7 @@ function AddPOModalContent({ isOpen, onClose }: AddPOModalProps) {
                   <input
                     type="text"
                     disabled
-                    value={ poData !== null ? poData.po_number : "ENG-PO-****"}
+                    value={String(poData?.po_number ?? 'ENG-PO-****')}
                     className="w-full px-4 py-1.75 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
                   />
                 </div>
@@ -259,7 +284,7 @@ function AddPOModalContent({ isOpen, onClose }: AddPOModalProps) {
                     label="Issue Date"
                     placeholder="Select date"
                     mode="single"
-                    defaultDate={formData.po_issue_date || undefined}
+                    defaultDate={formData.po_issue_date ? new Date(String(formData.po_issue_date)) : undefined}
                     required
                     onChange={(selectedDates) => {
                       if (selectedDates.length > 0) {
@@ -280,7 +305,7 @@ function AddPOModalContent({ isOpen, onClose }: AddPOModalProps) {
                     Vendor Name <span className="text-red-500">*</span>
                   </label>
                   <select
-                    value={formData.vendor_name}
+                    value={String(formData.vendor_name ?? '')}
                     onChange={(e) => handleVendorChange(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
@@ -301,7 +326,7 @@ function AddPOModalContent({ isOpen, onClose }: AddPOModalProps) {
                   </label>
                   <input
                     type="text"
-                    value={formData.vendor_id}
+                    value={String(formData.vendor_id ?? '')}
                     disabled
                     className="w-full px-4 py-1.75 border border-gray-300 dark:border-gray-600 rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 cursor-not-allowed"
                   />
@@ -313,7 +338,7 @@ function AddPOModalContent({ isOpen, onClose }: AddPOModalProps) {
                     Status
                   </label>
                   <select
-                    value={formData.po_status}
+                    value={String(formData.po_status ?? '')}
                     onChange={(e) => handleInputChange('po_status', e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
