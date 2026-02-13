@@ -342,10 +342,10 @@ function AddPOModalContent({ isOpen, onClose }: AddPOModalProps) {
                     onChange={(e) => handleInputChange('po_status', e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="pending">Pending</option>
-                    <option value="shipped">Shipped</option>
-                    <option value="production">Production</option>
-                    <option value="completed">Completed</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Shipped">Shipped</option>
+                    <option value="Production">Production</option>
+                    <option value="Completed">Completed</option>
                   </select>
                 </div>
               </div>

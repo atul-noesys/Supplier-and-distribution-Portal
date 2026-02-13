@@ -8,23 +8,6 @@ interface KanbanCardProps {
   item: KanbanItem;
 }
 
-const statusBadges: Record<
-  string,
-  { bg: string; text: string; label: string }
-> = {
-  pending: { bg: "bg-yellow-100 dark:bg-yellow-900", text: "text-yellow-800 dark:text-yellow-200", label: "Pending" },
-  production: {
-    bg: "bg-blue-100 dark:bg-blue-900",
-    text: "text-blue-800 dark:text-blue-200",
-    label: "In Production",
-  },
-  completed: {
-    bg: "bg-green-100 dark:bg-green-900",
-    text: "text-green-800 dark:text-green-200",
-    label: "Completed",
-  },
-};
-
 export default function KanbanCard({ item }: KanbanCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.ROWID });

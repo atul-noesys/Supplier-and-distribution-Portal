@@ -16,7 +16,7 @@ import { v4 as uuidv4 } from "uuid";
 interface PurchaseOrder {
   po_number: string;
   po_issue_date: string;
-  po_status: "pending" | "approved" | "delivered" | "cancelled";
+  po_status: "Pending" | "Shipped" | "Production" | "Completed";
   vendor_id: string;
   vendor_name?: string;
   InfoveaveBatchId: number;
@@ -44,14 +44,18 @@ interface PurchaseOrderItem {
 }
 
 const getStatusColor = (
-  status: "pending" | "approved" | "delivered" | "cancelled",
+  status: "Pending" | "Shipped" | "Production" | "Completed" | "pending" | "approved" | "delivered" | "cancelled",
 ): "primary" | "success" | "error" | "warning" | "info" | "light" | "dark" => {
-  switch (status.toLowerCase()) {
+  const lowerStatus = status.toLowerCase();
+  switch (lowerStatus) {
+    case "completed":
+    case "delivered":
     case "approved":
       return "success";
     case "pending":
       return "warning";
-    case "delivered":
+    case "shipped":
+    case "production":
       return "info";
     case "cancelled":
       return "error";
