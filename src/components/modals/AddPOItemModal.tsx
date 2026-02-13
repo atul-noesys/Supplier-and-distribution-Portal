@@ -184,6 +184,19 @@ function AddPOItemModalContent({
                     'purchase_order_items'
                 );
 
+                //pushing data for work order table
+                const itemToSaveForWorkOrder = {
+                    ...itemToSave,
+                    start_date: new Date().toISOString().split('T')[0],
+                    step: itemToSave.status
+                };
+
+                await nguageStore.AddDataSourceRow(
+                    itemToSaveForWorkOrder,
+                    44,
+                    'work_order'
+                );
+
                 if (result.error) {
                     toast.error(`Failed to save: ${result.error}`);
                     return;
