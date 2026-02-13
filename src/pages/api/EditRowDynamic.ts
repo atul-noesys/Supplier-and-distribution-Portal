@@ -8,17 +8,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const body = req.body;
       const authHeader = req.headers.authorization;
       const rowId = body.ROWID;
+      const formId = body.formId;
+      const tableName = body.tableName;
 
       if (!rowId) {
         return res.status(400).json({ message: "ROWID is required" });
+      }
+
+      if (!formId) {
+        return res.status(400).json({ message: "formId is required" });
+      }
+
+      if (!tableName) {
+        return res.status(400).json({ message: "tableName is required" });
       }
 
       if (!authHeader) {
         return res.status(401).json({ message: "Authorization header is required" });
       }
 
-      // Remove ROWID and InfoveaveBatchId from body before sending to API
-      const { ROWID, InfoveaveBatchId, ...rowData } = body;
+      // Remove ROWID, InfoveaveBatchId, formId, and tableName from body before sending to API
+      const { ROWID, InfoveaveBatchId, formId: _, tableName: __, ...rowData } = body;
 
       console.log("EditRow API - Sending to upstream:", {
         primaryKeyData: {
@@ -34,11 +44,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           value: String(rowId),
         },
         rowData: rowData,
-        tableName: "purchase_order_items",
+        tableName: tableName,
       };
 
       const response = await axios.put(
-        "https://nooms.infoveave.app/api/v10/ngauge/forms/42/row",
+        `https://nooms.infoveave.app/api/v10/ngauge/forms/${formId}/row`,
         requestPayload,
         {
           headers: {

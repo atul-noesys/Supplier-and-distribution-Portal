@@ -7,29 +7,13 @@ import { toast } from 'react-toastify';
 import { useQuery } from '@tanstack/react-query';
 import { useStore } from '@/store/store-context';
 import { v4 as uuidv4 } from 'uuid';
-
-interface POItem {
-    po_number?: string;
-    item_code: string;
-    item: string;
-    unit_price: string;
-    quantity: string;
-    status: string;
-    step_name: string;
-    po_status?: string;
-    vendor_id?: string;
-    vendor_name?: string;
-    remarks?: string;
-    document?: string;
-    total?: string;
-}
+import { POItem } from '@/types/purchase-order';
+import { observer } from 'mobx-react-lite';
 
 interface AddPOItemModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSave: (item: POItem) => void;
-    initialData?: POItem | null;
-    itemIndex?: number | null;
     poData?: {
         po_number?: string;
         po_status?: string;
@@ -38,16 +22,17 @@ interface AddPOItemModalProps {
     };
 }
 
-export default function AddPOItemModal({
+function AddPOItemModalContent({
     isOpen,
     onClose,
     onSave,
-    initialData,
-    itemIndex,
     poData,
 }: AddPOItemModalProps) {
-    const { nguageStore } = useStore();
+    const { nguageStore, poStore } = useStore();
     const [isUploadingDocument, setIsUploadingDocument] = useState(false);
+
+    // Get editing item from store
+    const editingItem = poStore.getEditingItem();
 
     // Fetch pagination data using TanStack Query
     const { data: paginationData, isLoading, error } = useQuery({
@@ -63,30 +48,37 @@ export default function AddPOItemModal({
         staleTime: Infinity,
     });
 
-    // Debug logging
-    React.useEffect(() => {
-        console.log('paginationData:', paginationData);
-        console.log('isLoading:', isLoading);
-        console.log('error:', error);
-    }, [paginationData, isLoading, error]);
+    // Initialize form with default values
+    const getDefaultFormData = (): POItem => ({
+        po_number: poData?.po_number || '',
+        item_code: '',
+        item: '',
+        unit_price: '',
+        quantity: '',
+        status: 'Step 1',
+        step_name: '',
+        po_status: poData?.po_status || '',
+        vendor_id: poData?.vendor_id || '',
+        vendor_name: poData?.vendor_name || '',
+        remarks: '',
+        document: '',
+        total: '',
+    });
 
-    const [formData, setFormData] = useState<POItem>(
-        initialData || {
-            po_number: poData?.po_number || '',
-            item_code: '',
-            item: '',
-            unit_price: '',
-            quantity: '',
-            status: 'Step 1',
-            step_name: '',
-            po_status: poData?.po_status || '',
-            vendor_id: poData?.vendor_id || '',
-            vendor_name: poData?.vendor_name || '',
-            remarks: '',
-            document: '',
-            total: '',
+    const [formData, setFormData] = useState<POItem>(getDefaultFormData());
+
+    // Update form data when modal opens or when editingItem changes
+    React.useEffect(() => {
+        if (isOpen) {
+            if (editingItem) {
+                // Populate with editing item data
+                setFormData(editingItem);
+            } else {
+                // Reset to default for new item
+                setFormData(getDefaultFormData());
+            }
         }
-    );
+    }, [isOpen, editingItem, poData]);
 
     const handleInputChange = (field: string, value: string) => {
         setFormData((prev) => {
@@ -146,21 +138,8 @@ export default function AddPOItemModal({
     };
 
     const handleClose = () => {
-        setFormData({
-            po_number: poData?.po_number || '',
-            item_code: '',
-            item: '',
-            unit_price: '',
-            quantity: '',
-            status: 'Step 1',
-            step_name: '',
-            po_status: poData?.po_status || '',
-            vendor_id: poData?.vendor_id || '',
-            vendor_name: poData?.vendor_name || '',
-            remarks: '',
-            document: '',
-            total: '',
-        });
+        setFormData(getDefaultFormData());
+        poStore.setEditingItemIndex(null);
         onClose();
     };
 
@@ -187,7 +166,7 @@ export default function AddPOItemModal({
                 }
 
                 onSave(formData);
-                toast.success(itemIndex !== null ? 'Item updated successfully!' : 'Item added successfully!');
+                toast.success('Item added successfully!');
                 handleClose();
             };
 
@@ -195,6 +174,41 @@ export default function AddPOItemModal({
         } catch (error) {
             console.error('Error saving item:', error);
             toast.error('Failed to save item');
+        }
+    };
+
+    const handleUpdateItem = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        // Validate required fields
+        if (!formData.item_code || !formData.item || !formData.unit_price || !formData.quantity) {
+            toast.error('Please fill in all required fields');
+            return;
+        }
+
+        try {
+            const updateItem = async () => {
+                // TODO: Replace with UpdateDataSourceRow when available
+                const result = await nguageStore.AddDataSourceRow(
+                    formData as any,
+                    42,
+                    'purchase_order_items'
+                );
+
+                if (result.error) {
+                    toast.error(`Failed to update: ${result.error}`);
+                    return;
+                }
+
+                onSave(formData);
+                toast.success('Item updated successfully!');
+                handleClose();
+            };
+
+            updateItem();
+        } catch (error) {
+            console.error('Error updating item:', error);
+            toast.error('Failed to update item');
         }
     };
 
@@ -206,7 +220,7 @@ export default function AddPOItemModal({
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4 bg-white dark:bg-gray-900">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {itemIndex !== null ? 'Edit PO Item' : 'Add New PO Item'}
+                        {poStore.editingItemIndex !== null ? 'Edit PO Item' : 'Add New PO Item'}
                     </h2>
                     <button
                         onClick={handleClose}
@@ -448,13 +462,15 @@ export default function AddPOItemModal({
                         Cancel
                     </button>
                     <button
-                        onClick={handleSubmit}
+                        onClick={poStore.editingItemIndex !== null ? handleUpdateItem : handleSubmit}
                         className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
                     >
-                        {itemIndex !== null ? 'Update Item' : 'Add Item'}
+                        {poStore.editingItemIndex !== null ? 'Update Item' : 'Add Item'}
                     </button>
                 </div>
             </div>
         </div>
     );
 }
+
+export default observer(AddPOItemModalContent);
