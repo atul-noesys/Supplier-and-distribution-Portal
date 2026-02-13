@@ -1,16 +1,19 @@
 export interface POItem {
-  rowId?: string | number;
+  ROWID?: number;
+  InfoveaveBatchId?: number;
   po_number?: string;
-  item_code: string;
-  item: string;
-  unit_price: string;
-  quantity: string;
-  status: string;
-  step_name: string;
   po_status?: string;
+  item_code?: string;
+  item?: string;
+  unit_price?: string | number;
+  quantity?: string | number;
+  total?: string | number;
+  status?: string;
+  step_name?: string;
+  step_history?: string | null;
   vendor_id?: string;
   vendor_name?: string;
   remarks?: string;
   document?: string;
-  total?: string;
+  [key: string]: any;
 }

@@ -168,8 +168,43 @@ function AddPOModalContent({ isOpen, onClose }: AddPOModalProps) {
   };
 
   const handleEditItem = (index: number) => {
-    poStore.setEditingItemIndex(index);
-    setShowItemModal(true);
+    const item = poStore.poItems[index];
+    if (!item?.rowId) {
+      toast.error('Item ID is missing');
+      return;
+    }
+
+    // Fetch the latest data before opening the edit modal
+    const fetchLatestData = async () => {
+      try {
+        const latestData = await nguageStore.GetRowData(
+          42,
+          item.rowId,
+          'purchase_order_items'
+        );
+
+        if (latestData) {
+          // Update the store with the latest data
+          const updatedItem: POItem = {
+            ...item,
+            ...latestData,
+            rowId: item.rowId, // Preserve the rowId
+          };
+          poStore.updateItem(index, updatedItem);
+        } else {
+          toast.warning('Could not fetch latest data, using cached version');
+        }
+
+        // Set editing index and open modal
+        poStore.setEditingItemIndex(index);
+        setShowItemModal(true);
+      } catch (error) {
+        console.error('Error fetching latest data:', error);
+        toast.error('Failed to fetch latest item data');
+      }
+    };
+
+    fetchLatestData();
   };
 
   const handleDeleteItem = (index: number) => {
@@ -366,13 +401,13 @@ function AddPOModalContent({ isOpen, onClose }: AddPOModalProps) {
                             <p className="text-sm text-gray-900 dark:text-white">{item.item}</p>
                           </div>
                           <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
-                            <p className="text-sm text-gray-900 dark:text-white font-medium">${parseFloat(item.unit_price).toFixed(2)}</p>
+                            <p className="text-sm text-gray-900 dark:text-white font-medium">${parseFloat(String(item.unit_price || 0)).toFixed(2)}</p>
                           </div>
                           <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
                             <p className="text-sm text-gray-900 dark:text-white font-medium">{item.quantity}</p>
                           </div>
                           <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
-                            <p className="text-sm text-gray-900 dark:text-white font-medium">${item.total ? parseFloat(item.total).toFixed(2) : '0.00'}</p>
+                            <p className="text-sm text-gray-900 dark:text-white font-medium">${item.total ? parseFloat(String(item.total)).toFixed(2) : '0.00'}</p>
                           </div>
                           <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
                             <p className="text-sm text-gray-700 dark:text-gray-300">{item.status || '-'}</p>

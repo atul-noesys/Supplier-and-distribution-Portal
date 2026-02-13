@@ -49,7 +49,7 @@ function AddPOItemModalContent({
     });
 
     // Initialize form with default values
-    const getDefaultFormData = (): POItem => ({
+    const getDefaultFormData = React.useCallback((): POItem => ({
         po_number: poData?.po_number || '',
         item_code: '',
         item: '',
@@ -63,7 +63,7 @@ function AddPOItemModalContent({
         remarks: '',
         document: '',
         total: '',
-    });
+    }), [poData]);
 
     const [formData, setFormData] = useState<POItem>(getDefaultFormData());
 
@@ -98,8 +98,8 @@ function AddPOItemModalContent({
 
             // Auto-calculate total when unit_price or quantity changes
             if (field === 'unit_price' || field === 'quantity') {
-                const unitPrice = parseFloat(updated.unit_price) || 0;
-                const quantity = parseFloat(updated.quantity) || 0;
+                const unitPrice = parseFloat(String(updated.unit_price || 0)) || 0;
+                const quantity = parseFloat(String(updated.quantity || 0)) || 0;
                 updated.total = (unitPrice * quantity).toFixed(2);
             }
             return updated;
@@ -259,7 +259,6 @@ function AddPOItemModalContent({
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {/* Item Details Section */}
                         <div>
-                            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Item Details</h3>
                             <div className="grid grid-cols-3 gap-6">
                                 {/* Item Code */}
                                 <div>
@@ -307,7 +306,7 @@ function AddPOItemModalContent({
                                     </label>
                                     <input
                                         type="text"
-                                        value={formData.unit_price ? `$${parseFloat(formData.unit_price).toFixed(2)}` : '$0.00'}
+                                        value={formData.unit_price ? `$${parseFloat(String(formData.unit_price)).toFixed(2)}` : '$0.00'}
                                         disabled
                                         className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
                                     />
@@ -337,7 +336,7 @@ function AddPOItemModalContent({
                                     <input
                                         type="text"
                                         disabled
-                                        value={formData.total ? `$${parseFloat(formData.total).toFixed(2)}` : '$0.00'}
+                                        value={formData.total ? `$${parseFloat(String(formData.total)).toFixed(2)}` : '$0.00'}
                                         className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
                                     />
                                 </div>
