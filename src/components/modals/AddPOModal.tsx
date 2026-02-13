@@ -212,7 +212,7 @@ function AddPOModalContent({ isOpen, onClose }: AddPOModalProps) {
                   <input
                     type="text"
                     disabled
-                    value="ENG-PO-****"
+                    value={ poData !== null ? poData.po_number : "ENG-PO-****"}
                     className="w-full px-4 py-1.75 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
                   />
                 </div>
