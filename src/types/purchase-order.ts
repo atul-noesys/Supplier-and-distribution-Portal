@@ -1,4 +1,5 @@
 export interface POItem {
+  rowId?: string | number;
   po_number?: string;
   item_code: string;
   item: string;

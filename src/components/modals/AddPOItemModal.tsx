@@ -165,7 +165,19 @@ function AddPOItemModalContent({
                     return;
                 }
 
-                onSave(formData);
+                // Store the rowId from response
+                // API returns { data: rowId, message: "..." }
+                const rowId = typeof result.result === 'object' && result.result !== null 
+                  ? (result.result as any).data 
+                  : result.result;
+
+                const itemWithRowId: POItem = {
+                    ...formData,
+                    rowId: rowId || undefined,
+                };
+
+                console.log('Item saved with rowId:', itemWithRowId.rowId, 'Full item:', itemWithRowId);
+                onSave(itemWithRowId);
                 toast.success('Item added successfully!');
                 handleClose();
             };
@@ -188,14 +200,26 @@ function AddPOItemModalContent({
 
         try {
             const updateItem = async () => {
-                // TODO: Replace with UpdateDataSourceRow when available
-                const result = await nguageStore.AddDataSourceRow(
-                    formData as any,
-                    42,
-                    'purchase_order_items'
+                if (!formData.rowId) {
+                    toast.error('Item ID is missing');
+                    return;
+                }
+
+                // Extract rowId and remove it from the data to send
+                const { rowId, ...rowData } = formData;
+                const rowIdString = typeof rowId === 'string' || typeof rowId === 'number' ? String(rowId) : '';
+
+                if (!rowIdString) {
+                    toast.error('Invalid Item ID');
+                    return;
+                }
+
+                const result = await nguageStore.UpdateRowData(
+                    rowData as any,
+                    rowIdString
                 );
 
-                if (result.error) {
+                if (!result.result) {
                     toast.error(`Failed to update: ${result.error}`);
                     return;
                 }

@@ -76,10 +76,10 @@ export class NguageStore {
     this.searchText = text;
   }
 
-  async UpdateRowData(editRowData: {
-    rowData: RowData;
-    primaryKeyData: PrimaryKeyData;
-  }): Promise<{ result: boolean; error: string }> {
+  async UpdateRowData(
+    rowData: RowData,
+    rowId: string,
+  ): Promise<{ result: boolean; error: string }> {
     try {
       // Get token from localStorage (client-side only)
       let token = null;
@@ -87,7 +87,13 @@ export class NguageStore {
         token = localStorage.getItem("access_token");
       }
 
-      await axios.put("/api/EditRow", editRowData, {
+      // Combine ROWID with row data
+      const requestBody = {
+        ROWID: rowId,
+        ...rowData,
+      };
+
+      await axios.put("/api/EditRow", requestBody, {
         headers: {
           "Content-Type": "application/json",
           ...(token && { Authorization: `Bearer ${token}` }),
