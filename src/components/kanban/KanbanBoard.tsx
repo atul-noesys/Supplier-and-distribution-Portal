@@ -11,7 +11,7 @@ import {
     useSensors,
 } from "@dnd-kit/core";
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import KanbanColumn from "./KanbanColumn";
 
 export interface KanbanItem {
@@ -37,6 +37,11 @@ const STEPS = ["Step 1", "Step 2", "Step 3", "Step 4", "Step 5"];
 export default function KanbanBoard({ initialData, searchTerm = "" }: KanbanBoardProps) {
     const [items, setItems] = useState<KanbanItem[]>(initialData);
     const [activeId, setActiveId] = useState<number | null>(null);
+
+    // Sync items with initialData when it changes (e.g., on search/filter)
+    useEffect(() => {
+        setItems(initialData);
+    }, [initialData]);
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
