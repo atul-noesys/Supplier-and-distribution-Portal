@@ -113,7 +113,7 @@ export default function KanbanBoard({ initialData }: KanbanBoardProps) {
             <SortableContext items={items.map((item) => item.ROWID)} strategy={verticalListSortingStrategy}>
                 <div className="w-full h-full flex flex-col overflow-hidden">
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                        Purchase Order
+                        Work Order
                     </h1>
 
                     <div className="flex gap-3 sm:gap-4 flex-1 overflow-hidden pb-6">
