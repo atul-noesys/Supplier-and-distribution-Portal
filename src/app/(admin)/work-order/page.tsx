@@ -102,7 +102,7 @@ export default observer(function WorkOrderPage() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"table" | "kanban">("table");
+  const [viewMode, setViewMode] = useState<"table" | "kanban">("kanban");
   const itemsPerPage = 10;
 
   // Fetch auth token
@@ -534,17 +534,6 @@ export default observer(function WorkOrderPage() {
               </div>
               <div className="flex items-center gap-2 bg-gray-200 dark:bg-gray-700 rounded-full p-0.5">
                 <button
-                  onClick={() => setViewMode("table")}
-                  className={`p-1.5 rounded-full transition-all ${
-                    viewMode === "table"
-                      ? "bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
-                  }`}
-                  title="Table view"
-                >
-                  <MdViewWeek className="w-4 h-4" />
-                </button>
-                <button
                   onClick={() => setViewMode("kanban")}
                   className={`p-1.5 rounded-full transition-all ${
                     viewMode === "kanban"
@@ -554,6 +543,17 @@ export default observer(function WorkOrderPage() {
                   title="Kanban view"
                 >
                   <MdViewAgenda className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode("table")}
+                  className={`p-1.5 rounded-full transition-all ${
+                    viewMode === "table"
+                      ? "bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
+                  }`}
+                  title="Table view"
+                >
+                  <MdViewWeek className="w-4 h-4" />
                 </button>
               </div>
             </div>
