@@ -8,7 +8,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { observer } from "mobx-react-lite";
 import { Fragment, useCallback, useEffect, useState } from "react";
-import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+import { AiOutlineEye, AiOutlineEyeInvisible, AiOutlineCheck } from "react-icons/ai";
 import { MdArrowDropDown, MdClose } from "react-icons/md";
 import { toast } from "react-toastify";
 import { v4 as uuidv4 } from "uuid";
@@ -419,6 +419,85 @@ export default observer(function PurchaseOrderPage() {
     }
   };
 
+  const handleCreateWorkOrder = async (item: PurchaseOrderItem) => {
+    if (!authToken) {
+      toast.error("No auth token available");
+      return;
+    }
+
+    try {
+      // Fetch the latest row data
+      const response = await axios.post(
+        "/api/GetRowData",
+        {
+          ROWID: item.ROWID,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`,
+          },
+        },
+      );
+
+      const latestRowData = response.data.data;
+
+      // Update work_order_created to "Yes"
+      const updatedData = {
+        ...latestRowData,
+        ROWID: item.ROWID,
+        work_order_created: "Yes",
+      };
+
+      // Save the updated data
+      const saveResponse = await axios.put(
+        "/api/EditRow",
+        updatedData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authToken}`,
+          },
+        },
+      );
+
+      const payloadForWorkOrder = {
+        ...latestRowData,
+        step: "Step 1",
+        step_name: null,
+        document: null,
+        remarks: "",
+        start_date: new Date().toISOString().split('T')[0]
+      }
+
+      // Add work order row to work_order table
+      await nguageStore.AddDataSourceRow(
+        payloadForWorkOrder,
+        44,
+        "work_order"
+      );
+
+      console.log("Work order created successfully:", saveResponse.data);
+      toast.success(
+        <span>
+          Work order created for <b>{item.item}</b>!
+        </span>
+      );
+
+      // Refetch the updated data
+      await queryClient.invalidateQueries({ queryKey: ["poItems"] });
+      await queryClient.invalidateQueries({ queryKey: ["purchaseOrders"] });
+    } catch (error) {
+      console.error("Failed to create work order:", error);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("Response error details:", error.response.data);
+        toast.error(`Failed to create work order: ${error.response.data?.message || "Unknown error"}`);
+      } else {
+        toast.error("Failed to create work order");
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="rounded-lg border border-gray-200 dark:border-white/5 bg-white dark:bg-white/3 overflow-hidden">
@@ -576,9 +655,20 @@ export default observer(function PurchaseOrderPage() {
                                     )}
                                   </div>
                                   <div>
-                                    <Badge color={item.work_order_created === "Yes" ? "success" : item.work_order_created === "No" ? "error" : "light"} variant="solid" size="sm">
-                                      {item.work_order_created || "N/A"}
-                                    </Badge>
+                                    {item.work_order_created === "Yes" ? (
+                                      <Badge color="success" variant="solid" size="sm">
+                                        Yes
+                                      </Badge>
+                                    ) : (
+                                      <button
+                                        onClick={() => handleCreateWorkOrder(item)}
+                                        className="flex items-center gap-0 px-1 py-1.5 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
+                                        title="Create Work Order"
+                                      >
+                                        <AiOutlineCheck className="w-5 h-5" />
+                                        Create WO
+                                      </button>
+                                    )}
                                   </div>
                                   <div>
                                     <button
