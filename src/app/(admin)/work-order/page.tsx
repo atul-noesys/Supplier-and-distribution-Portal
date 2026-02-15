@@ -2,6 +2,7 @@
 
 import Badge from "@/components/ui/badge/Badge";
 import { PDFPreview } from "@/components/pdf-preview";
+import KanbanBoard from "@/components/kanban/KanbanBoard";
 import { useStore } from "@/store/store-context";
 import { RowData } from "@/types/purchase-order";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -9,8 +10,10 @@ import { observer } from "mobx-react-lite";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { MdClose, MdEdit, MdOpenInNew } from "react-icons/md";
+import { MdViewAgenda, MdViewWeek } from "react-icons/md";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "react-toastify";
+import axios from "axios";
 
 
 // Keys to exclude from display
@@ -99,6 +102,7 @@ export default observer(function WorkOrderPage() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"table" | "kanban">("table");
   const itemsPerPage = 10;
 
   // Fetch auth token
@@ -163,6 +167,62 @@ export default observer(function WorkOrderPage() {
     setSearchTerm(value);
     setCurrentPage(1);
   };
+
+  // Fetch PO items data
+  const { data: poItemsData = [] } = useQuery({
+    queryKey: ["poItemsForKanban", authToken],
+    queryFn: async () => {
+      try {
+        const response = await axios.post("/api/GetPOItems", {}, {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
+        return response.data?.data || [];
+      } catch (error) {
+        console.error("Error fetching PO items:", error);
+        return [];
+      }
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: !!authToken,
+  });
+
+  // Transform work order data to KanbanItem format for the kanban view
+  const kanbanItems = useMemo(() => {
+    if (!filteredItems || filteredItems.length === 0) return [];
+    
+    // Create a map of PO items for quick lookup
+    const poItemsMap = new Map<string, any>();
+    poItemsData.forEach((item: any) => {
+      const key = `${item.po_number}_${item.item_code}`;
+      poItemsMap.set(key, item);
+    });
+
+    // Merge work order data with PO items
+    return filteredItems.map((item) => {
+      const key = `${item.po_number}_${item.item_code}`;
+      const poItem = poItemsMap.get(key);
+
+      return {
+        po_number: String(item.po_number || ""),
+        item_code: String(item.item_code || ""),
+        item: String(item.item || ""),
+        unit_price: poItem?.unit_price || 0,
+        quantity: poItem?.quantity || 0,
+        status: String(item.step || "Step 1"),
+        InfoveaveBatchId: Number(item.InfoveaveBatchId) || 0,
+        po_status: poItem?.po_status || "Pending",
+        vendor_id: String(item.vendor_id || ""),
+        vendor_name: item.vendor_name ? String(item.vendor_name) : undefined,
+        step_name: item.step_name ? String(item.step_name) : undefined,
+        remarks: item.remarks ? String(item.remarks) : undefined,
+        document: item.document ? String(item.document) : undefined,
+        step_history: poItem?.step_history,
+        ROWID: Number(item.ROWID) || 0,
+      };
+    });
+  }, [filteredItems, poItemsData]);
 
   const handleEditRow = async (item: RowData) => {
     const rowId = String(item.ROWID);
@@ -279,7 +339,7 @@ export default observer(function WorkOrderPage() {
     }
 
     fetchPdf(selectedDocument);
-  }, [selectedDocument, fetchPdf]);
+  }, [selectedDocument, fetchPdf, pdfUrl]);
 
   const handleViewDocument = (docName: string) => {
     setSelectedDocument(docName);
@@ -453,7 +513,7 @@ export default observer(function WorkOrderPage() {
         <div className="border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/5 px-6 py-4">
           <div className="flex justify-between items-center gap-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Work Orders</h2>
-            <div className="flex items-center gap-3 flex-1 max-w-[460px]">
+            <div className="flex items-center gap-3 flex-1 max-w-115">
               <div className="relative flex-1">
                 <input
                   type="text"
@@ -473,12 +533,42 @@ export default observer(function WorkOrderPage() {
                 )}
               </div>
             </div>
+            <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode("table")}
+                className={`flex items-center gap-2 px-4 py-2 rounded transition-colors ${
+                  viewMode === "table"
+                    ? "bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm"
+                    : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                }`}
+                title="Table view"
+              >
+                <MdViewWeek className="w-5 h-5" />
+                <span className="text-sm">Table</span>
+              </button>
+              <button
+                onClick={() => setViewMode("kanban")}
+                className={`flex items-center gap-2 px-4 py-2 rounded transition-colors ${
+                  viewMode === "kanban"
+                    ? "bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm"
+                    : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                }`}
+                title="Kanban view"
+              >
+                <MdViewAgenda className="w-5 h-5" />
+                <span className="text-sm">Kanban</span>
+              </button>
+            </div>
           </div>
         </div>
 
       {isLoading ? (
         <div className="flex justify-center py-10">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+        </div>
+      ) : viewMode === "kanban" ? (
+        <div className="p-6">
+          <KanbanBoard initialData={kanbanItems} />
         </div>
       ) : (
         <div className="border-t border-gray-200 dark:border-white/5">
