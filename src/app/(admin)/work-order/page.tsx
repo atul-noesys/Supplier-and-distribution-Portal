@@ -6,7 +6,7 @@ import { RowData } from "@/types/purchase-order";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { observer } from "mobx-react-lite";
 import { Fragment, useCallback, useMemo, useState } from "react";
-import { MdClose, MdEdit } from "react-icons/md";
+import { MdClose, MdEdit, MdVisibility } from "react-icons/md";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "react-toastify";
 
@@ -14,7 +14,7 @@ import { toast } from "react-toastify";
 // Keys to exclude from display
 const EXCLUDED_KEYS = new Set(["ROWID", "InfoveaveBatchId"]);
 
-// Define the desired column order for work orders
+// Define the desired column order for work orders (full list for modal)
 const COLUMN_ORDER = [
   "workOrderId", // Computed field (po_number + item_code)
   "item_code",
@@ -26,6 +26,18 @@ const COLUMN_ORDER = [
   "step_name",
   "start_date",
   "end_date",
+  "remarks",
+];
+
+// Define columns to display in the table (limited to 7 columns to avoid horizontal scrolling)
+const DISPLAY_COLUMNS = [
+  "workOrderId",
+  "item_code",
+  "item",
+  "vendor_id",
+  "vendor_name",
+  "step",
+  "po_number",
 ];
 
 // Function to generate column headers from data dynamically
@@ -43,32 +55,18 @@ const getDynamicColumns = (items: RowData[]): Array<{ key: string; label: string
   // Create a mapping of computed expression keys to "workOrderId"
   const computedExpressionKey = keys.find((key) => key.startsWith("{"));
 
-  // Build the final column list
-  let sortedKeys = [...COLUMN_ORDER];
+  // Build the final column list using only DISPLAY_COLUMNS
+  let sortedKeys = [...DISPLAY_COLUMNS];
 
-  // If computed expression exists, add it to the keys list
-  if (computedExpressionKey) {
-    sortedKeys = [
-      "workOrderId",
-      ...COLUMN_ORDER.filter((key) => key !== "workOrderId"),
-      ...keys.filter(
-        (key) =>
-          !COLUMN_ORDER.includes(key) &&
-          key !== computedExpressionKey &&
-          !key.startsWith("{")
-      ),
-    ];
-  } else {
-    sortedKeys = [
-      ...COLUMN_ORDER.filter((key) => key !== "workOrderId"),
-      ...keys.filter((key) => !COLUMN_ORDER.includes(key) && !key.startsWith("{")),
-    ];
+  // If computed expression exists, map it to workOrderId
+  if (computedExpressionKey && sortedKeys.includes("workOrderId")) {
+    sortedKeys = sortedKeys.map((key) => (key === "workOrderId" ? computedExpressionKey : key));
   }
 
   // Convert key names to readable labels
   return sortedKeys.map((key) => {
-    if (key === "workOrderId") {
-      return { key: computedExpressionKey || "", label: "Work Order ID" };
+    if (key === computedExpressionKey) {
+      return { key, label: "Work Order ID" };
     }
     return {
       key,
@@ -87,6 +85,7 @@ export default observer(function WorkOrderPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<RowData | null>(null);
   const [isLoadingWorkOrder, setIsLoadingWorkOrder] = useState(false);
   const [editFormData, setEditFormData] = useState<RowData | null>(null);
@@ -189,6 +188,44 @@ export default observer(function WorkOrderPage() {
     } finally {
       setIsLoadingWorkOrder(false);
     }
+  };
+
+  const handleViewDetails = async (item: RowData) => {
+    const rowId = String(item.ROWID);
+    if (!rowId) {
+      console.error("Row ID is missing");
+      return;
+    }
+
+    setIsLoadingWorkOrder(true);
+    try {
+      const latestData = await nguageStore.GetRowData(
+        44,
+        rowId,
+        'work_order'
+      );
+
+      if (latestData) {
+        // Add ROWID to the fetched data since GetRowData response doesn't include it
+        const dataWithRowId = {
+          ...latestData,
+          ROWID: rowId,
+        };
+        setSelectedWorkOrder(dataWithRowId as RowData);
+        setIsDetailModalOpen(true);
+      } else {
+        console.warn("Could not fetch work order data");
+      }
+    } catch (error) {
+      console.error("Error fetching work order data:", error);
+    } finally {
+      setIsLoadingWorkOrder(false);
+    }
+  };
+
+  const handleCloseDetailModal = () => {
+    setIsDetailModalOpen(false);
+    setSelectedWorkOrder(null);
   };
 
   const handleEditFormChange = (field: string, value: string) => {
@@ -380,8 +417,8 @@ export default observer(function WorkOrderPage() {
         </div>
       ) : (
         <div className="border-t border-gray-200 dark:border-white/5">
-          <div className="overflow-x-auto">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 70px', gap: '0', minWidth: '100%' }}>
+          <div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.7fr 1.5fr 0.85fr 1.1fr 0.5fr 0.9fr 70px 80px', gap: '0', minWidth: '100%' }}>
               {/* Table Header */}
               {tableColumns.map((column) => (
                 <div
@@ -391,6 +428,10 @@ export default observer(function WorkOrderPage() {
                   {column.label}
                 </div>
               ))}
+              {/* Details Header */}
+              <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 border-r border-blue-800 dark:border-blue-800">
+                Details
+              </div>
               {/* Actions Header */}
               <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 border-r border-blue-800 dark:border-blue-800">
                 Actions
@@ -435,11 +476,21 @@ export default observer(function WorkOrderPage() {
                         </div>
                       );
                     })}
+                    {/* Details Cell */}
+                    <div className="px-2.5 py-3 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
+                      <button
+                        onClick={() => handleViewDetails(item)}
+                        className="flex justify-center items-center ml-2 w-8 h-4 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
+                        title="View Details"
+                      >
+                        <MdVisibility className="w-4 h-4" />
+                      </button>
+                    </div>
                     {/* Actions Cell */}
-                    <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r flex items-center gap-2">
+                    <div className="px-2.5 py-3 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
                       <button
                         onClick={() => handleEditRow(item)}
-                        className="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
+                        className="flex justify-center items-center ml-3 w-8 h-4 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
                         title="Edit"
                       >
                         <MdEdit className="w-4 h-4" />
@@ -454,10 +505,80 @@ export default observer(function WorkOrderPage() {
       )}
       </div>
 
+      {/* Work Order Detail Modal */}
+      {isDetailModalOpen && selectedWorkOrder && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-4/5 max-h-[90vh] flex flex-col overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4 bg-white dark:bg-gray-900">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Work Order Details
+              </h2>
+              <button
+                onClick={handleCloseDetailModal}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <MdClose className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="grid grid-cols-3 gap-6">
+                {/* Display all fields from COLUMN_ORDER */}
+                {COLUMN_ORDER.map((key) => {
+                  const value = selectedWorkOrder[key];
+                  let displayValue = "-";
+
+                  // Handle computed expression key (workOrderId)
+                  if (key === "workOrderId") {
+                    const computedKey = Object.keys(selectedWorkOrder).find((k) => k.startsWith("{"));
+                    displayValue = computedKey ? String(selectedWorkOrder[computedKey] || "-") : "-";
+                  } else if (key === "start_date" || key === "end_date") {
+                    displayValue = formatDate(String(value || ""));
+                  } else if (value !== null && value !== undefined && value !== "") {
+                    displayValue = String(value);
+                  }
+
+                  const label = key === "workOrderId"
+                    ? "Work Order ID"
+                    : key
+                        .replace(/_/g, " ")
+                        .split(" ")
+                        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                        .join(" ");
+
+                  return (
+                    <div key={key}>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        {label}
+                      </label>
+                      <div className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300">
+                        {displayValue}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end gap-4 border-t border-gray-200 dark:border-gray-700 px-6 py-4 bg-white dark:bg-gray-900">
+              <button
+                onClick={handleCloseDetailModal}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Work Order Edit Modal */}
       {isModalOpen && selectedWorkOrder && editFormData && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-2/3 max-h-[90vh] flex flex-col overflow-hidden">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-4/5 max-h-[90vh] flex flex-col overflow-hidden">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4 bg-white dark:bg-gray-900">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -473,7 +594,7 @@ export default observer(function WorkOrderPage() {
 
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto p-6">
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-3 gap-6">
                 {/* Work Order ID - Disabled */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -620,6 +741,20 @@ export default observer(function WorkOrderPage() {
                       Current: {editFormData.document}
                     </p>
                   )}
+                </div>
+
+                {/* Remarks - Textarea (Full Width) */}
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Remarks
+                  </label>
+                  <textarea
+                    value={String(editFormData.remarks || "")}
+                    onChange={(e) => handleEditFormChange("remarks", e.target.value)}
+                    rows={4}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    placeholder="Enter any remarks here..."
+                  />
                 </div>
               </div>
             </div>
