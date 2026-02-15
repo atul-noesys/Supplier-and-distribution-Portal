@@ -1,19 +1,18 @@
 "use client";
 
-import { useState, useMemo } from "react";
 import {
     DndContext,
-    pointerWithin,
-    KeyboardSensor,
-    PointerSensor,
-    useSensor,
-    useSensors,
     DragOverlay,
     DragStartEvent,
+    KeyboardSensor,
+    PointerSensor,
+    pointerWithin,
+    useSensor,
+    useSensors,
 } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { useMemo, useState } from "react";
 import KanbanColumn from "./KanbanColumn";
-import KanbanCard from "./KanbanCard";
 
 export interface KanbanItem {
     po_number: string;

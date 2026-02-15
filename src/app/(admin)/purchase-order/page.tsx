@@ -254,7 +254,7 @@ export default observer(function PurchaseOrderPage() {
       };
 
       // Save the updated data
-      const saveResponse = await axios.put(
+      await axios.put(
         "/api/EditRow",
         updatedData,
         {
@@ -290,6 +290,7 @@ export default observer(function PurchaseOrderPage() {
       // Refetch the updated data
       await queryClient.invalidateQueries({ queryKey: ["poItems"] });
       await queryClient.invalidateQueries({ queryKey: ["purchaseOrders"] });
+      await queryClient.invalidateQueries({ queryKey: ["workOrderItems"] });
     } catch (error) {
       console.error("Failed to create work order:", error);
       if (axios.isAxiosError(error) && error.response) {
