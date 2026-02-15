@@ -125,23 +125,32 @@ export default observer(function PurchaseOrderPage() {
           },
         },
       );
-      return (response.data.data || []).map((item: Record<string, unknown>) => ({
-        po_number: item.po_number as string,
-        item_code: item.item_code as string,
-        item: item.item as string,
-        unit_price: item.unit_price as number,
-        quantity: item.quantity as number,
-        status: item.status as string,
-        step_name: item.step_name as string,
-        document: (item.document as string) || null,
-        work_order_created: (item.work_order_created as string) || null,
-        vendor_name: (item.vendor_name as string) || null,
-        InfoveaveBatchId: item.InfoveaveBatchId as number,
-        ROWID: item.ROWID as number,
-        total: (item.unit_price as number) * (item.quantity as number),
-      }));
+      return (response.data.data || []).map((item: Record<string, unknown>) => {
+        // Find the calculated total field from the API response
+        const totalKey = Object.keys(item).find(
+          (key) => key.includes("@unit_price * @quantity") || key.includes("expression")
+        );
+        const total = totalKey ? (item[totalKey] as number) : (Number(item.unit_price) || 0) * (Number(item.quantity) || 0);
+        
+        return {
+          po_number: item.po_number as string,
+          item_code: item.item_code as string,
+          item: item.item as string,
+          unit_price: Number(item.unit_price) || 0,
+          quantity: Number(item.quantity) || 0,
+          status: item.status as string,
+          step_name: item.step_name as string,
+          document: (item.document as string) || null,
+          work_order_created: (item.work_order_created as string) || null,
+          vendor_name: (item.vendor_name as string) || null,
+          InfoveaveBatchId: item.InfoveaveBatchId as number,
+          ROWID: item.ROWID as number,
+          total: total,
+        };
+      });
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    gcTime: 0,
     enabled: !!authToken,
   });
 
