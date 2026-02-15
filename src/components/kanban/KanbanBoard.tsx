@@ -29,11 +29,12 @@ export interface KanbanItem {
 
 interface KanbanBoardProps {
     initialData: KanbanItem[];
+    searchTerm?: string;
 }
 
 const STEPS = ["Step 1", "Step 2", "Step 3", "Step 4", "Step 5"];
 
-export default function KanbanBoard({ initialData }: KanbanBoardProps) {
+export default function KanbanBoard({ initialData, searchTerm = "" }: KanbanBoardProps) {
     const [items, setItems] = useState<KanbanItem[]>(initialData);
     const [activeId, setActiveId] = useState<number | null>(null);
 
@@ -118,6 +119,7 @@ export default function KanbanBoard({ initialData }: KanbanBoardProps) {
                                 key={step}
                                 step={step}
                                 items={groupedItems[step]}
+                                searchTerm={searchTerm}
                             />
                         ))}
                     </div>

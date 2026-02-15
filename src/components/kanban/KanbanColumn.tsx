@@ -7,6 +7,7 @@ import { KanbanItem } from "@/components/kanban/KanbanBoard";
 interface KanbanColumnProps {
   step: string;
   items: KanbanItem[];
+  searchTerm?: string;
 }
 
 const stepColors: Record<string, { bg: string; border: string; text: string }> =
@@ -38,7 +39,7 @@ const stepColors: Record<string, { bg: string; border: string; text: string }> =
     },
   };
 
-export default function KanbanColumn({ step, items }: KanbanColumnProps) {
+export default function KanbanColumn({ step, items, searchTerm = "" }: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({
     id: `${step.toLowerCase().replace(" ", "-")}`,
   });
@@ -69,7 +70,7 @@ export default function KanbanColumn({ step, items }: KanbanColumnProps) {
           </div>
         ) : (
           items.map((item) => (
-            <KanbanCard key={item.ROWID} item={item} />
+            <KanbanCard key={item.ROWID} item={item} searchTerm={searchTerm} />
           ))
         )}
       </div>
