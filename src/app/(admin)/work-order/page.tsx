@@ -477,9 +477,9 @@ export default observer(function WorkOrderPage() {
   // Generate columns dynamically from data
   const tableColumns = useMemo(() => {
     const dynamicColumns = getDynamicColumns(paginatedItems);
-    // If no columns found but we have filtered items, use default columns
-    if (dynamicColumns.length === 0 && paginatedItems.length === 0) {
-      return COLUMN_ORDER.map((key) => ({
+    // Always use DISPLAY_COLUMNS for consistency
+    if (dynamicColumns.length === 0) {
+      return DISPLAY_COLUMNS.map((key) => ({
         key,
         label: key === "workOrderId" 
           ? "Work Order ID"
@@ -589,10 +589,12 @@ export default observer(function WorkOrderPage() {
               <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 border-r border-blue-800 dark:border-blue-800">
                 Actions
               </div>
+            </div>
 
-              {/* Table Body */}
+            {/* Table Body */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.7fr 1.5fr 0.7fr 1.1fr 0.6fr 0.9fr 0.6fr 70px 80px', gap: '0', minWidth: '100%' }}>
               {paginatedItems.length === 0 ? (
-                <div className="col-span-full py-8 text-center">
+                <div style={{ gridColumn: '1 / -1' }} className="py-8 text-center bg-white dark:bg-gray-800">
                   <p className="text-gray-500 dark:text-gray-400">No work orders found</p>
                 </div>
               ) : (
