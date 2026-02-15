@@ -6,7 +6,9 @@ import { RowData } from "@/types/purchase-order";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { observer } from "mobx-react-lite";
 import { Fragment, useCallback, useMemo, useState } from "react";
-import { MdClose } from "react-icons/md";
+import { MdClose, MdEdit } from "react-icons/md";
+import { v4 as uuidv4 } from "uuid";
+import { toast } from "react-toastify";
 
 
 // Keys to exclude from display
@@ -84,6 +86,12 @@ export default observer(function WorkOrderPage() {
   const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedWorkOrder, setSelectedWorkOrder] = useState<RowData | null>(null);
+  const [isLoadingWorkOrder, setIsLoadingWorkOrder] = useState(false);
+  const [editFormData, setEditFormData] = useState<RowData | null>(null);
+  const [isUploadingDocument, setIsUploadingDocument] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const itemsPerPage = 10;
 
   // Fetch auth token
@@ -149,6 +157,128 @@ export default observer(function WorkOrderPage() {
     setCurrentPage(1);
   };
 
+  const handleEditRow = async (item: RowData) => {
+    const rowId = String(item.ROWID);
+    if (!rowId) {
+      console.error("Row ID is missing");
+      return;
+    }
+
+    setIsLoadingWorkOrder(true);
+    try {
+      const latestData = await nguageStore.GetRowData(
+        44,
+        rowId,
+        'work_order'
+      );
+
+      if (latestData) {
+        // Add ROWID to the fetched data since GetRowData response doesn't include it
+        const dataWithRowId = {
+          ...latestData,
+          ROWID: rowId,
+        };
+        setSelectedWorkOrder(dataWithRowId as RowData);
+        setEditFormData(dataWithRowId as RowData);
+        setIsModalOpen(true);
+      } else {
+        console.warn("Could not fetch work order data");
+      }
+    } catch (error) {
+      console.error("Error fetching work order data:", error);
+    } finally {
+      setIsLoadingWorkOrder(false);
+    }
+  };
+
+  const handleEditFormChange = (field: string, value: string) => {
+    setEditFormData((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        [field]: value,
+      };
+    });
+  };
+
+  const handleEditDocumentChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const fileNameToUpload = "Ngauge" + uuidv4() + file.name;
+
+      setIsUploadingDocument(true);
+      setUploadMessage(null);
+
+      try {
+        console.log("Uploading file:", file.name);
+        const uploadResult = await nguageStore.UploadAttachFile(file, fileNameToUpload);
+        console.log("Upload result:", uploadResult);
+
+        if (uploadResult) {
+          setEditFormData((prev) => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              document: fileNameToUpload,
+            };
+          });
+          setUploadMessage({ type: "success", text: "File uploaded successfully!" });
+        } else {
+          setUploadMessage({ type: "error", text: "File upload failed" });
+        }
+      } catch (error) {
+        console.error("Upload error:", error);
+        setUploadMessage({ type: "error", text: "An error occurred while uploading the file" });
+      } finally {
+        setIsUploadingDocument(false);
+      }
+    }
+  };
+
+  const handleSaveWorkOrder = async () => {
+    // Add guard clause to ensure data exists
+    if (!editFormData || !selectedWorkOrder) {
+      toast.error("Form data is missing. Please try again.");
+      return;
+    }
+
+    const rowId = String(selectedWorkOrder.ROWID);
+    
+    // Get current date in YYYY-MM-DD format
+    const today = new Date();
+    const currentDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    
+    // Add end_date as current system date
+    const dataToSave = {
+      ...editFormData,
+      end_date: currentDate,
+    };
+
+    console.log("Saving work order with data:", dataToSave);
+    
+    const result = await nguageStore.UpdateRowDataDynamic(
+      dataToSave,
+      rowId,
+      44,
+      "work_order"
+    );
+
+    if (result.result) {
+      toast.success("Work order updated successfully!");
+      handleCloseModal();
+      queryClient.invalidateQueries({ queryKey: ["workOrderItems"] });
+    } else {
+      toast.error("Failed to update work order. Please try again.");
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedWorkOrder(null);
+    setEditFormData(null);
+    setUploadMessage(null);
+  };
+
   // Function to highlight search term in text
   const highlightText = (text: string | null | undefined, highlight: string) => {
     if (!text) return text;
@@ -183,7 +313,23 @@ export default observer(function WorkOrderPage() {
   };
 
   // Generate columns dynamically from data
-  const tableColumns = useMemo(() => getDynamicColumns(paginatedItems), [paginatedItems]);
+  const tableColumns = useMemo(() => {
+    const dynamicColumns = getDynamicColumns(paginatedItems);
+    // If no columns found but we have filtered items, use default columns
+    if (dynamicColumns.length === 0 && paginatedItems.length === 0) {
+      return COLUMN_ORDER.map((key) => ({
+        key,
+        label: key === "workOrderId" 
+          ? "Work Order ID"
+          : key
+              .replace(/_/g, " ")
+              .split(" ")
+              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(" "),
+      }));
+    }
+    return dynamicColumns;
+  }, [paginatedItems]);
 
   if (error) {
     return (
@@ -232,14 +378,10 @@ export default observer(function WorkOrderPage() {
         <div className="flex justify-center py-10">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
         </div>
-      ) : filteredItems.length === 0 ? (
-        <div className="py-8 text-center">
-          <p className="text-gray-500 dark:text-gray-400">No work orders found</p>
-        </div>
       ) : (
         <div className="border-t border-gray-200 dark:border-white/5">
           <div className="overflow-x-auto">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr', gap: '0' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 70px', gap: '0', minWidth: '100%' }}>
               {/* Table Header */}
               {tableColumns.map((column) => (
                 <div
@@ -249,48 +391,257 @@ export default observer(function WorkOrderPage() {
                   {column.label}
                 </div>
               ))}
+              {/* Actions Header */}
+              <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 border-r border-blue-800 dark:border-blue-800">
+                Actions
+              </div>
 
               {/* Table Body */}
-              {paginatedItems.map((item) => (
-                <Fragment key={item.ROWID}>
-                  {tableColumns.map((column) => {
-                    const value = item[column.key];
-                    let cellContent: React.ReactNode = "-";
+              {paginatedItems.length === 0 ? (
+                <div className="col-span-full py-8 text-center">
+                  <p className="text-gray-500 dark:text-gray-400">No work orders found</p>
+                </div>
+              ) : (
+                paginatedItems.map((item) => (
+                  <Fragment key={item.ROWID}>
+                    {tableColumns.map((column) => {
+                      const value = item[column.key];
+                      let cellContent: React.ReactNode = "-";
 
-                    // Format date fields
-                    if (column.key === "start_date" || column.key === "end_date") {
-                      cellContent = formatDate(String(value || ""));
-                    }
-                    // Render Badge for step field
-                    else if (column.key === "step") {
-                      cellContent = (
-                        <Badge color="green" variant="solid">
-                          {value || "-"}
-                        </Badge>
+                      // Format date fields
+                      if (column.key === "start_date" || column.key === "end_date") {
+                        cellContent = formatDate(String(value || ""));
+                      }
+                      // Render Badge for step field
+                      else if (column.key === "step") {
+                        cellContent = (
+                          <Badge color="green" variant="solid">
+                            {value || "-"}
+                          </Badge>
+                        );
+                      } else if (value !== null && value !== undefined && value !== "") {
+                        // Render with highlight if search term exists
+                        cellContent = searchTerm ? highlightText(String(value), searchTerm) : String(value);
+                      }
+
+                      return (
+                        <div
+                          key={column.key}
+                          className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r"
+                        >
+                          <p className="text-sm text-gray-700 dark:text-gray-300">
+                            {cellContent}
+                          </p>
+                        </div>
                       );
-                    } else if (value !== null && value !== undefined && value !== "") {
-                      // Render with highlight if search term exists
-                      cellContent = searchTerm ? highlightText(String(value), searchTerm) : String(value);
-                    }
-
-                    return (
-                      <div
-                        key={column.key}
-                        className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r"
+                    })}
+                    {/* Actions Cell */}
+                    <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r flex items-center gap-2">
+                      <button
+                        onClick={() => handleEditRow(item)}
+                        className="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
+                        title="Edit"
                       >
-                        <p className="text-sm text-gray-700 dark:text-gray-300">
-                          {cellContent}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </Fragment>
-              ))}
+                        <MdEdit className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </Fragment>
+                ))
+              )}
             </div>
           </div>
         </div>
       )}
       </div>
+
+      {/* Work Order Edit Modal */}
+      {isModalOpen && selectedWorkOrder && editFormData && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-2/3 max-h-[90vh] flex flex-col overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4 bg-white dark:bg-gray-900">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Edit Work Order
+              </h2>
+              <button
+                onClick={handleCloseModal}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <MdClose className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="grid grid-cols-2 gap-6">
+                {/* Work Order ID - Disabled */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Work Order ID
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={String(selectedWorkOrder.workOrderId || selectedWorkOrder[Object.keys(selectedWorkOrder).find(k => k.startsWith("{")) || ""] || "-")}
+                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Item Code - Disabled */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Item Code
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={String(editFormData.item_code || "-")}
+                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Item - Disabled */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Item Name
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={String(editFormData.item || "-")}
+                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Vendor Name - Disabled */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Vendor Name
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={String(editFormData.vendor_name || "-")}
+                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                  />
+                </div>
+
+                {/* PO Number - Disabled */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    PO Number
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={String(editFormData.po_number || "-")}
+                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Start Date - Disabled */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Start Date
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={formatDate(String(editFormData.start_date || ""))}
+                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                  />
+                </div>
+
+                {/* End Date - Disabled */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    End Date
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={formatDate(String(editFormData.end_date || ""))}
+                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                  />
+                </div>
+
+                {/* Step - Editable Dropdown */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Step
+                  </label>
+                  <select
+                    value={String(editFormData.step || "")}
+                    onChange={(e) => handleEditFormChange("step", e.target.value)}
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select step</option>
+                    <option value="Step 1">Step 1</option>
+                    <option value="Step 2">Step 2</option>
+                    <option value="Step 3">Step 3</option>
+                    <option value="Step 4">Step 4</option>
+                    <option value="Step 5">Step 5</option>
+                  </select>
+                </div>
+
+                {/* Step Name - Editable Dropdown */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Step Name
+                  </label>
+                  <select
+                    value={String(editFormData.step_name || "")}
+                    onChange={(e) => handleEditFormChange("step_name", e.target.value)}
+                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select step name</option>
+                    <option value="Painting">Painting</option>
+                    <option value="Welding">Welding</option>
+                    <option value="Fitting">Fitting</option>
+                    <option value="Filing">Filing</option>
+                    <option value="Drilling">Drilling</option>
+                    <option value="Casting">Casting</option>
+                  </select>
+                </div>
+
+                {/* Document - File Upload */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Document
+                  </label>
+                  <input
+                    type="file"
+                    onChange={handleEditDocumentChange}
+                    disabled={isUploadingDocument}
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50"
+                  />
+                  {editFormData.document && (
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                      Current: {editFormData.document}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end gap-4 border-t border-gray-200 dark:border-gray-700 px-6 py-4 bg-white dark:bg-gray-900">
+              <button
+                onClick={handleCloseModal}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveWorkOrder}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Fragment>
   );
 });

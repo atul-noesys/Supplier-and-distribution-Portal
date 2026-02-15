@@ -106,6 +106,40 @@ export class NguageStore {
     }
   }
 
+  async UpdateRowDataDynamic(
+    rowData: RowData,
+    rowId: string,
+    formId: number,
+    tableName: string,
+  ): Promise<{ result: boolean; error: string }> {
+    try {
+      // Get token from localStorage (client-side only)
+      let token = null;
+      if (typeof window !== "undefined") {
+        token = localStorage.getItem("access_token");
+      }
+
+      // Combine ROWID, formId, tableName with row data
+      const requestBody = {
+        ROWID: rowId,
+        formId: formId,
+        tableName: tableName,
+        ...rowData,
+      };
+
+      await axios.put("/api/EditRowDynamic", requestBody, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+
+      return { result: true, error: "" };
+    } catch (e) {
+      return { result: false, error: "error" };
+    }
+  }
+
   async UploadAttachFile(file: File, fileName: string) {
     try {
       const formData = new FormData();
