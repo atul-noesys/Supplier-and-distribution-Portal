@@ -565,7 +565,7 @@ export default observer(function WorkOrderPage() {
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
         </div>
       ) : viewMode === "kanban" ? (
-        <div className="p-6">
+        <div className="pt-4 px-0">
           <KanbanBoard initialData={kanbanItems} searchTerm={searchTerm} />
         </div>
       ) : (

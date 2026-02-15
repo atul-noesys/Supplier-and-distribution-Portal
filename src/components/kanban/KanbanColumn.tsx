@@ -49,7 +49,7 @@ export default function KanbanColumn({ step, items, searchTerm = "" }: KanbanCol
   return (
     <div
       ref={setNodeRef}
-      className={`flex-1 min-w-52 ${colors.bg} rounded-lg border-2 ${colors.border} p-2 pr-0 min-h-140 flex flex-col`}
+      className={`flex-1 min-w-52 ${colors.bg} rounded-lg border-2 ${colors.border} p-2 pr-0 min-h-128 flex flex-col`}
     >
       <div className="mb-0 pr-2">
         <div className="flex items-center justify-between">

@@ -118,7 +118,7 @@ export default function KanbanBoard({ initialData, searchTerm = "" }: KanbanBoar
         >
             <SortableContext items={items.map((item) => item.ROWID)} strategy={verticalListSortingStrategy}>
                 <div className="w-full h-full flex flex-col overflow-hidden">
-                    <div className="flex gap-3 sm:gap-4 flex-1 overflow-hidden pb-6">
+                    <div className="flex gap-3 sm:gap-4 flex-1 overflow-hidden">
                         {STEPS.map((step) => (
                             <KanbanColumn
                                 key={step}
