@@ -1,11 +1,10 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/useAuth";
 import KanbanBoard from "@/components/kanban/KanbanBoard";
+import { useAuth } from "@/hooks/useAuth";
 import { useStore } from "@/store/store-context";
+import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import { useEffect } from "react";
 
 interface KanbanItem {
   po_number: string;
@@ -122,12 +121,6 @@ export default function Dashboard() {
   const store = useStore();
   const { nguageStore } = store;
 
-  useEffect(() => {
-    console.log("Dashboard mounted - authLoading:", authLoading);
-    console.log("Store:", store);
-    console.log("nguageStore:", nguageStore);
-  }, [authLoading, store, nguageStore]);
-
   const { data: items = [], isLoading, error, status } = useQuery({
     queryKey: ["workOrderItems", nguageStore],
     queryFn: () => fetchWorkOrderItems(nguageStore),
@@ -135,13 +128,6 @@ export default function Dashboard() {
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
   });
-
-  useEffect(() => {
-    console.log("Query status:", status);
-    console.log("Query isLoading:", isLoading);
-    console.log("Query error:", error);
-    console.log("Query items count:", items.length);
-  }, [status, isLoading, error, items]);
 
   if (authLoading || isLoading) {
     return (
