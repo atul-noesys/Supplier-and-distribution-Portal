@@ -82,6 +82,7 @@ function AddPOItemModalContent({
         remarks: '',
         document: '',
         total: '',
+        work_order_created: "No"
     }), [poData]);
 
     const [formData, setFormData] = useState<KeyValueRecord>(getDefaultFormData());
@@ -184,22 +185,6 @@ function AddPOItemModalContent({
                     42,
                     'purchase_order_items'
                 );
-
-                //pushing data for work order table
-                const itemToSaveForWorkOrder = {
-                    ...itemToSave,
-                    start_date: new Date().toISOString().split('T')[0],
-                    step: itemToSave.status
-                };
-
-                await nguageStore.AddDataSourceRow(
-                    itemToSaveForWorkOrder,
-                    44,
-                    'work_order'
-                );
-
-                // Invalidate work order query to fetch latest data
-                await queryClient.invalidateQueries({ queryKey: ['workOrderItems'] });
 
                 if (result.error) {
                     toast.error(`Failed to save: ${result.error}`);
