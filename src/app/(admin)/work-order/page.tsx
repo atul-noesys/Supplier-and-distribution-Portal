@@ -1,12 +1,14 @@
 "use client";
 
 import Badge from "@/components/ui/badge/Badge";
+import { PDFPreview } from "@/components/pdf-preview";
 import { useStore } from "@/store/store-context";
 import { RowData } from "@/types/purchase-order";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { observer } from "mobx-react-lite";
-import { Fragment, useCallback, useMemo, useState } from "react";
-import { MdClose, MdEdit, MdVisibility } from "react-icons/md";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+import { MdClose, MdEdit, MdOpenInNew } from "react-icons/md";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "react-toastify";
 
@@ -26,6 +28,7 @@ const COLUMN_ORDER = [
   "step_name",
   "start_date",
   "end_date",
+  "document",
   "remarks",
 ];
 
@@ -38,6 +41,7 @@ const DISPLAY_COLUMNS = [
   "vendor_name",
   "step",
   "po_number",
+  "document",
 ];
 
 // Function to generate column headers from data dynamically
@@ -91,6 +95,10 @@ export default observer(function WorkOrderPage() {
   const [editFormData, setEditFormData] = useState<RowData | null>(null);
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
   const [uploadMessage, setUploadMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [loadingPdf, setLoadingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const itemsPerPage = 10;
 
   // Fetch auth token
@@ -226,6 +234,63 @@ export default observer(function WorkOrderPage() {
   const handleCloseDetailModal = () => {
     setIsDetailModalOpen(false);
     setSelectedWorkOrder(null);
+  };
+
+  const fetchPdf = useCallback(async (docName: string | null) => {
+    if (!docName) {
+      setPdfUrl(null);
+      return;
+    }
+
+    setLoadingPdf(true);
+    setPdfError(null);
+
+    try {
+      const apiUrl = `/api/GetPdfUrl?attachment=${encodeURIComponent(docName)}`;
+
+      const pdfResponse = await fetch(apiUrl, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+
+      if (!pdfResponse.ok) {
+        throw new Error(
+          `Failed to fetch PDF: ${pdfResponse.status} ${pdfResponse.statusText}`,
+        );
+      }
+
+      const pdfBlob = await pdfResponse.blob();
+      const blobUrl = URL.createObjectURL(pdfBlob);
+      setPdfUrl(blobUrl);
+    } catch (err) {
+      console.error("Failed to fetch PDF:", err);
+      setPdfError(err instanceof Error ? err.message : "Failed to load PDF");
+      setPdfUrl(null);
+    } finally {
+      setLoadingPdf(false);
+    }
+  }, [authToken]);
+
+  useEffect(() => {
+    if (pdfUrl) {
+      URL.revokeObjectURL(pdfUrl);
+      setPdfUrl(null);
+    }
+
+    fetchPdf(selectedDocument);
+  }, [selectedDocument, fetchPdf]);
+
+  const handleViewDocument = (docName: string) => {
+    setSelectedDocument(docName);
+  };
+
+  const closePdfViewer = () => {
+    setSelectedDocument(null);
+    if (pdfUrl) {
+      URL.revokeObjectURL(pdfUrl);
+      setPdfUrl(null);
+    }
   };
 
   const handleEditFormChange = (field: string, value: string) => {
@@ -418,7 +483,7 @@ export default observer(function WorkOrderPage() {
       ) : (
         <div className="border-t border-gray-200 dark:border-white/5">
           <div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.7fr 1.5fr 0.85fr 1.1fr 0.5fr 0.9fr 70px 80px', gap: '0', minWidth: '100%' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.7fr 1.5fr 0.7fr 1.1fr 0.6fr 0.9fr 0.6fr 70px 80px', gap: '0', minWidth: '100%' }}>
               {/* Table Header */}
               {tableColumns.map((column) => (
                 <div
@@ -460,6 +525,20 @@ export default observer(function WorkOrderPage() {
                             {value || "-"}
                           </Badge>
                         );
+                      }
+                      // Render document icon
+                      else if (column.key === "document") {
+                        cellContent = value ? (
+                          <button
+                            onClick={() => handleViewDocument(value as string)}
+                            className="cursor-pointer hover:opacity-75 transition-opacity"
+                            title="View document"
+                          >
+                            <AiOutlineEye className="ml-7 w-5 h-5 text-blue-600 dark:text-blue-400" />
+                          </button>
+                        ) : (
+                          <AiOutlineEyeInvisible className="ml-7 w-5 h-5 text-gray-400 dark:text-gray-500" />
+                        );
                       } else if (value !== null && value !== undefined && value !== "") {
                         // Render with highlight if search term exists
                         cellContent = searchTerm ? highlightText(String(value), searchTerm) : String(value);
@@ -483,7 +562,7 @@ export default observer(function WorkOrderPage() {
                         className="flex justify-center items-center ml-2 w-8 h-4 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
                         title="View Details"
                       >
-                        <MdVisibility className="w-4 h-4" />
+                        <MdOpenInNew className="w-4 h-4" />
                       </button>
                     </div>
                     {/* Actions Cell */}
@@ -504,6 +583,63 @@ export default observer(function WorkOrderPage() {
         </div>
       )}
       </div>
+
+      {/* PDF Viewer Modal */}
+      {selectedDocument && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-2/3 h-5/6 flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {selectedDocument}
+              </h2>
+              <button
+                onClick={closePdfViewer}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <MdClose className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-hidden">
+              {pdfError ? (
+                <div className="flex h-full items-center justify-center">
+                  <div className="text-center">
+                    <div className="mb-2 text-lg font-medium text-red-500">
+                      Error
+                    </div>
+                    <div className="text-gray-600 dark:text-gray-400">{pdfError}</div>
+                    <button
+                      className="mt-4 rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+                      onClick={() => handleViewDocument(selectedDocument)}
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </div>
+              ) : loadingPdf ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin">
+                    <div className="h-8 w-8 border-4 border-brand-500 border-t-transparent rounded-full"></div>
+                  </div>
+                </div>
+              ) : pdfUrl ? (
+                <PDFPreview
+                  pdfUrl={pdfUrl}
+                  docName={selectedDocument}
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center">
+                  <div className="text-center text-gray-600 dark:text-gray-400">
+                    No PDF loaded
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Work Order Detail Modal */}
       {isDetailModalOpen && selectedWorkOrder && (

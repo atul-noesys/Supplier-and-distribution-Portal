@@ -32,6 +32,7 @@ interface PurchaseOrderItem {
   status: string;
   step_name: string;
   document: string;
+  work_order_created: string;
   InfoveaveBatchId: number;
   ROWID: number;
   total?: number;
@@ -191,6 +192,7 @@ export default observer(function PurchaseOrderPage() {
         status: item.status as string,
         step_name: item.step_name as string,
         document: (item.document as string) || null,
+        work_order_created: (item.work_order_created as string) || null,
         vendor_name: (item.vendor_name as string) || null,
         InfoveaveBatchId: item.InfoveaveBatchId as number,
         ROWID: item.ROWID as number,
@@ -526,7 +528,7 @@ export default observer(function PurchaseOrderPage() {
                         <>
                           <tr className="border-b border-gray-100 dark:border-white/5 bg-blue-100 dark:bg-blue-900/40">
                             <td colSpan={4} className="px-5 py-3">
-                              <div className="grid gap-6" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 0.8fr 1fr 0.8fr 0.7fr' }}>
+                              <div className="grid gap-6" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 0.8fr 1fr 0.8fr 0.9fr 0.7fr' }}>
                                 <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Item Code</div>
                                 <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Item Name</div>
                                 <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Unit Price</div>
@@ -535,6 +537,7 @@ export default observer(function PurchaseOrderPage() {
                                 <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Step</div>
                                 <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Step Name</div>
                                 <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Document</div>
+                                <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">WO Created</div>
                                 <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Action</div>
                               </div>
                             </td>
@@ -545,7 +548,7 @@ export default observer(function PurchaseOrderPage() {
                               className="border-b border-gray-100 dark:border-white/5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
                             >
                               <td colSpan={4} className="px-5 py-4">
-                                <div className="grid gap-6 text-sm" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 0.8fr 1fr 0.8fr 0.7fr' }}>
+                                <div className="grid gap-6 text-sm" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 0.8fr 1fr 0.8fr 0.9fr 0.7fr' }}>
                                   <div className="text-gray-700 dark:text-gray-300">{item.item_code}</div>
                                   <div className="text-gray-700 dark:text-gray-300">
                                     {searchTerm ? highlightText(item.item, searchTerm) : item.item}
@@ -571,6 +574,11 @@ export default observer(function PurchaseOrderPage() {
                                     ) : (
                                       <AiOutlineEyeInvisible className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                                     )}
+                                  </div>
+                                  <div>
+                                    <Badge color={item.work_order_created === "Yes" ? "success" : item.work_order_created === "No" ? "error" : "light"} variant="solid" size="sm">
+                                      {item.work_order_created || "N/A"}
+                                    </Badge>
                                   </div>
                                   <div>
                                     <button
