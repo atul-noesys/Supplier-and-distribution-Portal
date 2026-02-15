@@ -512,15 +512,15 @@ export default observer(function WorkOrderPage() {
         {/* Header with Title and Search */}
         <div className="border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/5 px-6 py-4">
           <div className="flex justify-between items-center gap-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Work Orders</h2>
-            <div className="flex items-center gap-3 flex-1 max-w-115">
-              <div className="relative flex-1">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white whitespace-nowrap">Work Orders</h2>
+            <div className="flex items-center gap-3">
+              <div className="relative">
                 <input
                   type="text"
                   placeholder="Search by PO number/Item code/Item name/Vendor"
                   value={searchTerm}
                   onChange={(e) => handleSearchChange(e.target.value)}
-                  className="w-full px-4 py-2.25 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none text-sm"
+                  className="w-80 px-4 py-2.25 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none text-sm"
                 />
                 {searchTerm && (
                   <button
@@ -532,32 +532,30 @@ export default observer(function WorkOrderPage() {
                   </button>
                 )}
               </div>
-            </div>
-            <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-              <button
-                onClick={() => setViewMode("table")}
-                className={`flex items-center gap-2 px-4 py-2 rounded transition-colors ${
-                  viewMode === "table"
-                    ? "bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm"
-                    : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                }`}
-                title="Table view"
-              >
-                <MdViewWeek className="w-5 h-5" />
-                <span className="text-sm">Table</span>
-              </button>
-              <button
-                onClick={() => setViewMode("kanban")}
-                className={`flex items-center gap-2 px-4 py-2 rounded transition-colors ${
-                  viewMode === "kanban"
-                    ? "bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm"
-                    : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-                }`}
-                title="Kanban view"
-              >
-                <MdViewAgenda className="w-5 h-5" />
-                <span className="text-sm">Kanban</span>
-              </button>
+              <div className="flex items-center gap-2 bg-gray-200 dark:bg-gray-700 rounded-full p-0.5">
+                <button
+                  onClick={() => setViewMode("table")}
+                  className={`p-1.5 rounded-full transition-all ${
+                    viewMode === "table"
+                      ? "bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
+                  }`}
+                  title="Table view"
+                >
+                  <MdViewWeek className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode("kanban")}
+                  className={`p-1.5 rounded-full transition-all ${
+                    viewMode === "kanban"
+                      ? "bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
+                  }`}
+                  title="Kanban view"
+                >
+                  <MdViewAgenda className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
