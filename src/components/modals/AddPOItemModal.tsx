@@ -4,7 +4,7 @@ import { useState } from 'react';
 import * as React from 'react';
 import { MdClose } from 'react-icons/md';
 import { toast } from 'react-toastify';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useStore } from '@/store/store-context';
 import { v4 as uuidv4 } from 'uuid';
 import { POItem, KeyValueRecord, RowData } from '@/types/purchase-order';
@@ -44,6 +44,7 @@ function AddPOItemModalContent({
     poData,
 }: AddPOItemModalProps) {
     const { nguageStore, poStore } = useStore();
+    const queryClient = useQueryClient();
     const [isUploadingDocument, setIsUploadingDocument] = useState(false);
 
     // Get editing item from store
@@ -196,6 +197,9 @@ function AddPOItemModalContent({
                     44,
                     'work_order'
                 );
+
+                // Invalidate work order query to fetch latest data
+                await queryClient.invalidateQueries({ queryKey: ['workOrderItems'] });
 
                 if (result.error) {
                     toast.error(`Failed to save: ${result.error}`);

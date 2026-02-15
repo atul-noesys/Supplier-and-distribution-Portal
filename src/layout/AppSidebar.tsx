@@ -29,6 +29,11 @@ const navItems: NavItem[] = [
     name: "Purchase Order",
     path: "/purchase-order",
   },
+  {
+    icon: <ListIcon />,
+    name: "Work Order",
+    path: "/work-order",
+  },
   // {
   //   icon: <GridIcon />,
   //   name: "Products",
