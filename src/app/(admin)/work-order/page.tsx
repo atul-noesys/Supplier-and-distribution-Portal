@@ -104,7 +104,7 @@ export default observer(function WorkOrderPage() {
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "kanban">("kanban");
   const [isSavingWorkOrder, setIsSavingWorkOrder] = useState(false);
-  const itemsPerPage = 10;
+  const itemsPerPage = 50;
 
   // Fetch auth token
   const { data: authToken = null } = useQuery({
@@ -153,16 +153,10 @@ export default observer(function WorkOrderPage() {
     );
   }, [paginationData, searchTerm]);
 
-  // Pagination logic
-  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
   const paginatedItems = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredItems.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredItems, currentPage]);
-
-  const handlePageChange = useCallback((page: number) => {
-    setCurrentPage(page);
-  }, []);
 
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
