@@ -302,6 +302,111 @@ export default observer(function PurchaseOrderPage() {
     }
   };
 
+  const handleCreateMultipleWorkOrders = async (poNumber: string) => {
+    if (!authToken) {
+      toast.error("No auth token available");
+      return;
+    }
+
+    try {
+      // Get all items for this PO that need work orders created
+      const itemsToProcess = itemsByPO[poNumber]?.filter(
+        (item) => item.work_order_created !== "Yes"
+      ) || [];
+
+      if (itemsToProcess.length === 0) {
+        toast.info("All items in this PO already have work orders created");
+        return;
+      }
+
+      let successCount = 0;
+      let failureCount = 0;
+
+      // Process each item one by one
+      for (const item of itemsToProcess) {
+        try {
+          // Fetch the latest row data
+          const response = await axios.post(
+            "/api/GetRowData",
+            {
+              ROWID: item.ROWID,
+            },
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${authToken}`,
+              },
+            },
+          );
+
+          const latestRowData = response.data.data;
+
+          // Update work_order_created to "Yes"
+          const updatedData = {
+            ...latestRowData,
+            ROWID: item.ROWID,
+            work_order_created: "Yes",
+          };
+
+          // Save the updated data
+          await axios.put(
+            "/api/EditRow",
+            updatedData,
+            {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${authToken}`,
+              },
+            },
+          );
+
+          const payloadForWorkOrder = {
+            ...latestRowData,
+            step: "Step 1",
+            step_name: null,
+            document: null,
+            remarks: "",
+            start_date: new Date().toISOString().split('T')[0]
+          }
+
+          // Add work order row to work_order table
+          await nguageStore.AddDataSourceRow(
+            payloadForWorkOrder,
+            44,
+            "work_order"
+          );
+
+          successCount++;
+        } catch (itemError) {
+          console.error(`Failed to create work order for item ${item.item}:`, itemError);
+          failureCount++;
+        }
+      }
+
+      // Show summary toast
+      if (successCount > 0) {
+        toast.success(
+          <span>
+            Created {successCount} work order{successCount !== 1 ? 's' : ''} for PO <b>{poNumber}</b>
+            {failureCount > 0 ? ` (${failureCount} failed)` : ''}
+          </span>
+        );
+      }
+
+      if (failureCount > 0 && successCount === 0) {
+        toast.error(`Failed to create work orders for PO ${poNumber}`);
+      }
+
+      // Refetch the updated data
+      await queryClient.invalidateQueries({ queryKey: ["poItems"] });
+      await queryClient.invalidateQueries({ queryKey: ["purchaseOrders"] });
+      await queryClient.invalidateQueries({ queryKey: ["workOrderItems"] });
+    } catch (error) {
+      console.error("Failed to create work orders:", error);
+      toast.error("Failed to create work orders");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="rounded-lg border border-gray-200 dark:border-white/5 bg-white dark:bg-white/3 overflow-hidden">
@@ -376,6 +481,11 @@ export default observer(function PurchaseOrderPage() {
                     <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide">
                       Vendor Name
                     </th>
+                    {user?.roleId !== 5 && (
+                      <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide">
+                        Create WO
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -405,12 +515,33 @@ export default observer(function PurchaseOrderPage() {
                         <td className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">
                           {searchTerm ? highlightText(po.vendor_name || po.vendor_id, searchTerm) : (po.vendor_name || po.vendor_id)}
                         </td>
+                        {user?.roleId !== 5 && (
+                          <td className="px-5 py-4">
+                            {itemsByPO[po.po_number]?.some((item) => item.work_order_created !== "Yes") ? (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCreateMultipleWorkOrders(po.po_number);
+                                }}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
+                                title="Create Work Orders for all items"
+                              >
+                                <AiOutlineCheck className="w-4 h-4" />
+                                Create WO
+                              </button>
+                            ) : (
+                              <Badge color="success" variant="solid" size="sm">
+                                All Created
+                              </Badge>
+                            )}
+                          </td>
+                        )}
                       </tr>
 
                       {expandedPOs.has(po.po_number) && itemsByPO[po.po_number] && itemsByPO[po.po_number].length > 0 && (
                         <>
                           <tr className="border-b border-gray-100 dark:border-white/5 bg-blue-100 dark:bg-blue-900/40">
-                            <td colSpan={4} className="px-5 py-3">
+                            <td colSpan={user?.roleId !== 5 ? 5 : 4} className="px-5 py-3">
                               <div className="grid gap-6" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 0.9fr' }}>
                                 <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Item Code</div>
                                 <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Item Name</div>
@@ -426,7 +557,7 @@ export default observer(function PurchaseOrderPage() {
                               key={item.ROWID}
                               className="border-b border-gray-100 dark:border-white/5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
                             >
-                              <td colSpan={4} className="px-5 py-4">
+                              <td colSpan={user?.roleId !== 5 ? 5 : 4} className="px-5 py-4">
                                 <div className="grid gap-6 text-sm" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 0.9fr' }}>
                                   <div className="text-gray-700 dark:text-gray-300">{item.item_code}</div>
                                   <div className="text-gray-700 dark:text-gray-300">
