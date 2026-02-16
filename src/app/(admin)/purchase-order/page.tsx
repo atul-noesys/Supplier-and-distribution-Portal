@@ -9,6 +9,7 @@ import { observer } from "mobx-react-lite";
 import { Fragment, useEffect, useState } from "react";
 import { AiOutlineCheck } from "react-icons/ai";
 import { MdArrowDropDown, MdClose } from "react-icons/md";
+import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { toast } from "react-toastify";
 
 interface PurchaseOrder {
@@ -69,6 +70,8 @@ export default observer(function PurchaseOrderPage() {
   const [expandedPOs, setExpandedPOs] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [isAddPOModalOpen, setIsAddPOModalOpen] = useState(false);
+  const [loadingItemROWID, setLoadingItemROWID] = useState<number | null>(null);
+  const [loadingPONumber, setLoadingPONumber] = useState<string | null>(null);
 
   // Fetch auth token - refresh on component mount
   const { data: authToken = null } = useQuery({
@@ -229,6 +232,8 @@ export default observer(function PurchaseOrderPage() {
       return;
     }
 
+    setLoadingItemROWID(item.ROWID);
+
     try {
       // Fetch the latest row data
       const response = await axios.post(
@@ -299,6 +304,8 @@ export default observer(function PurchaseOrderPage() {
       } else {
         toast.error("Failed to create work order");
       }
+    } finally {
+      setLoadingItemROWID(null);
     }
   };
 
@@ -307,6 +314,8 @@ export default observer(function PurchaseOrderPage() {
       toast.error("No auth token available");
       return;
     }
+
+    setLoadingPONumber(poNumber);
 
     try {
       // Get all items for this PO that need work orders created
@@ -404,6 +413,8 @@ export default observer(function PurchaseOrderPage() {
     } catch (error) {
       console.error("Failed to create work orders:", error);
       toast.error("Failed to create work orders");
+    } finally {
+      setLoadingPONumber(null);
     }
   };
 
@@ -482,8 +493,8 @@ export default observer(function PurchaseOrderPage() {
                       Vendor Name
                     </th>
                     {user?.roleId !== 5 && (
-                      <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide">
-                        Create WO
+                      <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide" style={{ width: '175px' }}>
+                        WO Created
                       </th>
                     )}
                   </tr>
@@ -523,11 +534,16 @@ export default observer(function PurchaseOrderPage() {
                                   e.stopPropagation();
                                   handleCreateMultipleWorkOrders(po.po_number);
                                 }}
-                                className="flex items-center gap-1 px-3 py-1.5 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
+                                disabled={loadingPONumber === po.po_number}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors"
                                 title="Create Work Orders for all items"
                               >
-                                <AiOutlineCheck className="w-4 h-4" />
-                                Create WO
+                                {loadingPONumber === po.po_number ? (
+                                  <AiOutlineLoading3Quarters className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <AiOutlineCheck className="w-4 h-4" />
+                                )}
+                                Create All WO
                               </button>
                             ) : (
                               <Badge color="success" variant="solid" size="sm">
@@ -576,10 +592,15 @@ export default observer(function PurchaseOrderPage() {
                                         {user?.roleId !== 5 ? (
                                           <button
                                             onClick={() => handleCreateWorkOrder(item)}
-                                            className="flex items-center gap-1 px-3 py-1.5 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
+                                            disabled={loadingItemROWID === item.ROWID}
+                                            className="flex items-center gap-1 px-3 py-1.5 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors"
                                             title="Create Work Order"
                                           >
-                                            <AiOutlineCheck className="w-4 h-4" />
+                                            {loadingItemROWID === item.ROWID ? (
+                                              <AiOutlineLoading3Quarters className="w-4 h-4 animate-spin" />
+                                            ) : (
+                                              <AiOutlineCheck className="w-4 h-4" />
+                                            )}
                                             Create WO
                                           </button>
                                         ) : (
