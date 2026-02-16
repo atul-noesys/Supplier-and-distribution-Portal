@@ -31,11 +31,12 @@ interface KanbanBoardProps {
     initialData: KanbanItem[];
     searchTerm?: string;
     onEditClick?: (item: KanbanItem) => void;
+    onDragDropSave?: (item: KanbanItem, newStep: string) => Promise<void>;
 }
 
 const STEPS = ["Step 1", "Step 2", "Step 3", "Step 4", "Step 5"];
 
-export default function KanbanBoard({ initialData, searchTerm = "", onEditClick }: KanbanBoardProps) {
+export default function KanbanBoard({ initialData, searchTerm = "", onEditClick, onDragDropSave }: KanbanBoardProps) {
     const [items, setItems] = useState<KanbanItem[]>(initialData);
     const [activeId, setActiveId] = useState<number | null>(null);
 
@@ -105,6 +106,15 @@ export default function KanbanBoard({ initialData, searchTerm = "", onEditClick 
                 item.ROWID === activeItem.ROWID ? { ...item, status: newStep } : item
             );
             setItems(updatedItems);
+
+            // Call the drag-drop save handler if provided
+            if (onDragDropSave) {
+                onDragDropSave({ ...activeItem, status: newStep }, newStep).catch((error) => {
+                    console.error("Error saving drag-drop change:", error);
+                    // Revert the change if save fails
+                    setItems(items);
+                });
+            }
         }
     };
 

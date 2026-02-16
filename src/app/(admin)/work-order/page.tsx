@@ -438,6 +438,58 @@ export default observer(function WorkOrderPage() {
     }
   };
 
+  const handleDragDropSave = async (item: any, newStep: string) => {
+    const rowId = String(item.ROWID);
+    if (!rowId) {
+      console.error("Row ID is missing");
+      return;
+    }
+
+    try {
+      // Fetch the latest row data
+      const latestData = await nguageStore.GetRowData(
+        44,
+        rowId,
+        'work_order'
+      );
+
+      if (!latestData) {
+        toast.error("Failed to fetch latest work order data");
+        return;
+      }
+
+      // Get current date in YYYY-MM-DD format
+      const today = new Date();
+      const currentDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+      // Prepare data with new step and current date
+      const dataToSave = {
+        ...latestData,
+        step: newStep,
+        end_date: currentDate,
+      };
+
+      console.log("Saving drag-drop change:", dataToSave);
+
+      const result = await nguageStore.UpdateRowDataDynamic(
+        dataToSave,
+        rowId,
+        44,
+        "work_order"
+      );
+
+      if (result.result) {
+        toast.success(<span>Work order <b>{latestData.po_number}{latestData.item_code}</b> moved to <b>{newStep}</b></span>);
+        queryClient.invalidateQueries({ queryKey: ["workOrderItems"] });
+      } else {
+        toast.error("Failed to update work order step.");
+      }
+    } catch (error) {
+      console.error("Error saving drag-drop change:", error);
+      toast.error("An error occurred while updating the work order.");
+    }
+  };
+
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedWorkOrder(null);
@@ -570,7 +622,7 @@ export default observer(function WorkOrderPage() {
         </div>
       ) : viewMode === "kanban" ? (
         <div className="pt-4 px-0">
-          <KanbanBoard initialData={kanbanItems} searchTerm={searchTerm} onEditClick={handleEditRow} />
+          <KanbanBoard initialData={kanbanItems} searchTerm={searchTerm} onEditClick={handleEditRow} onDragDropSave={handleDragDropSave} />
         </div>
       ) : (
         <div className="border-t border-gray-200 dark:border-white/5">
