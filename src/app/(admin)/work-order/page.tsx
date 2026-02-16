@@ -8,7 +8,7 @@ import { RowData } from "@/types/purchase-order";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { observer } from "mobx-react-lite";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
-import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+import { AiOutlineEye, AiOutlineEyeInvisible, AiOutlineLoading3Quarters } from "react-icons/ai";
 import { MdClose, MdEdit, MdOpenInNew } from "react-icons/md";
 import { MdViewAgenda, MdViewWeek } from "react-icons/md";
 import { v4 as uuidv4 } from "uuid";
@@ -103,6 +103,7 @@ export default observer(function WorkOrderPage() {
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "kanban">("kanban");
+  const [isSavingWorkOrder, setIsSavingWorkOrder] = useState(false);
   const itemsPerPage = 10;
 
   // Fetch auth token
@@ -404,33 +405,42 @@ export default observer(function WorkOrderPage() {
       return;
     }
 
-    const rowId = String(selectedWorkOrder.ROWID);
-    
-    // Get current date in YYYY-MM-DD format
-    const today = new Date();
-    const currentDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-    
-    // Add end_date as current system date
-    const dataToSave = {
-      ...editFormData,
-      end_date: currentDate,
-    };
+    setIsSavingWorkOrder(true);
 
-    console.log("Saving work order with data:", dataToSave);
-    
-    const result = await nguageStore.UpdateRowDataDynamic(
-      dataToSave,
-      rowId,
-      44,
-      "work_order"
-    );
+    try {
+      const rowId = String(selectedWorkOrder.ROWID);
+      
+      // Get current date in YYYY-MM-DD format
+      const today = new Date();
+      const currentDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      
+      // Add end_date as current system date
+      const dataToSave = {
+        ...editFormData,
+        end_date: currentDate,
+      };
 
-    if (result.result) {
-      toast.success("Work order updated successfully!");
-      handleCloseModal();
-      queryClient.invalidateQueries({ queryKey: ["workOrderItems"] });
-    } else {
-      toast.error("Failed to update work order. Please try again.");
+      console.log("Saving work order with data:", dataToSave);
+      
+      const result = await nguageStore.UpdateRowDataDynamic(
+        dataToSave,
+        rowId,
+        44,
+        "work_order"
+      );
+
+      if (result.result) {
+        toast.success("Work order updated successfully!");
+        handleCloseModal();
+        queryClient.invalidateQueries({ queryKey: ["workOrderItems"] });
+      } else {
+        toast.error("Failed to update work order. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error saving work order:", error);
+      toast.error("An error occurred while saving the work order.");
+    } finally {
+      setIsSavingWorkOrder(false);
     }
   };
 
@@ -566,7 +576,7 @@ export default observer(function WorkOrderPage() {
         </div>
       ) : viewMode === "kanban" ? (
         <div className="pt-4 px-0">
-          <KanbanBoard initialData={kanbanItems} searchTerm={searchTerm} />
+          <KanbanBoard initialData={kanbanItems} searchTerm={searchTerm} onEditClick={handleEditRow} />
         </div>
       ) : (
         <div className="border-t border-gray-200 dark:border-white/5">
@@ -989,15 +999,24 @@ export default observer(function WorkOrderPage() {
             <div className="flex items-center justify-end gap-4 border-t border-gray-200 dark:border-gray-700 px-6 py-4 bg-white dark:bg-gray-900">
               <button
                 onClick={handleCloseModal}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                disabled={isSavingWorkOrder}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveWorkOrder}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                disabled={isSavingWorkOrder}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
               >
-                Save Changes
+                {isSavingWorkOrder ? (
+                  <>
+                    <AiOutlineLoading3Quarters className="w-4 h-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
               </button>
             </div>
           </div>

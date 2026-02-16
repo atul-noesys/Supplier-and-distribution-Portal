@@ -2,14 +2,16 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { MdEdit } from "react-icons/md";
 import { KanbanItem } from "./KanbanBoard";
 
 interface KanbanCardProps {
   item: KanbanItem;
   searchTerm?: string;
+  onEditClick?: (item: KanbanItem) => void;
 }
 
-export default function KanbanCard({ item, searchTerm = "" }: KanbanCardProps) {
+export default function KanbanCard({ item, searchTerm = "", onEditClick }: KanbanCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.ROWID });
 
@@ -24,10 +26,10 @@ export default function KanbanCard({ item, searchTerm = "" }: KanbanCardProps) {
   const highlightText = (text: string | null | undefined, highlight: string) => {
     if (!text) return text;
     if (!highlight.trim()) return text;
-    
+
     const regex = new RegExp(`(${highlight})`, "gi");
     const parts = text.split(regex);
-    
+
     return parts.map((part, index) =>
       regex.test(part) ? (
         <span key={index} className="bg-yellow-300 dark:bg-yellow-400 dark:text-gray-900 font-semibold">
@@ -54,10 +56,20 @@ export default function KanbanCard({ item, searchTerm = "" }: KanbanCardProps) {
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center justify-between gap-2 mb-1">
             <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               {searchTerm ? highlightText(item.po_number, searchTerm) : item.po_number}
             </p>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditClick?.(item);
+              }}
+              className="ml-2 p-0.5 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors flex-shrink-0"
+              title="Edit"
+            >
+              <MdEdit className="w-4 h-4" />
+            </button>
           </div>
           <p className="text-sm font-bold text-gray-900 dark:text-white mt-1 line-clamp-2">
             {searchTerm ? highlightText(item.item, searchTerm) : item.item}
