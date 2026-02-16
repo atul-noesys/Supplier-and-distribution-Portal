@@ -29,9 +29,10 @@ const toRowData = (record: KeyValueRecord): RowData => {
 interface AddPOModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
-function AddPOModalContent({ isOpen, onClose }: AddPOModalProps) {
+function AddPOModalContent({ isOpen, onClose, onSuccess }: AddPOModalProps) {
   const { nguageStore, poStore } = useStore();
   const [isSaved, setIsSaved] = useState(false);
   const [poData, setPoData] = useState<KeyValueRecord | null>(null);
@@ -134,6 +135,7 @@ function AddPOModalContent({ isOpen, onClose }: AddPOModalProps) {
 
       setIsSaved(true);
       toast.success('Purchase Order created successfully!');
+      onSuccess?.();
 
       // Show items section after saving
       // Items section will auto-appear since isSaved is true
@@ -148,6 +150,7 @@ function AddPOModalContent({ isOpen, onClose }: AddPOModalProps) {
 
     try {
       toast.success('Purchase Order items saved successfully!');
+      onSuccess?.();
       handleClose();
     } catch (error) {
       console.error('Error saving items:', error);
@@ -511,7 +514,10 @@ function AddPOModalContent({ isOpen, onClose }: AddPOModalProps) {
         <AddPOItemModal
           isOpen={showItemModal}
           onClose={() => setShowItemModal(false)}
-          onSave={handleSaveItem}
+          onSave={(item) => {
+            handleSaveItem(item);
+            onSuccess?.();
+          }}
           poData={poData}
         />
       )}

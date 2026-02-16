@@ -631,6 +631,10 @@ export default observer(function PurchaseOrderPage() {
       <AddPOModal
         isOpen={isAddPOModalOpen}
         onClose={() => setIsAddPOModalOpen(false)}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["purchaseOrders"] });
+          queryClient.invalidateQueries({ queryKey: ["poItems"] });
+        }}
       />
     </div>
   );
