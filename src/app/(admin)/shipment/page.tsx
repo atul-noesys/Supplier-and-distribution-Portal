@@ -449,6 +449,25 @@ export default observer(function ShipmentPage() {
                                 );
                               }
 
+                              // Check if it's a document field
+                              if (col.toLowerCase().includes("document")) {
+                                return (
+                                  <td key={col} className="px-11 py-4">
+                                    {value ? (
+                                      <button
+                                        onClick={() => handleViewDocument(value as string)}
+                                        className="cursor-pointer hover:opacity-75 transition-opacity"
+                                        title="View document"
+                                      >
+                                        <AiOutlineEye className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                      </button>
+                                    ) : (
+                                      <AiOutlineEyeInvisible className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                                    )}
+                                  </td>
+                                );
+                              }
+
                               // Default cell rendering with highlight
                               return (
                                 <td
