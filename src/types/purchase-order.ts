@@ -19,3 +19,9 @@ export interface RowData {
  * Extends RowData for proper API type compatibility
  */
 export type POItem = RowData;
+
+/**
+ * ShipmentItem is a RowData record representing a shipment item
+ * Extends RowData for proper API type compatibility
+ */
+export type ShipmentItem = RowData;
