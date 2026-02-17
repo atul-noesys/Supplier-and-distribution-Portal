@@ -110,16 +110,6 @@ export default observer(function ShipmentPage() {
   const allColumns = shipmentData && shipmentData.length > 0 ? Object.keys(shipmentData[0]) : [];
   const columns = allColumns.filter((col) => !HIDDEN_COLUMNS.includes(col));
 
-  // Group shipment items by shipment_id
-  const itemsByShipment: Record<string, RowData[]> = {};
-  shipmentItems.forEach((item: RowData) => {
-    const shipmentId = String(item.shipment_id || "");
-    if (!itemsByShipment[shipmentId]) {
-      itemsByShipment[shipmentId] = [];
-    }
-    itemsByShipment[shipmentId].push(item);
-  });
-
   // Toggle shipment expansion
   const toggleShipment = (shipmentId: string) => {
     const newExpandedShipments = new Set(expandedShipments);
@@ -203,6 +193,67 @@ export default observer(function ShipmentPage() {
     }
   };
 
+  // Function to highlight search term in text
+  const highlightText = (text: string | null | undefined, highlight: string) => {
+    if (!text) return text;
+    if (!highlight.trim()) return text;
+    
+    const regex = new RegExp(`(${highlight})`, "gi");
+    const parts = text.split(regex);
+    
+    return parts.map((part, index) =>
+      regex.test(part) ? (
+        <span key={index} className="bg-yellow-300 dark:bg-yellow-400 dark:text-gray-900 font-semibold">
+          {part}
+        </span>
+      ) : (
+        part
+      )
+    );
+  };
+
+  // Auto-expand shipments when search term exists
+  useEffect(() => {
+    if (searchTerm.trim() !== "") {
+      // Expand all shipments that have matching items or shipment data
+      const matchingShipmentIds = new Set<string>();
+      
+      // Check shipment data
+      shipmentData.forEach((shipment) => {
+        const shipmentId = String(shipment.shipment_id || "");
+        const carrierName = String(shipment.carrier_name || "").toLowerCase();
+        const invoiceId = String(shipment.invoice_id || "").toLowerCase();
+        
+        if (
+          shipmentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          carrierName.includes(searchTerm.toLowerCase()) ||
+          invoiceId.includes(searchTerm.toLowerCase())
+        ) {
+          matchingShipmentIds.add(shipmentId);
+        }
+      });
+      
+      // Check item data
+      shipmentItems.forEach((item) => {
+        const itemCode = String(item.item_code || "").toLowerCase();
+        const itemName = String(item.item || "").toLowerCase();
+        
+        if (
+          itemCode.includes(searchTerm.toLowerCase()) ||
+          itemName.includes(searchTerm.toLowerCase())
+        ) {
+          const shipmentId = String(item.shipment_id || "");
+          matchingShipmentIds.add(shipmentId);
+        }
+      });
+      
+      setExpandedShipments(matchingShipmentIds);
+    } else {
+      // Collapse all when search is cleared
+      setExpandedShipments(new Set());
+    }
+  }, [searchTerm, shipmentData, shipmentItems]);
+
   // Shipment items columns (excluding hidden columns)
   const ITEM_HIDDEN_COLUMNS = ["ROWID", "InfoveaveBatchId"];
   const itemsAllColumns = shipmentItems && shipmentItems.length > 0 ? Object.keys(shipmentItems[0]) : [];
@@ -220,15 +271,52 @@ export default observer(function ShipmentPage() {
     itemsAllColumns.some((apiCol) => apiCol.toLowerCase() === col.toLowerCase())
   );
 
-  // Filter data based on search term
+  // Filter items based on search term
+  const filteredItems = !searchTerm.trim()
+    ? shipmentItems
+    : shipmentItems.filter((item) => {
+        const itemCode = String(item.item_code || "").toLowerCase();
+        const itemName = String(item.item || "").toLowerCase();
+        
+        return (
+          itemCode.includes(searchTerm.toLowerCase()) ||
+          itemName.includes(searchTerm.toLowerCase())
+        );
+      });
+
+  // Get shipment IDs that have matching items
+  const shipmentIdsWithMatchingItems = new Set(
+    filteredItems.map((item) => String(item.shipment_id || ""))
+  );
+
+  // Filter data based on search term - include shipments that match OR have matching items
   const filteredData = !searchTerm.trim()
     ? shipmentData
-    : shipmentData.filter((row) =>
-        columns.some((col) => {
-          const value = String(row[col] || "").toLowerCase();
-          return value.includes(searchTerm.toLowerCase());
-        })
-      );
+    : shipmentData.filter((row) => {
+        const shipmentId = String(row.shipment_id || "");
+        const shipmentIdStr = String(row.shipment_id || "").toLowerCase();
+        const carrierName = String(row.carrier_name || "").toLowerCase();
+        const invoiceId = String(row.invoice_id || "").toLowerCase();
+        
+        const shipmentMatches = (
+          shipmentIdStr.includes(searchTerm.toLowerCase()) ||
+          carrierName.includes(searchTerm.toLowerCase()) ||
+          invoiceId.includes(searchTerm.toLowerCase())
+        );
+        
+        // Include if shipment matches OR has items that match
+        return shipmentMatches || shipmentIdsWithMatchingItems.has(shipmentId);
+      });
+
+  // Group filtered items by shipment_id
+  const itemsByShipment: Record<string, RowData[]> = {};
+  filteredItems.forEach((item: RowData) => {
+    const shipmentId = String(item.shipment_id || "");
+    if (!itemsByShipment[shipmentId]) {
+      itemsByShipment[shipmentId] = [];
+    }
+    itemsByShipment[shipmentId].push(item);
+  });
 
   return (
     <div className="space-y-6">
@@ -241,7 +329,7 @@ export default observer(function ShipmentPage() {
               <div className="relative flex-1">
                 <input
                   type="text"
-                  placeholder="Search shipments..."
+                  placeholder="Search by Shipment ID/Carrier/Invoice ID/Item Code/Item"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full px-4 py-2.25 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none text-sm"
@@ -327,7 +415,7 @@ export default observer(function ShipmentPage() {
                                   />
                                 )}
                                 {!hasItems && <div className="w-6"></div>}
-                                {String(row[columns[0]] || "")}
+                                {searchTerm ? highlightText(String(row[columns[0]] || ""), searchTerm) : String(row[columns[0]] || "")}
                               </div>
                             </td>
                             {columns.slice(1).map((col) => {
@@ -361,16 +449,16 @@ export default observer(function ShipmentPage() {
                                 );
                               }
 
-                              // Default cell rendering
+                              // Default cell rendering with highlight
                               return (
                                 <td
                                   key={col}
                                   className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm"
                                 >
-                                  {String(value || "-")}
+                                  {searchTerm ? highlightText(String(value || "-"), searchTerm) : String(value || "-")}
                                 </td>
                               );
-                            })}
+                            })}]
                           </tr>
 
                           {/* Shipment Items */}
@@ -469,7 +557,7 @@ export default observer(function ShipmentPage() {
                                                 key={col}
                                                 className="text-gray-600 dark:text-gray-400 text-sm"
                                               >
-                                                {String(value || "-")}
+                                                {searchTerm ? highlightText(String(value || "-"), searchTerm) : String(value || "-")}
                                               </div>
                                             );
                                           })}
