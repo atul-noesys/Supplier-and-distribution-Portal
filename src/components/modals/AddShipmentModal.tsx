@@ -126,11 +126,13 @@ function AddShipmentModalContent({
 
       // Get row data using the returned rowId
       const rowId = typeof result.result === 'string' ? result.result : (result.result as any)?.data;
-      const rowData = await nguageStore.GetRowData(46, rowId ?? '1', 'shipment_list');
+      const rowDataResponse = await nguageStore.GetRowData(46, rowId ?? '1', 'shipment_list');
 
-      if (!rowData) {
+      if (!rowDataResponse) {
         console.warn('Row data fetch returned null');
       } else {
+        // Extract the data from the response object
+        const rowData =  rowDataResponse;
         // Normalize API response to key-value record
         setShipmentData(rowData as KeyValueRecord);
       }
@@ -139,20 +141,6 @@ function AddShipmentModalContent({
 
       // Invalidate the query to refresh the table
       onSuccess?.();
-
-      // Reset form for next entry
-      setFormData({
-        shipment_id: "",
-        carrier_name: "",
-        shipment_date: "",
-        estimated_arrival_date: "",
-        actual_delivery_date: "",
-        tracking_number: "",
-        invoice_id: "",
-        document: "",
-        remarks: "",
-      });
-      setShipmentData(null);
     } catch (error) {
       console.error("Error saving shipment:", error);
       toast.error("Failed to save shipment");
