@@ -458,7 +458,7 @@ export default observer(function ShipmentPage() {
                                   {searchTerm ? highlightText(String(value || "-"), searchTerm) : String(value || "-")}
                                 </td>
                               );
-                            })}]
+                            })}
                           </tr>
 
                           {/* Shipment Items */}
