@@ -118,7 +118,7 @@ function AddShipmentModalContent({
 
       const result = await nguageStore.AddDataSourceRow(
         shipmentToSave,
-        46,
+        52,
         "shipment_list"
       );
 
@@ -132,7 +132,7 @@ function AddShipmentModalContent({
       
       let fetchedData: KeyValueRecord | null = null;
       try {
-        const rowDataResponse = await nguageStore.GetRowData(46, rowId ?? '1', 'shipment_list');
+        const rowDataResponse = await nguageStore.GetRowData(52, rowId ?? '1', 'shipment_list');
         if (rowDataResponse) {
           fetchedData = rowDataResponse as KeyValueRecord;
         }
