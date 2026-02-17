@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.css';
+import './date-picker.css';
 import Label from './Label';
 import { CalenderIcon } from '../../icons';
 import Hook = flatpickr.Options.Hook;
@@ -14,6 +15,7 @@ type PropsType = {
   label?: string;
   placeholder?: string;
   required?: boolean;
+  appendTo?: HTMLElement;
 };
 
 export default function DatePicker({
@@ -24,15 +26,17 @@ export default function DatePicker({
   defaultDate,
   placeholder,
   required,
+  appendTo,
 }: PropsType) {
   useEffect(() => {
     const flatPickr = flatpickr(`#${id}`, {
       mode: mode || "single",
-      static: true,
+      static: false,
       monthSelectorType: "static",
       dateFormat: "Y-m-d",
       defaultDate,
       onChange,
+      appendTo: appendTo || document.body,
     });
 
     return () => {
@@ -40,7 +44,7 @@ export default function DatePicker({
         flatPickr.destroy();
       }
     };
-  }, [mode, onChange, id, defaultDate]);
+  }, [mode, onChange, id, defaultDate, appendTo]);
 
   return (
     <div>

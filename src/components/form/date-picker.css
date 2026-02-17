@@ -1,0 +1,4 @@
+/* High z-index for flatpickr calendar to appear on top of modals */
+.flatpickr-calendar {
+  z-index: 9999 !important;
+}
