@@ -62,7 +62,7 @@ function AddShipmentItemsModalContent({
             const items = response?.data || response || [];
             return Array.isArray(items) ? items : [];
         },
-        staleTime: 5 * 60 * 1000,
+        staleTime: 0,
     });
 
     // Fetch PO items data using TanStack Query
@@ -80,7 +80,7 @@ function AddShipmentItemsModalContent({
             const items = response?.data || response || [];
             return Array.isArray(items) ? items : [];
         },
-        staleTime: 5 * 60 * 1000,
+        staleTime: 0,
     });
 
     // Fetch pagination data using TanStack Query
