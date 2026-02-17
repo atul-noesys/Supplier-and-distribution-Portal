@@ -193,7 +193,7 @@ function AddShipmentModalContent({
         const latestData = await nguageStore.GetRowData(
           47,
           rowId,
-          'shipment_items'
+          'shipment_list_items'
         );
 
         if (latestData) {
