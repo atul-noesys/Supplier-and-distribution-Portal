@@ -24,12 +24,14 @@ export function EditShipmentItemModal({
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
   const [document, setDocument] = useState<string>("");
   const [remarks, setRemarks] = useState<string>("");
+  const [status, setStatus] = useState<string>("");
 
   // Initialize form fields when item changes
   React.useEffect(() => {
     if (item) {
       setDocument(String(item.document || ""));
       setRemarks(String(item.remarks || ""));
+      setStatus(String(item.shipment_status || "Pending"));
     }
   }, [item, isOpen]);
 
@@ -67,6 +69,7 @@ export function EditShipmentItemModal({
     onSave({
       document,
       remarks,
+      shipment_status: status,
     });
     toast.success("Item updated");
     handleClose();
@@ -75,6 +78,7 @@ export function EditShipmentItemModal({
   const handleClose = () => {
     setDocument("");
     setRemarks("");
+    setStatus("");
     onClose();
   };
 
@@ -173,20 +177,18 @@ export function EditShipmentItemModal({
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                   Status
                 </label>
-                <input
-                  type="text"
-                  value={String(item.shipment_status || "")}
-                  disabled
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-sm cursor-not-allowed opacity-75"
-                />
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select status</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Ready to Ship">Ready to Ship</option>
+                </select>
               </div>
-            </div>
-          </div>
 
-          {/* Editable Section */}
-          <div className="border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-            <div className="grid grid-cols-2 gap-4">
-              {/* Document */}
+               {/* Document */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Document
