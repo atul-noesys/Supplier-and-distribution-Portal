@@ -12,6 +12,7 @@ import { toast } from "react-toastify";
 import { v4 as uuidv4 } from "uuid";
 import { EditShipmentItemModal } from "./EditShipmentItemModal";
 import { AddItemFromWorkOrderModal } from "./AddItemFromWorkOrderModal";
+import Badge from "@/components/ui/badge/Badge";
 
 /**
  * Convert KeyValueRecord to RowData for API submission
@@ -34,6 +35,27 @@ interface AddShipmentModalProps {
   onSuccess?: () => void;
 }
 
+const getStatusColor = (
+  status: "Pending" | "Shipped" | "Production" | "Completed" | "pending" | "approved" | "delivered" | "cancelled",
+): "primary" | "success" | "error" | "warning" | "info" | "light" | "dark" => {
+  const lowerStatus = status.toLowerCase();
+  switch (lowerStatus) {
+    case "completed":
+    case "delivered":
+    case "approved":
+      return "success";
+    case "pending":
+      return "warning";
+    case "shipped":
+    case "production":
+      return "info";
+    case "cancelled":
+      return "error";
+    default:
+      return "primary";
+  }
+};
+
 function AddShipmentModalContent({
   isOpen,
   onClose,
@@ -41,7 +63,7 @@ function AddShipmentModalContent({
 }: AddShipmentModalProps) {
   const { nguageStore, shipmentStore } = useStore();
   const queryClient = useQueryClient();
-  
+
   // State Management
   const [step, setStep] = useState(1); // 1: Work Order Selection, 2: Shipment Form
   const [isLoading, setIsLoading] = useState(false);
@@ -52,7 +74,31 @@ function AddShipmentModalContent({
   const [workOrderSelections, setWorkOrderSelections] = useState<Set<string>>(new Set());
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   const [isAddItemFromWOModalOpen, setIsAddItemFromWOModalOpen] = useState(false);
-  
+
+  // Fetch pagination data using TanStack Query
+  const { data: paginationData, refetch, isLoading: isLoadingVendor } = useQuery({
+    queryKey: ["paginationData", "userregistration"],
+    queryFn: () =>
+      nguageStore.GetPaginationData({
+        table: "userregistration",
+        skip: 0,
+        take: 200,
+        NGaugeId: "31",
+      }),
+    staleTime: 0,
+    enabled: isOpen,
+  });
+
+  const user = nguageStore.currentUser;
+  const vendorList = Array.isArray(paginationData) ? paginationData : paginationData?.data || [];
+  const currentLoggedInVendor = vendorList.find(
+    (vendor) =>
+      vendor.business_email === user?.email &&
+      vendor.first_name === user?.firstName &&
+      vendor.last_name === user?.lastName &&
+      vendor.is_account_created === "true"
+  );
+
   const [formData, setFormData] = useState<KeyValueRecord>({
     shipment_id: "",
     carrier_name: "",
@@ -62,7 +108,7 @@ function AddShipmentModalContent({
     tracking_number: "",
     invoice_id: "",
     document: "",
-    remarks: ""
+    remarks: "",
   });
 
   // Fetch work orders
@@ -75,8 +121,13 @@ function AddShipmentModalContent({
         take: 500,
         NGaugeId: "44",
       });
-      
-      const items = response?.data || response || [];
+
+      let items = response?.data || response || [];
+
+      //filter only those which are in Step 5 (Completed)
+      if (Array.isArray(items)) {
+        items = items.filter((e) => e.step === "Step 5");
+      }
       return Array.isArray(items) ? (items as RowData[]) : [];
     },
     staleTime: 0,
@@ -104,7 +155,7 @@ function AddShipmentModalContent({
             },
           }
         );
-        
+
         const items = response.data.data || [];
         console.log("PO Items fetched:", items);
         return Array.isArray(items) ? items : [];
@@ -264,7 +315,13 @@ function AddShipmentModalContent({
     try {
       console.log("Saving Shipment:", formData);
 
-      const shipmentToSave = toRowData(formData);
+      let shipmentToSave = toRowData(formData);
+      shipmentToSave = {
+        ...shipmentToSave,
+        shipment_status: "In draft",
+        vendor_id: currentLoggedInVendor?.vendor_id || "",
+        vendor_name: currentLoggedInVendor?.company_name || "",
+      }
 
       const result = await nguageStore.AddDataSourceRow(
         shipmentToSave,
@@ -279,7 +336,7 @@ function AddShipmentModalContent({
 
       // Get row data using the returned rowId
       const rowId = typeof result.result === 'string' ? result.result : (result.result as any)?.data;
-      
+
       let fetchedData: KeyValueRecord | null = null;
       try {
         const rowDataResponse = await nguageStore.GetRowData(52, rowId ?? '1', 'shipment_list');
@@ -322,7 +379,7 @@ function AddShipmentModalContent({
       for (const item of shipmentStore.shipmentItems) {
         try {
           const itemToSave = toRowData(item);
-          
+
           const result = await nguageStore.AddDataSourceRow(
             itemToSave,
             47,
@@ -343,8 +400,7 @@ function AddShipmentModalContent({
 
       if (successCount > 0) {
         toast.success(
-          `Successfully saved ${successCount} shipment item${successCount !== 1 ? 's' : ''}${
-            failureCount > 0 ? ` (${failureCount} failed)` : ''
+          `Successfully saved ${successCount} shipment item${successCount !== 1 ? 's' : ''}${failureCount > 0 ? ` (${failureCount} failed)` : ''
           }`
         );
         handleClose();
@@ -490,6 +546,7 @@ function AddShipmentModalContent({
                           <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Unit Price</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Total</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Vendor</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Step</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -499,11 +556,10 @@ function AddShipmentModalContent({
                           return (
                             <tr
                               key={woId}
-                              className={`transition-colors ${
-                                isSelected
-                                  ? "bg-blue-50 dark:bg-blue-900/30"
-                                  : "bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                              }`}
+                              className={`transition-colors ${isSelected
+                                ? "bg-blue-50 dark:bg-blue-900/30"
+                                : "bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                                }`}
                             >
                               <td className="px-4 py-3">
                                 <input
@@ -523,6 +579,11 @@ function AddShipmentModalContent({
                                 ${(Number(workOrder.unit_price || 0) * Number(workOrder.quantity || 0)).toFixed(2)}
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{workOrder.vendor_name || '-'}</td>
+                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                <Badge color={getStatusColor("Completed")} variant="solid">
+                                  {workOrder.step || '-'}
+                                </Badge>
+                              </td>
                             </tr>
                           );
                         })}
@@ -540,7 +601,7 @@ function AddShipmentModalContent({
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                   Shipment Details
                 </h3>
-                
+
                 <div className="grid grid-cols-3 gap-4">
                   {/* Shipment ID */}
                   <div>
@@ -888,10 +949,10 @@ function AddShipmentModalContent({
                   {isSaving ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Saving Shipment...
+                      Saving Draft...
                     </>
                   ) : (
-                    "Save Shipment"
+                    "Save Draft"
                   )}
                 </button>
               ) : (

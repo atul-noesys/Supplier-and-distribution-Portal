@@ -41,7 +41,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess }: AddPOModalProps) {
     po_issue_date: '',
     vendor_id: '',
     vendor_name: '',
-    po_status: 'pending',
+    po_status: 'Pending',
   });
 
   const handleInputChange = (field: string, value: string) => {
@@ -172,7 +172,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess }: AddPOModalProps) {
       po_issue_date: '',
       vendor_id: '',
       vendor_name: '',
-      po_status: 'pending',
+      po_status: 'Pending',
     } as KeyValueRecord);
     poStore.clearItems();
     setIsSaved(false);
@@ -341,14 +341,14 @@ function AddPOModalContent({ isOpen, onClose, onSuccess }: AddPOModalProps) {
                     Status
                   </label>
                   <select
+                    disabled
                     value={String(formData.po_status ?? '')}
                     onChange={(e) => handleInputChange('po_status', e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="Pending">Pending</option>
-                    <option value="Shipped">Shipped</option>
-                    <option value="Production">Production</option>
-                    <option value="Completed">Completed</option>
+                    <option value="Partial">Partial</option>
+                    <option value="Complete">Complete</option>
                   </select>
                 </div>
               </div>

@@ -190,7 +190,6 @@ function AddShipmentItemsModalContent({
                     const { po_number, item_code } = selectedWorkOrder;
                     
                     // Keep work_order_id as ROWID for select UI to work properly
-                    // The composite key can be constructed at save time if needed
                     updated.work_order_id = woRowId;
                     
                     // Find matching PO item
