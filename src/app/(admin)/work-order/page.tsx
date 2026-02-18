@@ -115,7 +115,7 @@ export default observer(function WorkOrderPage() {
   });
 
   // Get the current user from the store
-  const user = nguageStore.currentUser;
+  const user = useMemo(() => nguageStore.GetCurrentUserDetails(), [nguageStore]);
 
   // Fetch work order items using GetPaginationData
   const { data: paginationData, isLoading, error } = useQuery({
@@ -622,7 +622,7 @@ export default observer(function WorkOrderPage() {
         </div>
       ) : viewMode === "kanban" ? (
         <div className="pt-4 px-0">
-          <KanbanBoard initialData={kanbanItems} searchTerm={searchTerm} onEditClick={handleEditRow} onDragDropSave={handleDragDropSave} />
+          <KanbanBoard initialData={kanbanItems} searchTerm={searchTerm} onEditClick={user?.roleId !== 5 ? handleEditRow : undefined} onDragDropSave={user?.roleId !== 5 ? handleDragDropSave : undefined} disabled={user?.roleId === 5} />
         </div>
       ) : (
         <div className="border-t border-gray-200 dark:border-white/5">
@@ -713,13 +713,15 @@ export default observer(function WorkOrderPage() {
                     </div>
                     {/* Actions Cell */}
                     <div className="px-2.5 py-3 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
-                      <button
-                        onClick={() => handleEditRow(item)}
-                        className="flex justify-center items-center ml-3 w-8 h-4 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
-                        title="Edit"
-                      >
-                        <MdEdit className="w-4 h-4" />
-                      </button>
+                      {user?.roleId !== 5 && (
+                        <button
+                          onClick={() => handleEditRow(item)}
+                          className="flex justify-center items-center ml-3 w-8 h-4 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
+                          title="Edit"
+                        >
+                          <MdEdit className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </Fragment>
                 ))
@@ -858,7 +860,7 @@ export default observer(function WorkOrderPage() {
       )}
 
       {/* Work Order Edit Modal */}
-      {isModalOpen && selectedWorkOrder && editFormData && (
+      {isModalOpen && selectedWorkOrder && editFormData && user?.roleId !== 5 && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-4/5 max-h-[90vh] flex flex-col overflow-hidden">
             {/* Modal Header */}

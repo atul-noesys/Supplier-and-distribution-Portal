@@ -32,11 +32,12 @@ interface KanbanBoardProps {
     searchTerm?: string;
     onEditClick?: (item: KanbanItem) => void;
     onDragDropSave?: (item: KanbanItem, newStep: string) => Promise<void>;
+    disabled?: boolean;
 }
 
 const STEPS = ["Step 1", "Step 2", "Step 3", "Step 4", "Step 5"];
 
-export default function KanbanBoard({ initialData, searchTerm = "", onEditClick, onDragDropSave }: KanbanBoardProps) {
+export default function KanbanBoard({ initialData, searchTerm = "", onEditClick, onDragDropSave, disabled = false }: KanbanBoardProps) {
     const [items, setItems] = useState<KanbanItem[]>(initialData);
     const [activeId, setActiveId] = useState<number | null>(null);
 
@@ -48,7 +49,7 @@ export default function KanbanBoard({ initialData, searchTerm = "", onEditClick,
     const sensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {
-                distance: 8,
+                distance: disabled ? Infinity : 8,
             },
         }),
         useSensor(KeyboardSensor, {
