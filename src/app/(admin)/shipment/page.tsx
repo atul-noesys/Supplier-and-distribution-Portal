@@ -7,7 +7,7 @@ import { useStore } from "@/store/store-context";
 import { RowData } from "@/types/nguage-rowdata";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { observer } from "mobx-react-lite";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { MdArrowDropDown, MdClose, MdOpenInNew } from "react-icons/md";
 
@@ -47,6 +47,7 @@ export default observer(function ShipmentPage() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const previousUrlRef = useRef<string | null>(null);
 
   // Define columns for main view and details view
   const MAIN_ITEM_COLUMNS = ["work_order_id", "item_code", "item", "unit_price", "shipment_quantity", "document"];
@@ -159,6 +160,10 @@ export default observer(function ShipmentPage() {
 
       const pdfBlob = await pdfResponse.blob();
       const blobUrl = URL.createObjectURL(pdfBlob);
+      if (previousUrlRef.current) {
+        URL.revokeObjectURL(previousUrlRef.current);
+      }
+      previousUrlRef.current = blobUrl;
       setPdfUrl(blobUrl);
     } catch (err) {
       console.error("Failed to fetch PDF:", err);
@@ -171,13 +176,8 @@ export default observer(function ShipmentPage() {
 
   // Handle PDF fetching when document selection changes
   useEffect(() => {
-    if (pdfUrl) {
-      URL.revokeObjectURL(pdfUrl);
-      setPdfUrl(null);
-    }
-
     fetchPdf(selectedDocument);
-  }, [selectedDocument, fetchPdf, pdfUrl]);
+  }, [selectedDocument, fetchPdf]);
 
   // Handle viewing document
   const handleViewDocument = (docName: string) => {
@@ -187,10 +187,11 @@ export default observer(function ShipmentPage() {
   // Close PDF viewer
   const closePdfViewer = () => {
     setSelectedDocument(null);
-    if (pdfUrl) {
-      URL.revokeObjectURL(pdfUrl);
-      setPdfUrl(null);
+    if (previousUrlRef.current) {
+      URL.revokeObjectURL(previousUrlRef.current);
+      previousUrlRef.current = null;
     }
+    setPdfUrl(null);
   };
 
   // Function to highlight search term in text

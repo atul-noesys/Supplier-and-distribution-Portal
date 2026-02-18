@@ -7,7 +7,7 @@ import { useStore } from "@/store/store-context";
 import { RowData } from "@/types/nguage-rowdata";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { observer } from "mobx-react-lite";
-import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible, AiOutlineLoading3Quarters } from "react-icons/ai";
 import { MdClose, MdEdit, MdOpenInNew } from "react-icons/md";
 import { MdViewAgenda, MdViewWeek } from "react-icons/md";
@@ -102,6 +102,7 @@ export default observer(function WorkOrderPage() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const previousUrlRef = useRef<string | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "kanban">("kanban");
   const [isSavingWorkOrder, setIsSavingWorkOrder] = useState(false);
   const itemsPerPage = 50;
@@ -317,6 +318,10 @@ export default observer(function WorkOrderPage() {
 
       const pdfBlob = await pdfResponse.blob();
       const blobUrl = URL.createObjectURL(pdfBlob);
+      if (previousUrlRef.current) {
+        URL.revokeObjectURL(previousUrlRef.current);
+      }
+      previousUrlRef.current = blobUrl;
       setPdfUrl(blobUrl);
     } catch (err) {
       console.error("Failed to fetch PDF:", err);
@@ -328,13 +333,8 @@ export default observer(function WorkOrderPage() {
   }, [authToken]);
 
   useEffect(() => {
-    if (pdfUrl) {
-      URL.revokeObjectURL(pdfUrl);
-      setPdfUrl(null);
-    }
-
     fetchPdf(selectedDocument);
-  }, [selectedDocument, fetchPdf, pdfUrl]);
+  }, [selectedDocument, fetchPdf]);
 
   const handleViewDocument = (docName: string) => {
     setSelectedDocument(docName);
@@ -342,10 +342,11 @@ export default observer(function WorkOrderPage() {
 
   const closePdfViewer = () => {
     setSelectedDocument(null);
-    if (pdfUrl) {
-      URL.revokeObjectURL(pdfUrl);
-      setPdfUrl(null);
+    if (previousUrlRef.current) {
+      URL.revokeObjectURL(previousUrlRef.current);
+      previousUrlRef.current = null;
     }
+    setPdfUrl(null);
   };
 
   const handleEditFormChange = (field: string, value: string) => {
