@@ -754,7 +754,6 @@ function AddShipmentModalContent({
                           <tr>
                             <td colSpan={10}>
                               <div className="text-center py-12 bg-gray-50 dark:bg-gray-800">
-                                <MdAdd className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                                 <p className="text-gray-600 dark:text-gray-400 mb-4">No items added yet</p>
                                 <button
                                   type="button"
