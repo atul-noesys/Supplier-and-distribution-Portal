@@ -49,6 +49,9 @@ export default observer(function ShipmentPage() {
   const [pdfError, setPdfError] = useState<string | null>(null);
   const previousUrlRef = useRef<string | null>(null);
 
+  // Get the current user from the store
+  const user = nguageStore.currentUser;
+
   // Define columns for main view and details view
   const MAIN_ITEM_COLUMNS = ["work_order_id", "item_code", "item", "unit_price", "shipment_quantity", "document"];
   const DETAILS_COLUMNS = ["po_number", "shipment_status", "remarks"];
@@ -345,12 +348,12 @@ export default observer(function ShipmentPage() {
                   </button>
                 )}
               </div>
-              <button
+              {user?.roleId !== 5 && (<button
                 onClick={() => setIsAddShipmentModalOpen(true)}
                 className="px-4 py-2.25 bg-blue-800 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
               >
                 + ADD SHIPMENT
-              </button>
+              </button>)}
             </div>
           </div>
         </div>
