@@ -62,7 +62,7 @@ function AddShipmentModalContent({
     tracking_number: "",
     invoice_id: "",
     document: "",
-    remarks: "",
+    remarks: ""
   });
 
   // Fetch work orders

@@ -276,7 +276,8 @@ export default observer(function PurchaseOrderPage() {
         step_name: null,
         document: null,
         remarks: "",
-        start_date: new Date().toISOString().split('T')[0]
+        start_date: new Date().toISOString().split('T')[0],
+        wo_status: "Work in progress"
       }
 
       // Add work order row to work_order table
@@ -375,7 +376,8 @@ export default observer(function PurchaseOrderPage() {
             step_name: null,
             document: null,
             remarks: "",
-            start_date: new Date().toISOString().split('T')[0]
+            start_date: new Date().toISOString().split('T')[0],
+            wo_status: "Work in progress"
           }
 
           // Add work order row to work_order table

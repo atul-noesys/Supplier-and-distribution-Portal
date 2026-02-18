@@ -4,6 +4,8 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { MdEdit } from "react-icons/md";
 import { KanbanItem } from "./KanbanBoard";
+import { useStore } from "@/store/store-context";
+import { useMemo } from "react";
 
 interface KanbanCardProps {
   item: KanbanItem;
@@ -12,8 +14,11 @@ interface KanbanCardProps {
 }
 
 export default function KanbanCard({ item, searchTerm = "", onEditClick }: KanbanCardProps) {
+  const { nguageStore } = useStore();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.ROWID });
+
+  const user = useMemo(() => nguageStore.GetCurrentUserDetails(), [nguageStore]);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -60,16 +65,18 @@ export default function KanbanCard({ item, searchTerm = "", onEditClick }: Kanba
             <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               {searchTerm ? highlightText(item.po_number, searchTerm) : item.po_number}
             </p>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onEditClick?.(item);
-              }}
-              className="ml-2 p-0.5 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors flex-shrink-0"
-              title="Edit"
-            >
-              <MdEdit className="w-4 h-4" />
-            </button>
+            {user?.roleId !== 5 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEditClick?.(item);
+                }}
+                className="ml-2 p-0.5 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors flex-shrink-0"
+                title="Edit"
+              >
+                <MdEdit className="w-4 h-4" />
+              </button>
+            )}
           </div>
           <p className="text-sm font-bold text-gray-900 dark:text-white mt-1 line-clamp-2">
             {searchTerm ? highlightText(item.item, searchTerm) : item.item}

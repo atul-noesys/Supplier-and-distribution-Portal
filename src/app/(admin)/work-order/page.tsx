@@ -468,6 +468,7 @@ export default observer(function WorkOrderPage() {
         ...latestData,
         step: newStep,
         end_date: currentDate,
+        wo_status: newStep.toString() === "Step 5" ? "In warehouse" : "Work in progress"
       };
 
       console.log("Saving drag-drop change:", dataToSave);

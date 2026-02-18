@@ -34,7 +34,7 @@ const getStatusColor = (
   }
 };
 
-const HIDDEN_COLUMNS = ["ROWID", "InfoveaveBatchId"];
+const HIDDEN_COLUMNS = ["ROWID", "InfoveaveBatchId", "vendor_id", "vendor_name", "step_history"];
 
 export default observer(function ShipmentPage() {
   const { nguageStore } = useStore();
@@ -198,10 +198,10 @@ export default observer(function ShipmentPage() {
   const highlightText = (text: string | null | undefined, highlight: string) => {
     if (!text) return text;
     if (!highlight.trim()) return text;
-    
+
     const regex = new RegExp(`(${highlight})`, "gi");
     const parts = text.split(regex);
-    
+
     return parts.map((part, index) =>
       regex.test(part) ? (
         <span key={index} className="bg-yellow-300 dark:bg-yellow-400 dark:text-gray-900 font-semibold">
@@ -218,13 +218,13 @@ export default observer(function ShipmentPage() {
     if (searchTerm.trim() !== "") {
       // Expand all shipments that have matching items or shipment data
       const matchingShipmentIds = new Set<string>();
-      
+
       // Check shipment data
       shipmentData.forEach((shipment) => {
         const shipmentId = String(shipment.shipment_id || "");
         const carrierName = String(shipment.carrier_name || "").toLowerCase();
         const invoiceId = String(shipment.invoice_id || "").toLowerCase();
-        
+
         if (
           shipmentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
           carrierName.includes(searchTerm.toLowerCase()) ||
@@ -233,12 +233,12 @@ export default observer(function ShipmentPage() {
           matchingShipmentIds.add(shipmentId);
         }
       });
-      
+
       // Check item data
       shipmentItems.forEach((item) => {
         const itemCode = String(item.item_code || "").toLowerCase();
         const itemName = String(item.item || "").toLowerCase();
-        
+
         if (
           itemCode.includes(searchTerm.toLowerCase()) ||
           itemName.includes(searchTerm.toLowerCase())
@@ -247,7 +247,7 @@ export default observer(function ShipmentPage() {
           matchingShipmentIds.add(shipmentId);
         }
       });
-      
+
       setExpandedShipments(matchingShipmentIds);
     } else {
       // Collapse all when search is cleared
@@ -258,10 +258,10 @@ export default observer(function ShipmentPage() {
   // Shipment items columns (excluding hidden columns)
   const ITEM_HIDDEN_COLUMNS = ["ROWID", "InfoveaveBatchId"];
   const itemsAllColumns = shipmentItems && shipmentItems.length > 0 ? Object.keys(shipmentItems[0]) : [];
-  
+
   // Find the expression column (total calculation)
   const expressionColumn = itemsAllColumns.find((col) => col.startsWith("{"));
-  
+
   // Filter to only show main view columns (case-insensitive matching)
   const itemColumns = MAIN_ITEM_COLUMNS.filter((col) =>
     itemsAllColumns.some((apiCol) => apiCol.toLowerCase() === col.toLowerCase())
@@ -276,14 +276,14 @@ export default observer(function ShipmentPage() {
   const filteredItems = !searchTerm.trim()
     ? shipmentItems
     : shipmentItems.filter((item) => {
-        const itemCode = String(item.item_code || "").toLowerCase();
-        const itemName = String(item.item || "").toLowerCase();
-        
-        return (
-          itemCode.includes(searchTerm.toLowerCase()) ||
-          itemName.includes(searchTerm.toLowerCase())
-        );
-      });
+      const itemCode = String(item.item_code || "").toLowerCase();
+      const itemName = String(item.item || "").toLowerCase();
+
+      return (
+        itemCode.includes(searchTerm.toLowerCase()) ||
+        itemName.includes(searchTerm.toLowerCase())
+      );
+    });
 
   // Get shipment IDs that have matching items
   const shipmentIdsWithMatchingItems = new Set(
@@ -294,20 +294,20 @@ export default observer(function ShipmentPage() {
   const filteredData = !searchTerm.trim()
     ? shipmentData
     : shipmentData.filter((row) => {
-        const shipmentId = String(row.shipment_id || "");
-        const shipmentIdStr = String(row.shipment_id || "").toLowerCase();
-        const carrierName = String(row.carrier_name || "").toLowerCase();
-        const invoiceId = String(row.invoice_id || "").toLowerCase();
-        
-        const shipmentMatches = (
-          shipmentIdStr.includes(searchTerm.toLowerCase()) ||
-          carrierName.includes(searchTerm.toLowerCase()) ||
-          invoiceId.includes(searchTerm.toLowerCase())
-        );
-        
-        // Include if shipment matches OR has items that match
-        return shipmentMatches || shipmentIdsWithMatchingItems.has(shipmentId);
-      });
+      const shipmentId = String(row.shipment_id || "");
+      const shipmentIdStr = String(row.shipment_id || "").toLowerCase();
+      const carrierName = String(row.carrier_name || "").toLowerCase();
+      const invoiceId = String(row.invoice_id || "").toLowerCase();
+
+      const shipmentMatches = (
+        shipmentIdStr.includes(searchTerm.toLowerCase()) ||
+        carrierName.includes(searchTerm.toLowerCase()) ||
+        invoiceId.includes(searchTerm.toLowerCase())
+      );
+
+      // Include if shipment matches OR has items that match
+      return shipmentMatches || shipmentIdsWithMatchingItems.has(shipmentId);
+    });
 
   // Group filtered items by shipment_id
   const itemsByShipment: Record<string, RowData[]> = {};
@@ -410,9 +410,8 @@ export default observer(function ShipmentPage() {
                               <div className="flex items-center gap-1">
                                 {hasItems && (
                                   <MdArrowDropDown
-                                    className={`w-6 h-6 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-400 transition-transform duration-200 ${
-                                      isExpanded ? "" : "-rotate-90"
-                                    }`}
+                                    className={`w-6 h-6 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-400 transition-transform duration-200 ${isExpanded ? "" : "-rotate-90"
+                                      }`}
                                   />
                                 )}
                                 {!hasItems && <div className="w-6"></div>}
@@ -429,9 +428,10 @@ export default observer(function ShipmentPage() {
                               ) {
                                 return (
                                   <td key={col} className="px-5 py-4">
-                                    <Badge color={getStatusColor(String(value))} variant="solid" size="sm">
-                                      {String(value || "-")}
+                                    {value && <Badge color={getStatusColor(String(value))} variant="solid" size="sm">
+                                      {String(value)}
                                     </Badge>
+                                    }
                                   </td>
                                 );
                               }
@@ -585,11 +585,10 @@ export default observer(function ShipmentPage() {
                                           {/* Total Column */}
                                           <div className="text-gray-600 dark:text-gray-400 text-sm font-bold">
                                             {expressionColumn && item[expressionColumn as keyof RowData]
-                                              ? `$${
-                                                  typeof item[expressionColumn as keyof RowData] === "number"
-                                                    ? (item[expressionColumn as keyof RowData] as number).toFixed(2)
-                                                    : item[expressionColumn as keyof RowData]
-                                                }`
+                                              ? `$${typeof item[expressionColumn as keyof RowData] === "number"
+                                                ? (item[expressionColumn as keyof RowData] as number).toFixed(2)
+                                                : item[expressionColumn as keyof RowData]
+                                              }`
                                               : "$0.00"}
                                           </div>
 
@@ -706,11 +705,10 @@ export default observer(function ShipmentPage() {
                       disabled
                       value={
                         expressionColumn && selectedItemForDetails[expressionColumn as keyof RowData]
-                          ? `$${
-                              typeof selectedItemForDetails[expressionColumn as keyof RowData] === "number"
-                                ? (selectedItemForDetails[expressionColumn as keyof RowData] as number).toFixed(2)
-                                : selectedItemForDetails[expressionColumn as keyof RowData]
-                            }`
+                          ? `$${typeof selectedItemForDetails[expressionColumn as keyof RowData] === "number"
+                            ? (selectedItemForDetails[expressionColumn as keyof RowData] as number).toFixed(2)
+                            : selectedItemForDetails[expressionColumn as keyof RowData]
+                          }`
                           : "$0.00"
                       }
                       className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed font-bold"
