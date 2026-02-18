@@ -54,7 +54,7 @@ export default function KanbanColumn({ step, items, searchTerm = "", onEditClick
     >
       <div className="mb-0 pr-2">
         <div className="flex items-center justify-between">
-          <h2 className={`text-lg font-bold ${colors.text}`}>{step}</h2>
+          <h2 className={`text-lg font-bold ${colors.text}`}>{step} {step === "Step 5" && <span>(Completed)</span>}</h2>
           <span className="inline-flex items-center justify-center w-6 h-6 text-xs font-bold text-white bg-gray-400 rounded-full dark:bg-gray-600">
             {items.length}
           </span>
