@@ -72,7 +72,7 @@ export function AddItemFromWorkOrderModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl w-full max-w-5xl max-h-[80vh] flex flex-col overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl w-7/10 max-h-[80vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-5 py-3">
           <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
@@ -87,7 +87,7 @@ export function AddItemFromWorkOrderModal({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-y-auto px-5 py-3">
           <div className="space-y-4">
             {availableWorkOrders.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">

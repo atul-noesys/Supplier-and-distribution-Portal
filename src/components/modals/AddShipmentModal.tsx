@@ -850,9 +850,9 @@ function AddShipmentModalContent({
           onClose={() => setIsAddItemFromWOModalOpen(false)}
           onAddItem={handleAddItemFromWorkOrder}
           availableWorkOrders={enrichedWorkOrders}
-          selectedWorkOrderIds={selectedWorkOrders.map((wo) =>
-            getWorkOrderId(wo)
-          )}
+          selectedWorkOrderIds={shipmentStore.shipmentItems
+            .map(item => String(item.work_order_id))
+            .filter(id => id !== 'undefined' && id !== 'null')}
           shipmentId={String(shipmentData?.shipment_id || "")}
         />
 
