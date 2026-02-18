@@ -393,7 +393,7 @@ export default observer(function WorkOrderPage() {
     }
   };
 
-  const handleSaveWorkOrder = async () => {
+  const handleEditWorkOrder = async () => {
     // Add guard clause to ensure data exists
     if (!editFormData || !selectedWorkOrder) {
       toast.error("Form data is missing. Please try again.");
@@ -413,6 +413,7 @@ export default observer(function WorkOrderPage() {
       const dataToSave = {
         ...editFormData,
         end_date: currentDate,
+        wo_status: editFormData.step?.toString() === "Step 5" ? "In warehouse" : "Work in progress"
       };
 
       console.log("Saving work order with data:", dataToSave);
@@ -1055,7 +1056,7 @@ export default observer(function WorkOrderPage() {
                 Cancel
               </button>
               <button
-                onClick={handleSaveWorkOrder}
+                onClick={handleEditWorkOrder}
                 disabled={isSavingWorkOrder}
                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
               >

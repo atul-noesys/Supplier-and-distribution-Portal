@@ -89,6 +89,11 @@ export default function KanbanBoard({ initialData, searchTerm = "", onEditClick,
         const activeItem = items.find((item) => item.ROWID === active.id);
         if (!activeItem) return;
 
+        // Prevent moving items from Step 5
+        if (activeItem.status === "Step 5") {
+            return;
+        }
+
         // Extract the step from over.id (format: "step-X" or just a ROWID for reordering)
         let newStep = activeItem.status;
 
