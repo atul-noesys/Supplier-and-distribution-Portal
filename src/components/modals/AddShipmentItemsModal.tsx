@@ -44,8 +44,15 @@ function AddShipmentItemsModalContent({
 }: AddShipmentItemsModalProps) {
     const { nguageStore, shipmentStore } = useStore();
 
-    // Get editing item from store
-    const editingItem = shipmentStore.getEditingItem();
+    // Get editing item from store - make it reactive to editingItemIndex changes
+    const editingItemIndex = shipmentStore.editingItemIndex;
+    const editingItem = editingItemIndex !== null ? shipmentStore.shipmentItems[editingItemIndex] : null;
+    
+    console.log('=== MODAL COMPONENT RENDER ===');
+    console.log('isOpen:', isOpen);
+    console.log('editingItemIndex:', editingItemIndex);
+    console.log('editingItem:', editingItem);
+    console.log('Total store items:', shipmentStore.shipmentItems.length);
 
     // Fetch work order data using TanStack Query
     const { data: workOrderData, isLoading: isLoadingWorkOrders } = useQuery({
@@ -120,16 +127,25 @@ function AddShipmentItemsModalContent({
 
     // Update form data when modal opens or when editingItem changes
     React.useEffect(() => {
+        console.log('=== FORM POPULATION EFFECT ===');
+        console.log('isOpen:', isOpen);
+        console.log('editingItem:', editingItem);
+        console.log('editingItemIndex:', editingItemIndex);
+        
         if (isOpen) {
             if (editingItem) {
                 // Populate with editing item data
+                console.log("✓ Editing item detected, populating form:", editingItem);
                 setFormData(editingItem);
             } else {
                 // Reset to default for new item
+                console.log("✗ No editing item, using default form");
                 setFormData(getDefaultFormData());
             }
+        } else {
+            console.log('Modal not open, effect not running');
         }
-    }, [isOpen, editingItem, getDefaultFormData, shipmentData]);
+    }, [isOpen, editingItem, editingItemIndex, getDefaultFormData]);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -233,6 +249,9 @@ function AddShipmentItemsModalContent({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        
+        console.log('=== handleSubmit CALLED ===');
+        console.log('formData:', formData);
 
         // Validate required fields using key-value approach
         const requiredFields = ['work_order_id', 'item_code', 'item', 'unit_price', 'shipment_quantity'];
@@ -294,6 +313,10 @@ function AddShipmentItemsModalContent({
 
     const handleUpdateItem = (e: React.FormEvent) => {
         e.preventDefault();
+        
+        console.log('=== handleUpdateItem CALLED ===');
+        console.log('editingItemIndex:', shipmentStore.editingItemIndex);
+        console.log('formData:', formData);
 
         // Validate required fields
         const requiredFields = ['work_order_id', 'item_code', 'item', 'unit_price', 'shipment_quantity'];
@@ -305,53 +328,20 @@ function AddShipmentItemsModalContent({
         }
 
         try {
-            const updateItem = async () => {
-                if (!formData.rowId) {
-                    toast.error('Item ID is missing');
-                    return;
-                }
+            // Construct work_order_id as composite key (po_number-item_code)
+            const woRowId = formData.work_order_id;
+            const selectedWO = workOrderData?.find((wo: any) => String(wo.ROWID) === String(woRowId));
+            const workOrderIdToSend = selectedWO ? `${selectedWO.po_number}-${selectedWO.item_code}` : woRowId;
 
-                // Construct work_order_id as composite key (po_number-item_code)
-                const woRowId = formData.work_order_id;
-                const selectedWO = workOrderData?.find((wo: any) => String(wo.ROWID) === String(woRowId));
-                const workOrderIdToSend = selectedWO ? `${selectedWO.po_number}-${selectedWO.item_code}` : woRowId;
-
-                // Extract key-value data excluding rowId
-                const itemToUpdate = toRowData({
-                    ...formData,
-                    work_order_id: workOrderIdToSend,
-                    rowId: undefined,
-                });
-
-                const rowIdString = typeof formData.rowId === 'string' || typeof formData.rowId === 'number' 
-                    ? String(formData.rowId) 
-                    : '';
-
-                if (!rowIdString) {
-                    toast.error('Invalid Item ID');
-                    return;
-                }
-
-                const result = await nguageStore.UpdateRowData(
-                    itemToUpdate,
-                    rowIdString
-                );
-
-                if (!result.result) {
-                    toast.error(`Failed to update: ${result.error}`);
-                    return;
-                }
-
-                const updatedItem: ShipmentItem = {
-                    ...formData,
-                    work_order_id: workOrderIdToSend,
-                } as ShipmentItem;
-                onSave(updatedItem);
-                toast.success('Item updated successfully!');
-                handleClose();
-            };
-
-            updateItem();
+            const updatedItem: ShipmentItem = {
+                ...formData,
+                work_order_id: workOrderIdToSend,
+            } as ShipmentItem;
+            
+            console.log('Updating item in store at index:', shipmentStore.editingItemIndex, 'with data:', updatedItem);
+            onSave(updatedItem);
+            toast.success('Item updated successfully!');
+            handleClose();
         } catch (error) {
             console.error('Error updating item:', error);
             toast.error('Failed to update item');
@@ -545,7 +535,12 @@ function AddShipmentItemsModalContent({
                         Cancel
                     </button>
                     <button
-                        onClick={shipmentStore.editingItemIndex !== null ? handleUpdateItem : handleSubmit}
+                        onClick={(e) => {
+                            console.log('=== SAVE BUTTON CLICKED ===');
+                            console.log('editingItemIndex:', shipmentStore.editingItemIndex);
+                            console.log('Calling:', shipmentStore.editingItemIndex !== null ? 'handleUpdateItem' : 'handleSubmit');
+                            (shipmentStore.editingItemIndex !== null ? handleUpdateItem : handleSubmit)(e);
+                        }}
                         className="px-4 py-2.5 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
                     >
                         {shipmentStore.editingItemIndex !== null ? 'Update Shipment Item' : 'Add Shipment Item'}
