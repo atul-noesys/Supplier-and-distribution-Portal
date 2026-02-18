@@ -3,7 +3,7 @@
  * based on key-value record structure from API responses
  */
 
-import { KeyValueRecord } from '@/types/purchase-order';
+import { KeyValueRecord } from '@/types/nguage-rowdata';
 
 export type FieldType = 'text' | 'number' | 'select' | 'textarea' | 'file' | 'date' | 'email' | 'tel';
 

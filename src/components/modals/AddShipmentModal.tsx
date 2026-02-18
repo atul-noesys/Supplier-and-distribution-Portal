@@ -2,7 +2,7 @@
 
 import DatePicker from "@/components/form/date-picker";
 import { useStore } from "@/store/store-context";
-import { KeyValueRecord, RowData, ShipmentItem } from "@/types/purchase-order";
+import { KeyValueRecord, RowData, ShipmentItem } from "@/types/nguage-rowdata";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { observer } from "mobx-react-lite";

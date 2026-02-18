@@ -1,5 +1,5 @@
 import { makeAutoObservable } from 'mobx';
-import { POItem } from '@/types/purchase-order';
+import { POItem } from '@/types/nguage-rowdata';
 
 export class POStore {
   poItems: POItem[] = [];

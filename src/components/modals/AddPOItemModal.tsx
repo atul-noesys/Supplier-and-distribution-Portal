@@ -1,7 +1,7 @@
 'use client';
 
 import { useStore } from '@/store/store-context';
-import { KeyValueRecord, POItem, RowData } from '@/types/purchase-order';
+import { KeyValueRecord, POItem, RowData } from '@/types/nguage-rowdata';
 import { useQuery } from '@tanstack/react-query';
 import { observer } from 'mobx-react-lite';
 import * as React from 'react';

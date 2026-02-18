@@ -4,7 +4,7 @@ import Badge from "@/components/ui/badge/Badge";
 import { PDFPreview } from "@/components/pdf-preview";
 import KanbanBoard from "@/components/kanban/KanbanBoard";
 import { useStore } from "@/store/store-context";
-import { RowData } from "@/types/purchase-order";
+import { RowData } from "@/types/nguage-rowdata";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { observer } from "mobx-react-lite";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";

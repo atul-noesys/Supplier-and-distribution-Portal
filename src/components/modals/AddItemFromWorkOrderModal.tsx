@@ -1,6 +1,6 @@
 "use client";
 
-import { RowData, ShipmentItem } from "@/types/purchase-order";
+import { RowData, ShipmentItem } from "@/types/nguage-rowdata";
 import React, { useState } from "react";
 import { MdClose } from "react-icons/md";
 

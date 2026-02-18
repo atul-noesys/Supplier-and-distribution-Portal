@@ -4,7 +4,7 @@ import AddShipmentModal from "@/components/modals/AddShipmentModal";
 import { PDFPreview } from "@/components/pdf-preview";
 import Badge from "@/components/ui/badge/Badge";
 import { useStore } from "@/store/store-context";
-import { RowData } from "@/types/purchase-order";
+import { RowData } from "@/types/nguage-rowdata";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { observer } from "mobx-react-lite";
 import React, { useCallback, useEffect, useState } from "react";

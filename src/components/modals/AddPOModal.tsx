@@ -9,7 +9,7 @@ import { observer } from 'mobx-react-lite';
 import DatePicker from '@/components/form/date-picker';
 import { useStore } from '@/store/store-context';
 import AddPOItemModal from './AddPOItemModal';
-import { POItem, KeyValueRecord, RowData } from '@/types/purchase-order';
+import { POItem, KeyValueRecord, RowData } from '@/types/nguage-rowdata';
 
 /**
  * Convert KeyValueRecord to RowData for API submission

@@ -1,5 +1,5 @@
 import { makeAutoObservable } from 'mobx';
-import { ShipmentItem } from '@/types/purchase-order';
+import { ShipmentItem } from '@/types/nguage-rowdata';
 
 export class ShipmentStore {
   shipmentItems: ShipmentItem[] = [];
