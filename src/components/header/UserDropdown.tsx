@@ -1,23 +1,18 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useStore } from "../../store/store-context";
 import { Dropdown } from "../ui/dropdown/Dropdown";
-import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 
 const UserDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
   const store = useStore();
+  const router = useRouter();
 
-  const authToken = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
-
-  const { data: user } = useQuery({
-    queryKey: ["currentUser", authToken],
-    queryFn: () => store.nguageStore.GetCurrentUser(),
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    enabled: !!authToken, // Only fetch if token exists
-  });
+  // Get user from cached store data
+  const user = useMemo(() => store.nguageStore.GetCurrentUserDetails(), [store.nguageStore]);
 
   function toggleDropdown(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) {
     e.stopPropagation();
@@ -27,6 +22,16 @@ const UserDropdown = () => {
   function closeDropdown() {
     setIsOpen(false);
   }
+
+  const handleLogout = () => {
+    // Clear user data and token
+    store.nguageStore.ClearCurrentUser();
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("token_expiry");
+    
+    // Redirect to login
+    router.push("/login");
+  };
   return (
     <div className="relative">
       <button
@@ -80,6 +85,10 @@ const UserDropdown = () => {
         </div>
         <Link
           href="/login"
+          onClick={(e) => {
+            e.preventDefault();
+            handleLogout();
+          }}
           className="flex items-center gap-3 px-3 py-2 mt-3 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
         >
           <svg

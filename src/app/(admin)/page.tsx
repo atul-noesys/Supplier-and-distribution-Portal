@@ -1,20 +1,13 @@
 "use client";
 
 import { useStore } from "@/store/store-context";
-import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 
 export default function Dashboard() {
   const store = useStore();
 
-  const authToken = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
-
-  const { data: user } = useQuery({
-    queryKey: ["currentUser", authToken],
-    queryFn: () => store.nguageStore.GetCurrentUser(),
-    staleTime: 10 * 60 * 1000,
-    enabled: !!authToken,
-  });
+  // Get user from cached store data
+  const user = useMemo(() => store.nguageStore.GetCurrentUserDetails(), [store.nguageStore]);
 
   // Get time-based greeting
   const timeGreeting = useMemo(() => {

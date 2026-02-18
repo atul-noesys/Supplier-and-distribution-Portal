@@ -7,12 +7,14 @@ import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
+import { useStore } from "@/store/store-context";
 
 export default function LogInForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const { nguageStore } = useStore();
 
   const [data, setData] = useState({
     username: "noomsuser",
@@ -66,6 +68,9 @@ export default function LogInForm() {
         const expiryTimestamp = Math.floor(Date.now() / 1000) + expiresIn;
         localStorage.setItem("token_expiry", expiryTimestamp.toString());
       }
+
+      // Fetch and cache current user details
+      await nguageStore.GetCurrentUser();
 
       // Redirect to dashboard
       router.push("/");

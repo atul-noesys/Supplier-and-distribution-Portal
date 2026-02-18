@@ -258,10 +258,46 @@ export class NguageStore {
       };
 
       this.currentUser = userData;
+      
+      // Store user data in localStorage for persistence across page refreshes
+      if (typeof window !== "undefined") {
+        localStorage.setItem("current_user", JSON.stringify(userData));
+      }
+
       return userData;
     } catch (error) {
       console.error("Error fetching current user:", error);
       return null;
+    }
+  }
+
+  GetCurrentUserDetails(): CurrentUser | null {
+    // Return in-memory cache first
+    if (this.currentUser) {
+      return this.currentUser;
+    }
+
+    // If no in-memory cache, try to restore from localStorage
+    if (typeof window !== "undefined") {
+      const cachedUser = localStorage.getItem("current_user");
+      if (cachedUser) {
+        try {
+          this.currentUser = JSON.parse(cachedUser);
+          return this.currentUser;
+        } catch (error) {
+          console.error("Error parsing stored user data:", error);
+          return null;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  ClearCurrentUser(): void {
+    this.currentUser = null;
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("current_user");
     }
   }
 }
