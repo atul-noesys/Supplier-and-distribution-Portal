@@ -136,6 +136,7 @@ function AddShipmentModalContent({
 
         // Load shipment items from currentShipmentItems
         shipmentStore.clearItems();
+        const loadedItems: ShipmentItem[] = [];
         currentItems.forEach((item) => {
           const shipmentItem: ShipmentItem = {
             item_code: item.item_code || "",
@@ -151,6 +152,7 @@ function AddShipmentModalContent({
             remarks: item.remarks || "",
           };
           shipmentStore.addItem(shipmentItem);
+          loadedItems.push(shipmentItem);
         });
 
         // Set shipmentData so it shows the items step
@@ -647,9 +649,46 @@ function AddShipmentModalContent({
     setEditingItemIndex(index);
   };
 
-  const handleDeleteItem = (index: number) => {
-    shipmentStore.deleteItem(index);
-    toast.success('Item removed');
+  const handleDeleteItem = async (index: number) => {
+    const itemToDelete = shipmentStore.shipmentItems[index];
+    
+    console.log("Deleting item:", itemToDelete);
+    console.log("Item has ROWID:", !!itemToDelete?.ROWID, "Value:", itemToDelete?.ROWID);
+    
+    // If the item has a ROWID (from database), delete it immediately
+    if (itemToDelete?.ROWID) {
+      try {
+        const deleteResult = await nguageStore.DeleteRowDataDynamic(
+          "shipment_list_items",
+          String(itemToDelete.ROWID),
+          47
+        );
+        
+        console.log("Delete API Result:", deleteResult);
+        
+        if (deleteResult.result) {
+          // Update work order status back to "In warehouse"
+          if (itemToDelete.work_order_id) {
+            await updateWorkOrderStatus(String(itemToDelete.work_order_id), "In warehouse");
+          }
+          
+          shipmentStore.deleteItem(index);
+          toast.success('Item deleted successfully');
+          queryClient.invalidateQueries({ queryKey: ["shipmentList"] });
+          queryClient.invalidateQueries({ queryKey: ["shipmentItems"] });
+          queryClient.invalidateQueries({ queryKey: ["workOrders"] });
+        } else {
+          toast.error(`Failed to delete item: ${deleteResult.error}`);
+        }
+      } catch (error) {
+        console.error("Error deleting item:", error);
+        toast.error('Failed to delete item');
+      }
+    } else {
+      // If no ROWID, just remove from local storage (new item not saved yet)
+      shipmentStore.deleteItem(index);
+      toast.success('Item removed');
+    }
   };
 
   const handleClose = () => {
@@ -1127,7 +1166,7 @@ function AddShipmentModalContent({
               type="button"
               disabled={workOrderSelections.size === 0 || isLoadingWorkOrders}
               onClick={handleAddSelectedWorkOrders}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
             >
               <MdAdd className="w-5 h-5" />
               Add Selected ({workOrderSelections.size})
@@ -1141,7 +1180,7 @@ function AddShipmentModalContent({
                     type="button"
                     disabled={isSaving}
                     onClick={handleSaveShipment}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
                   >
                     {isSaving ? (
                       <>
@@ -1154,9 +1193,9 @@ function AddShipmentModalContent({
                   </button>
                   <button
                     type="button"
-                    disabled={isSaving}
+                    disabled={isSaving || shipmentStore.shipmentItems.length === 0}
                     onClick={handleReadyToShip}
-                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
+                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
                   >
                     {isReadyToShipSaving ? (
                       <>
@@ -1174,7 +1213,7 @@ function AddShipmentModalContent({
                   type="button"
                   disabled={isSaving || shipmentStore.shipmentItems.length === 0}
                   onClick={handleSaveShipment}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
                 >
                   {isSaving ? (
                     <>
@@ -1189,9 +1228,9 @@ function AddShipmentModalContent({
                 // Step 3: Items saved, show Ready to Ship button
                 <button
                   type="button"
-                  disabled={isReadyToShipSaving}
+                  disabled={isReadyToShipSaving || shipmentStore.shipmentItems.length === 0}
                   onClick={handleReadyToShip}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-grey-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
                 >
                   {isReadyToShipSaving ? (
                     <>

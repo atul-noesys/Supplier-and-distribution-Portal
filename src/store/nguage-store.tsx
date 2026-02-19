@@ -210,6 +210,37 @@ export class NguageStore {
     }
   }
 
+  async DeleteRowDataDynamic(
+    tableName: string,
+    rowId: string,
+    formId: number,
+  ): Promise<{ result: boolean; error: string }> {
+   try {
+      // Get token from localStorage (client-side only)
+      let token = null;
+      if (typeof window !== "undefined") {
+        token = localStorage.getItem("access_token");
+      }
+
+      const requestBody = {
+        ROWID: rowId,
+        formId: formId,
+        tableName: tableName,
+      };
+
+      await axios.put("/api/DeleteRowDataDynamic", requestBody, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      });
+
+      return { result: true, error: "" };
+    } catch (e) {
+      return { result: false, error: "error" };
+    }
+  }
+
   async GetRowData(
     formId: number,
     rowId: string | number,
