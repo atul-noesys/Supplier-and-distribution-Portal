@@ -345,6 +345,49 @@ function AddShipmentModalContent({
     setStep(2);
   };
 
+  // Helper function to update work order status
+  const updateWorkOrderStatus = async (workOrderId: string, newStatus: string) => {
+    try {
+      // Find the work order by looking for the ROWID in the enriched work orders
+      const workOrder = enrichedWorkOrders.find((wo) => getWorkOrderId(wo) === workOrderId);
+      
+      if (!workOrder?.ROWID) {
+        console.warn(`Could not find work order with ID: ${workOrderId}`);
+        return;
+      }
+
+      // Fetch the full work order data
+      const fullWorkOrderData = await nguageStore.GetRowData(44, String(workOrder.ROWID), 'work_order');
+      
+      if (!fullWorkOrderData) {
+        console.warn(`Could not fetch full work order data for ROWID: ${workOrder.ROWID}`);
+        return;
+      }
+
+      // Spread the entire object and only update wo_status
+      const updatedWorkOrder = {
+        ...fullWorkOrderData,
+        wo_status: newStatus,
+      };
+
+      const result = await nguageStore.UpdateRowDataDynamic(
+        updatedWorkOrder,
+        String(workOrder.ROWID),
+        44,
+        'work_order'
+      );
+
+      if (!result.result) {
+        console.warn(`Failed to update work order status: ${result.error}`);
+        return;
+      }
+
+      console.log(`Work order ${workOrderId} status updated to ${newStatus}`);
+    } catch (error) {
+      console.error(`Error updating work order status for ${workOrderId}:`, error);
+    }
+  };
+
   const handleSaveShipment = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -394,9 +437,17 @@ function AddShipmentModalContent({
           return;
         }
 
+        // Update work order statuses to "In shipment"
+        for (const item of shipmentStore.shipmentItems) {
+          if (item.work_order_id) {
+            await updateWorkOrderStatus(String(item.work_order_id), "In shipment");
+          }
+        }
+
         toast.success("Shipment updated successfully!");
         queryClient.invalidateQueries({ queryKey: ["shipmentList"] });
         queryClient.invalidateQueries({ queryKey: ["shipmentItems"] });
+        queryClient.invalidateQueries({ queryKey: ["workOrders"] });
       } else {
         // Create mode: Add new shipment
         console.log("Saving Shipment (Create Mode):", formData);
@@ -445,7 +496,15 @@ function AddShipmentModalContent({
           });
         });
 
+        // Update work order statuses to "In shipment" for all items
+        for (const item of shipmentStore.shipmentItems) {
+          if (item.work_order_id) {
+            await updateWorkOrderStatus(String(item.work_order_id), "In shipment");
+          }
+        }
+
         toast.success("Shipment saved successfully! Now you can add items.");
+        queryClient.invalidateQueries({ queryKey: ["workOrders"] });
       }
     } catch (error) {
       console.error("Error saving shipment:", error);
@@ -485,9 +544,17 @@ function AddShipmentModalContent({
         return;
       }
 
+      // Update work order statuses to "Ready to ship" for all items
+      for (const item of shipmentStore.shipmentItems) {
+        if (item.work_order_id) {
+          await updateWorkOrderStatus(String(item.work_order_id), "Ready to ship");
+        }
+      }
+
       toast.success(<span>Shipment <b>{shipmentToSave.shipment_id}</b> is Ready to ship!</span>);
       queryClient.invalidateQueries({ queryKey: ["shipmentList"] });
       queryClient.invalidateQueries({ queryKey: ["shipmentItems"] });
+      queryClient.invalidateQueries({ queryKey: ["workOrders"] });
       handleClose();
     } catch (error) {
       console.error("Error updating shipment status:", error);
