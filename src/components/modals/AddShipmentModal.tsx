@@ -485,7 +485,7 @@ function AddShipmentModalContent({
         return;
       }
 
-      toast.success("Shipment status updated to 'Ready to ship'!");
+      toast.success(<span>Shipment <b>{shipmentToSave.shipment_id}</b> is Ready to ship!</span>);
       queryClient.invalidateQueries({ queryKey: ["shipmentList"] });
       queryClient.invalidateQueries({ queryKey: ["shipmentItems"] });
       handleClose();
@@ -1048,7 +1048,7 @@ function AddShipmentModalContent({
         />
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 border-t border-gray-200 dark:border-gray-700 px-8 py-4 bg-gray-50 dark:bg-gray-800">
+        <div className="flex items-center justify-end gap-3 border-t border-gray-200 dark:border-gray-700 px-5 py-4 bg-gray-50 dark:bg-gray-800">
           {!isEditMode && <button
             type="button"
             onClick={handleClose}
