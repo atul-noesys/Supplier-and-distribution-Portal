@@ -75,6 +75,7 @@ function AddShipmentModalContent({
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   const [isAddItemFromWOModalOpen, setIsAddItemFromWOModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isReadyToShipSaving, setIsReadyToShipSaving] = useState(false);
 
   // Fetch pagination data using TanStack Query
   const { data: paginationData, refetch, isLoading: isLoadingVendor } = useQuery({
@@ -455,7 +456,7 @@ function AddShipmentModalContent({
   };
 
   const handleReadyToShip = async () => {
-    setIsSaving(true);
+    setIsReadyToShipSaving(true);
     try {
       const currentShipment = shipmentStore.getCurrentShipment();
       if (!currentShipment?.ROWID) {
@@ -492,7 +493,7 @@ function AddShipmentModalContent({
       console.error("Error updating shipment status:", error);
       toast.error("Failed to update shipment status");
     } finally {
-      setIsSaving(false);
+      setIsReadyToShipSaving(false);
     }
   };
 
@@ -1091,10 +1092,10 @@ function AddShipmentModalContent({
                     onClick={handleReadyToShip}
                     className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
                   >
-                    {isSaving ? (
+                    {isReadyToShipSaving ? (
                       <>
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Updating...
+                        Preparing to Ship...
                       </>
                     ) : (
                       "Ready to Ship"
