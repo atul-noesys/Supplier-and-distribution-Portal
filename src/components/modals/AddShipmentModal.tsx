@@ -453,7 +453,7 @@ function AddShipmentModalContent({
         queryClient.invalidateQueries({ queryKey: ["shipmentItems"] });
         queryClient.invalidateQueries({ queryKey: ["workOrders"] });
       } else {
-        // Create mode: Add new shipment
+        // Create mode: Add new shipment and items in one go
         console.log("Saving Shipment (Create Mode):", formData);
 
         shipmentToSave = {
@@ -507,7 +507,45 @@ function AddShipmentModalContent({
           }
         }
 
-        toast.success("Shipment saved successfully! Now you can add items.");
+        // Now save all items in one go
+        let itemsSuccessCount = 0;
+        let itemsFailureCount = 0;
+
+        for (const item of shipmentStore.shipmentItems) {
+          try {
+            const itemToSave = toRowData(item);
+
+            const itemResult = await nguageStore.AddRowData(
+              itemToSave,
+              47,
+              "shipment_list_items"
+            );
+
+            if (!itemResult.error) {
+              itemsSuccessCount++;
+            } else {
+              itemsFailureCount++;
+              console.error(`Failed to save item ${item.item_code}:`, itemResult.error);
+            }
+          } catch (itemError) {
+            itemsFailureCount++;
+            console.error(`Error saving item ${item.item_code}:`, itemError);
+          }
+        }
+
+        // Show combined success message
+        if (itemsSuccessCount > 0) {
+          toast.success(
+            `Shipment saved successfully with ${itemsSuccessCount} item${itemsSuccessCount !== 1 ? 's' : ''}${itemsFailureCount > 0 ? ` (${itemsFailureCount} failed)` : ''}`
+          );
+          setItemsSaved(true);
+        } else if (itemsFailureCount > 0) {
+          toast.warning("Shipment saved but failed to save items");
+          setItemsSaved(false);
+        }
+
+        queryClient.invalidateQueries({ queryKey: ["shipmentList"] });
+        queryClient.invalidateQueries({ queryKey: ["shipmentItems"] });
         queryClient.invalidateQueries({ queryKey: ["workOrders"] });
       }
     } catch (error) {
@@ -566,57 +604,6 @@ function AddShipmentModalContent({
       toast.error("Failed to update shipment status");
     } finally {
       setIsReadyToShipSaving(false);
-    }
-  };
-
-  const handleSubmitItems = async () => {
-    setIsLoading(true);
-    let successCount = 0;
-    let failureCount = 0;
-
-    try {
-      // Save each item one by one
-      for (const item of shipmentStore.shipmentItems) {
-        try {
-          const itemToSave = toRowData(item);
-
-          const result = await nguageStore.AddRowData(
-            itemToSave,
-            47,
-            "shipment_list_items"
-          );
-
-          if (!result.error) {
-            successCount++;
-          } else {
-            failureCount++;
-            console.error(`Failed to save item ${item.item_code}:`, result.error);
-          }
-        } catch (itemError) {
-          failureCount++;
-          console.error(`Error saving item ${item.item_code}:`, itemError);
-        }
-      }
-
-      if (successCount > 0) {
-        toast.success(
-          `Successfully saved ${successCount} shipment item${successCount !== 1 ? 's' : ''}${failureCount > 0 ? ` (${failureCount} failed)` : ''
-          }`
-        );
-        setItemsSaved(true);
-        queryClient.invalidateQueries({ queryKey: ["shipmentList"] });
-        queryClient.invalidateQueries({ queryKey: ["workOrderItems"] });
-        queryClient.invalidateQueries({ queryKey: ["shipmentItems"] });
-      }
-
-      if (failureCount > 0 && successCount === 0) {
-        toast.error("Failed to save shipment items");
-      }
-    } catch (error) {
-      console.error("Error submitting items:", error);
-      toast.error("Failed to submit shipment items");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -1242,7 +1229,7 @@ function AddShipmentModalContent({
                   </button>
                 </>
               ) : !shipmentData ? (
-                // Step 1: Save the shipment master record
+                // Step 1: Save the shipment master record and items
                 <button
                   type="button"
                   disabled={isSaving || shipmentStore.shipmentItems.length === 0}
@@ -1258,8 +1245,8 @@ function AddShipmentModalContent({
                     "Save Draft"
                   )}
                 </button>
-              ) : itemsSaved ? (
-                // Step 3: Items saved, show Ready to Ship button
+              ) : (
+                // Show Ready to Ship button after shipment is saved
                 <button
                   type="button"
                   disabled={isReadyToShipSaving || shipmentStore.shipmentItems.length === 0}
@@ -1273,23 +1260,6 @@ function AddShipmentModalContent({
                     </>
                   ) : (
                     "Ready to Ship"
-                  )}
-                </button>
-              ) : (
-                // Step 2: Save the shipment items (after shipment is saved)
-                <button
-                  type="button"
-                  disabled={isLoading || shipmentStore.shipmentItems.length === 0}
-                  onClick={handleSubmitItems}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
-                >
-                  {isLoading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Saving Items...
-                    </>
-                  ) : (
-                    "Save Items"
                   )}
                 </button>
               )}
