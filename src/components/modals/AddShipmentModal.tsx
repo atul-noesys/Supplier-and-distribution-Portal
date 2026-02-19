@@ -169,7 +169,7 @@ function AddShipmentModalContent({
 
   // Fetch work orders
   const { data: workOrders = [], isLoading: isLoadingWorkOrders, refetch: refetchWorkOrders } = useQuery({
-    queryKey: ["workOrders", isOpen],
+    queryKey: ["workOrders", isOpen, isEditMode],
     queryFn: async (): Promise<RowData[]> => {
       const response = await nguageStore.GetPaginationData({
         table: "work_order",
@@ -180,8 +180,9 @@ function AddShipmentModalContent({
 
       let items = response?.data || response || [];
 
-      //filter only those which are in Step 5 (Completed)
-      if (Array.isArray(items)) {
+      // In create mode, filter only those with "In warehouse" status
+      // In edit mode, fetch all work orders so we can update their status when deleting items
+      if (Array.isArray(items) && !isEditMode) {
         items = items.filter((e) => e.wo_status === "In warehouse");
       }
       return Array.isArray(items) ? (items as RowData[]) : [];
