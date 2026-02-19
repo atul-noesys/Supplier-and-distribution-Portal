@@ -354,7 +354,7 @@ function AddShipmentModalContent({
     try {
       // Find the work order by looking for the ROWID in the enriched work orders
       const workOrder = enrichedWorkOrders.find((wo) => getWorkOrderId(wo) === workOrderId);
-      
+
       if (!workOrder?.ROWID) {
         console.warn(`Could not find work order with ID: ${workOrderId}`);
         return;
@@ -362,7 +362,7 @@ function AddShipmentModalContent({
 
       // Fetch the full work order data
       const fullWorkOrderData = await nguageStore.GetRowData(44, String(workOrder.ROWID), 'work_order');
-      
+
       if (!fullWorkOrderData) {
         console.warn(`Could not fetch full work order data for ROWID: ${workOrder.ROWID}`);
         return;
@@ -625,10 +625,43 @@ function AddShipmentModalContent({
     setIsAddItemFromWOModalOpen(true);
   };
 
-  const handleAddItemFromWorkOrder = (item: ShipmentItem) => {
-    // Add the item to the store
-    shipmentStore.addItem(item);
-    toast.success("Item added successfully!");
+  const handleAddItemFromWorkOrder = async (item: ShipmentItem) => {
+    try {
+      // If in edit mode, save item to database immediately
+      if (isEditMode) {
+        const itemToSave = toRowData(item);
+
+        const result = await nguageStore.AddRowData(
+          itemToSave,
+          47,
+          "shipment_list_items"
+        );
+
+        if (!result.error) {
+          // Get the ROWID from the result
+          const rowId = typeof result.result === 'string' ? result.result : (result.result as any)?.data;
+          
+          // Add the ROWID to the item
+          const itemWithRowId: ShipmentItem = {
+            ...item,
+            ROWID: rowId || "",
+          };
+          
+          shipmentStore.addItem(itemWithRowId);
+          toast.success("Item added successfully!");
+          queryClient.invalidateQueries({ queryKey: ["shipmentItems"] });
+        } else {
+          toast.error(`Failed to add item: ${result.error}`);
+        }
+      } else {
+        // In create mode, just add to local store
+        shipmentStore.addItem(item);
+        toast.success("Item added successfully!");
+      }
+    } catch (error) {
+      console.error("Error adding item:", error);
+      toast.error("Failed to add item");
+    }
   };
 
   const handleSaveItem = (updates: Partial<ShipmentItem>) => {
@@ -651,10 +684,10 @@ function AddShipmentModalContent({
 
   const handleDeleteItem = async (index: number) => {
     const itemToDelete = shipmentStore.shipmentItems[index];
-    
+
     console.log("Deleting item:", itemToDelete);
     console.log("Item has ROWID:", !!itemToDelete?.ROWID, "Value:", itemToDelete?.ROWID);
-    
+
     // If the item has a ROWID (from database), delete it immediately
     if (itemToDelete?.ROWID) {
       try {
@@ -663,23 +696,24 @@ function AddShipmentModalContent({
           String(itemToDelete.ROWID),
           47
         );
-        
+
         console.log("Delete API Result:", deleteResult);
-        
+
         if (deleteResult.result) {
           // Update work order status back to "In warehouse"
           if (itemToDelete.work_order_id) {
             await updateWorkOrderStatus(String(itemToDelete.work_order_id), "In warehouse");
           }
-          
+
           shipmentStore.deleteItem(index);
           toast.success('Item deleted successfully');
-          queryClient.invalidateQueries({ queryKey: ["shipmentList"] });
-          queryClient.invalidateQueries({ queryKey: ["shipmentItems"] });
-          queryClient.invalidateQueries({ queryKey: ["workOrders"] });
+
         } else {
           toast.error(`Failed to delete item: ${deleteResult.error}`);
         }
+        queryClient.invalidateQueries({ queryKey: ["shipmentList"] });
+        queryClient.invalidateQueries({ queryKey: ["shipmentItems"] });
+        queryClient.invalidateQueries({ queryKey: ["workOrders"] });
       } catch (error) {
         console.error("Error deleting item:", error);
         toast.error('Failed to delete item');
