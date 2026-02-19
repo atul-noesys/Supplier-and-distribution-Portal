@@ -178,7 +178,7 @@ function AddShipmentModalContent({
 
       //filter only those which are in Step 5 (Completed)
       if (Array.isArray(items)) {
-        items = items.filter((e) => e.step === "Step 5");
+        items = items.filter((e) => e.wo_status === "In warehouse");
       }
       return Array.isArray(items) ? (items as RowData[]) : [];
     },

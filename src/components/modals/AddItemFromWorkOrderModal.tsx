@@ -98,22 +98,38 @@ export function AddItemFromWorkOrderModal({
             ) : (
               <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="bg-linear-to-r from-blue-700 to-blue-800 dark:from-blue-900 dark:to-blue-950">
-                        <th className="px-4 py-3 text-left">
-                          <input
-                            type="checkbox"
-                            checked={selectedWorkOrders.size === availableWorkOrders.length && availableWorkOrders.length > 0}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedWorkOrders(
-                                  new Set(availableWorkOrders.filter(wo => !selectedWorkOrderIds.includes(wo.workOrderId || "")).map((wo) => wo.workOrderId || ""))
-                                );
-                              } else {
-                                setSelectedWorkOrders(new Set());
-                              }
-                            }}
+                  {(() => {
+                    const filteredWorkOrders = availableWorkOrders.filter(
+                      (wo) => !selectedWorkOrderIds.includes(wo.workOrderId || "")
+                    );
+
+                    if (filteredWorkOrders.length === 0) {
+                      return (
+                        <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
+                          <p className="text-gray-600 dark:text-gray-400">
+                            All work orders have already been added
+                          </p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <table className="w-full">
+                        <thead>
+                          <tr className="bg-linear-to-r from-blue-700 to-blue-800 dark:from-blue-900 dark:to-blue-950">
+                            <th className="px-4 py-3 text-left">
+                              <input
+                                type="checkbox"
+                                checked={selectedWorkOrders.size === filteredWorkOrders.length && filteredWorkOrders.length > 0}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedWorkOrders(
+                                      new Set(filteredWorkOrders.map((wo) => wo.workOrderId || ""))
+                                    );
+                                  } else {
+                                    setSelectedWorkOrders(new Set());
+                                  }
+                                }}
                             className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
                           />
                         </th>
@@ -143,39 +159,30 @@ export function AddItemFromWorkOrderModal({
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                      {availableWorkOrders.map((workOrder) => {
-                        const woId = workOrder.workOrderId || "";
-                        const isAlreadySelected =
-                          selectedWorkOrderIds.includes(woId);
-                        const isCurrentlySelected =
-                          selectedWorkOrders.has(woId);
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                          {filteredWorkOrders.map((workOrder) => {
+                            const woId = workOrder.workOrderId || "";
+                            const isCurrentlySelected =
+                              selectedWorkOrders.has(woId);
 
-                        return (
-                          <tr
-                            key={woId}
-                            className={`transition-colors ${
-                              isAlreadySelected
-                                ? "bg-red-50 dark:bg-red-900/20 opacity-60"
-                                : isCurrentlySelected
-                                  ? "bg-blue-50 dark:bg-blue-900/30"
-                                  : "bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50"
-                            }`}
-                          >
-                            <td className="px-4 py-3">
-                              <input
-                                type="checkbox"
-                                checked={isCurrentlySelected}
-                                onChange={() => handleToggleWorkOrder(woId)}
-                                disabled={isAlreadySelected}
-                                className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                                title={
-                                  isAlreadySelected
-                                    ? "This work order is already included in the shipment"
-                                    : "Select this work order"
-                                }
-                              />
-                            </td>
+                            return (
+                              <tr
+                                key={woId}
+                                className={`transition-colors ${
+                                  isCurrentlySelected
+                                    ? "bg-blue-50 dark:bg-blue-900/30"
+                                    : "bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                                }`}
+                              >
+                                <td className="px-4 py-3">
+                                  <input
+                                    type="checkbox"
+                                    checked={isCurrentlySelected}
+                                    onChange={() => handleToggleWorkOrder(woId)}
+                                    className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                                    title="Select this work order"
+                                  />
+                                </td>
                             <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
                               {woId}
                             </td>
@@ -203,11 +210,13 @@ export function AddItemFromWorkOrderModal({
                             <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
                               {workOrder.vendor_name || "-"}
                             </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    );
+                  })()}
                 </div>
               </div>
             )}
