@@ -226,7 +226,7 @@ export class NguageStore {
         authConfig({}),
       );
 
-      return response.data.data;
+      return { ...response.data.data, "ROWID" : rowId};
     } catch (error) {
       console.error("Error fetching row data:", error);
       return null;

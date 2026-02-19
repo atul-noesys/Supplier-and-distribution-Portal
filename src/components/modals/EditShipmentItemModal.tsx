@@ -65,14 +65,57 @@ export function EditShipmentItemModal({
     }
   };
 
-  const handleSave = () => {
-    onSave({
-      document,
-      remarks,
-      shipment_status: status,
-    });
-    toast.success("Item updated");
-    handleClose();
+  const handleSave = async () => {
+    console.log("Editing item:", item);
+    
+    if (!item?.ROWID) {
+      console.warn("Item data:", item);
+      toast.error("Item ID not found. Make sure this item was saved to the database first.");
+      return;
+    }
+
+    try {
+      // Fetch the full row data for the item
+      const fullItemData = await nguageStore.GetRowData(47, String(item.ROWID), 'shipment_list_items');
+
+      if (!fullItemData) {
+        toast.error("Could not fetch item data");
+        return;
+      }
+
+      // Spread the entire object and update only remarks and document
+      const updatedItem = {
+        ...fullItemData,
+        remarks,
+        document,
+      };
+
+      // Call UpdateRowDataDynamic to save to API
+      const result = await nguageStore.UpdateRowDataDynamic(
+        updatedItem,
+        String(item.ROWID),
+        47,
+        'shipment_list_items'
+      );
+
+      if (!result.result) {
+        toast.error(`Failed to update item: ${result.error}`);
+        return;
+      }
+
+      // Update local store
+      onSave({
+        document,
+        remarks,
+        shipment_status: status,
+      });
+
+      toast.success("Item updated successfully");
+      handleClose();
+    } catch (error) {
+      console.error("Error updating item:", error);
+      toast.error("Failed to update item");
+    }
   };
 
   const handleClose = () => {

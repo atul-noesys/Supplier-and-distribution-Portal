@@ -76,6 +76,7 @@ function AddShipmentModalContent({
   const [isAddItemFromWOModalOpen, setIsAddItemFromWOModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isReadyToShipSaving, setIsReadyToShipSaving] = useState(false);
+  const [itemsSaved, setItemsSaved] = useState(false);
 
   // Fetch pagination data using TanStack Query
   const { data: paginationData, refetch, isLoading: isLoadingVendor } = useQuery({
@@ -146,7 +147,8 @@ function AddShipmentModalContent({
             shipment_status: item.shipment_status || "Pending",
             work_order_id: item.work_order_id || "",
             document: item.document || "",
-            ROWID: item.ROWID || "",
+            ROWID: item.ROWID || item.rowid || "",
+            remarks: item.remarks || "",
           };
           shipmentStore.addItem(shipmentItem);
         });
@@ -555,6 +557,7 @@ function AddShipmentModalContent({
       queryClient.invalidateQueries({ queryKey: ["shipmentList"] });
       queryClient.invalidateQueries({ queryKey: ["shipmentItems"] });
       queryClient.invalidateQueries({ queryKey: ["workOrders"] });
+      onSuccess?.();
       handleClose();
     } catch (error) {
       console.error("Error updating shipment status:", error);
@@ -598,8 +601,8 @@ function AddShipmentModalContent({
           `Successfully saved ${successCount} shipment item${successCount !== 1 ? 's' : ''}${failureCount > 0 ? ` (${failureCount} failed)` : ''
           }`
         );
-        handleClose();
-        onSuccess?.();
+        setItemsSaved(true);
+        queryClient.invalidateQueries({ queryKey: ["shipmentList"] });
         queryClient.invalidateQueries({ queryKey: ["workOrderItems"] });
         queryClient.invalidateQueries({ queryKey: ["shipmentItems"] });
       }
@@ -669,6 +672,7 @@ function AddShipmentModalContent({
     shipmentStore.clearCurrentShipment();
     setEditingItemIndex(null);
     setIsEditMode(false);
+    setItemsSaved(false);
     onClose();
   };
 
@@ -795,9 +799,9 @@ function AddShipmentModalContent({
             <form onSubmit={handleSaveShipment} className="space-y-8">
               {/* Shipment Details Section */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                {/* <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                   Shipment Details
-                </h3>
+                </h3> */}
 
                 <div className="grid grid-cols-3 gap-4">
                   {/* Shipment ID */}
@@ -865,7 +869,7 @@ function AddShipmentModalContent({
                   {/* Estimated Delivery Date */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Est. Delivery Date
+                      Estimated Delivery Date
                     </label>
                     <DatePicker
                       id="estimated_delivery_date"
@@ -1002,7 +1006,6 @@ function AddShipmentModalContent({
                             <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Qty</th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Total</th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">PO #</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Status</th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Document</th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Remarks</th>
                             <th className="px-4 py-3 text-center text-xs font-semibold text-white uppercase tracking-wide">Actions</th>
@@ -1010,7 +1013,7 @@ function AddShipmentModalContent({
                         </thead>
                         <tbody>
                           <tr>
-                            <td colSpan={10}>
+                            <td colSpan={9}>
                               <div className="text-center py-12 bg-gray-50 dark:bg-gray-800">
                                 <p className="text-gray-600 dark:text-gray-400 mb-4">No items added yet</p>
                                 <button
@@ -1040,7 +1043,6 @@ function AddShipmentModalContent({
                             <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Qty</th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Total</th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">PO #</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Status</th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Document</th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Remarks</th>
                             <th className="px-4 py-3 text-center text-xs font-semibold text-white uppercase tracking-wide">Actions</th>
@@ -1055,11 +1057,6 @@ function AddShipmentModalContent({
                               <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{item.shipment_quantity}</td>
                               <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">${item.total ? parseFloat(String(item.total)).toFixed(2) : '0.00'}</td>
                               <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{item.po_number || '-'}</td>
-                              <td className="px-4 py-3 text-sm">
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200">
-                                  {item.shipment_status || 'Pending'}
-                                </span>
-                              </td>
                               <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{item.document || '-'}</td>
                               <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 max-w-xs truncate">{item.remarks || '-'}</td>
                               <td className="px-4 py-3 text-center">
@@ -1186,6 +1183,23 @@ function AddShipmentModalContent({
                     </>
                   ) : (
                     "Save Draft"
+                  )}
+                </button>
+              ) : itemsSaved ? (
+                // Step 3: Items saved, show Ready to Ship button
+                <button
+                  type="button"
+                  disabled={isReadyToShipSaving}
+                  onClick={handleReadyToShip}
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
+                >
+                  {isReadyToShipSaving ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Preparing to Ship...
+                    </>
+                  ) : (
+                    "Ready to Ship"
                   )}
                 </button>
               ) : (

@@ -27,6 +27,7 @@ const COLUMN_ORDER = [
   "vendor_id",
   "vendor_name",
   "step",
+  "wo_status",
   "po_number",
   "step_name",
   "start_date",
@@ -43,6 +44,7 @@ const DISPLAY_COLUMNS = [
   "vendor_id",
   "vendor_name",
   "step",
+  "wo_status",
   "po_number",
   "document",
 ];
@@ -214,6 +216,7 @@ export default observer(function WorkOrderPage() {
         step_name: item.step_name ? String(item.step_name) : undefined,
         remarks: item.remarks ? String(item.remarks) : undefined,
         document: item.document ? String(item.document) : undefined,
+        wo_status: item.wo_status ? String(item.wo_status) : undefined,
         step_history: poItem?.step_history,
         ROWID: Number(item.ROWID) || 0,
       };
@@ -630,7 +633,7 @@ export default observer(function WorkOrderPage() {
       ) : (
         <div className="border-t border-gray-200 dark:border-white/5">
           <div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.7fr 1.5fr 0.7fr 1.1fr 0.6fr 0.9fr 0.6fr 70px 80px', gap: '0', minWidth: '100%' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.6fr 1fr 0.9fr 0.6fr 70px 80px', gap: '0', minWidth: '100%' }}>
               {/* Table Header */}
               {tableColumns.map((column) => (
                 <div
@@ -651,7 +654,7 @@ export default observer(function WorkOrderPage() {
             </div>
 
             {/* Table Body */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.7fr 1.5fr 0.7fr 1.1fr 0.6fr 0.9fr 0.6fr 70px 80px', gap: '0', minWidth: '100%' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.6fr 1fr 0.9fr 0.6fr 70px 80px', gap: '0', minWidth: '100%' }}>
               {paginatedItems.length === 0 ? (
                 <div style={{ gridColumn: '1 / -1' }} className="py-8 text-center bg-white dark:bg-gray-800">
                   <p className="text-gray-500 dark:text-gray-400">No work orders found</p>
@@ -671,6 +674,15 @@ export default observer(function WorkOrderPage() {
                       else if (column.key === "step") {
                         cellContent = (
                           <Badge color="green" variant="solid">
+                            {value || "-"}
+                          </Badge>
+                        );
+                      }
+                      // Render Badge for wo_status field
+                      else if (column.key === "wo_status") {
+                        const statusColor = String(value).toLowerCase().includes("warehouse") ? "blue" : "orange";
+                        cellContent = (
+                          <Badge color={statusColor} variant="solid">
                             {value || "-"}
                           </Badge>
                         );
@@ -1010,6 +1022,19 @@ export default observer(function WorkOrderPage() {
                     <option value="Drilling">Drilling</option>
                     <option value="Casting">Casting</option>
                   </select>
+                </div>
+
+                {/* WO Status - Disabled (Auto-calculated) */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    WO Status
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={String(editFormData.wo_status || "-")}
+                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                  />
                 </div>
 
                 {/* Document - File Upload */}
