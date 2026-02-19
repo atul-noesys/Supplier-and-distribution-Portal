@@ -461,7 +461,7 @@ function AddShipmentModalContent({
           vendor_name: currentLoggedInVendor?.company_name || "",
         }
 
-        const result = await nguageStore.AddDataSourceRow(
+        const result = await nguageStore.AddRowData(
           shipmentToSave,
           52,
           "shipment_list"
@@ -578,7 +578,7 @@ function AddShipmentModalContent({
         try {
           const itemToSave = toRowData(item);
 
-          const result = await nguageStore.AddDataSourceRow(
+          const result = await nguageStore.AddRowData(
             itemToSave,
             47,
             "shipment_list_items"

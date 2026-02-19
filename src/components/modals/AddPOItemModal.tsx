@@ -142,7 +142,7 @@ function AddPOItemModalContent({
                 // Extract only fields that have values (dynamic key-value approach)
                 const itemToSave = toRowData(formData);
 
-                const result = await nguageStore.AddDataSourceRow(
+                const result = await nguageStore.AddRowData(
                     itemToSave,
                     42,
                     'purchase_order_items'

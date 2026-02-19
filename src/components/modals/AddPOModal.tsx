@@ -111,7 +111,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess }: AddPOModalProps) {
 
       const poToSave = toRowData(formData);
 
-      const result = await nguageStore.AddDataSourceRow(
+      const result = await nguageStore.AddRowData(
         poToSave,
         41,
         'purchase_orders'

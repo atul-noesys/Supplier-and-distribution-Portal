@@ -281,7 +281,7 @@ export default observer(function PurchaseOrderPage() {
       }
 
       // Add work order row to work_order table
-      await nguageStore.AddDataSourceRow(
+      await nguageStore.AddRowData(
         payloadForWorkOrder,
         44,
         "work_order"
@@ -381,7 +381,7 @@ export default observer(function PurchaseOrderPage() {
           }
 
           // Add work order row to work_order table
-          await nguageStore.AddDataSourceRow(
+          await nguageStore.AddRowData(
             payloadForWorkOrder,
             44,
             "work_order"

@@ -104,7 +104,7 @@ export default observer(function RegisterForm() {
     setSubmitMessage(null);
 
     try {
-      const result = await nguageStore.AddDataSourceRow({
+      const result = await nguageStore.AddRowData({
         "company_name": formData.companyName,
         "business_address": formData.businessAddress,
         "industry": formData.industry,

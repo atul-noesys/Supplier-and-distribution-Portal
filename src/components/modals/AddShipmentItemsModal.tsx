@@ -274,7 +274,7 @@ function AddShipmentItemsModalContent({
                     work_order_id: workOrderIdToSend,
                 });
 
-                const result = await nguageStore.AddDataSourceRow(
+                const result = await nguageStore.AddRowData(
                     itemToSave,
                     47,
                     'shipment_list_items'

@@ -174,7 +174,7 @@ export class NguageStore {
     }
   }
 
-  async AddDataSourceRow(
+  async AddRowData(
     rowData: RowData,
     tableNumber: number,
     tableName: string,
