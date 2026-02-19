@@ -36,19 +36,24 @@ interface AddShipmentModalProps {
 }
 
 const getStatusColor = (
-  status: "Pending" | "Shipped" | "Production" | "Completed" | "pending" | "approved" | "delivered" | "cancelled",
+  status: string | number | null | undefined,
 ): "primary" | "success" | "error" | "warning" | "info" | "light" | "dark" => {
-  const lowerStatus = status.toLowerCase();
+  const lowerStatus = String(status || "").toLowerCase();
   switch (lowerStatus) {
     case "completed":
     case "delivered":
     case "approved":
+    case "ready to ship":
       return "success";
     case "pending":
+    case "work in progress":
       return "warning";
     case "shipped":
     case "production":
+    case "in shipment":
       return "info";
+    case "in warehouse":
+      return "primary";
     case "cancelled":
       return "error";
     default:
@@ -850,6 +855,7 @@ function AddShipmentModalContent({
                           <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Total</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Vendor</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Step</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">WO Status</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -885,6 +891,11 @@ function AddShipmentModalContent({
                               <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
                                 <Badge color={getStatusColor("Completed")} variant="solid">
                                   {workOrder.step || '-'}
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                <Badge color={getStatusColor(workOrder.wo_status)} variant="solid">
+                                  {workOrder.wo_status || '-'}
                                 </Badge>
                               </td>
                             </tr>
