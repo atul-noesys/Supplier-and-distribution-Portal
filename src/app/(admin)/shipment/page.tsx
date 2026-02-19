@@ -478,7 +478,7 @@ export default observer(function ShipmentPage() {
                               ) {
                                 const isShipmentStatus = col.toLowerCase() === "shipment_status";
                                 return (
-                                  <td key={col} className={isShipmentStatus ? "px-5 py-2.5 w-40" : "px-5 py-2.5"}>
+                                  <td key={col} className={isShipmentStatus ? "px-3 py-2.5 w-32" : "px-3 py-2.5"}>
                                     {value && <Badge color={getStatusColor(String(value))} variant="solid" size="sm">
                                       {String(value)}
                                     </Badge>
