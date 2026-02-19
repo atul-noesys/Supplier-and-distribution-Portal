@@ -651,8 +651,8 @@ function AddShipmentModalContent({
 
   const handleAddItemFromWorkOrder = async (item: ShipmentItem) => {
     try {
-      // If in edit mode, save item to database immediately
-      if (isEditMode) {
+      // If draft has been saved (shipmentData exists) or in edit mode, save item to database immediately
+      if (shipmentData || isEditMode) {
         const itemToSave = toRowData(item);
 
         const result = await nguageStore.AddRowData(
@@ -678,7 +678,7 @@ function AddShipmentModalContent({
           toast.error(`Failed to add item: ${result.error}`);
         }
       } else {
-        // In create mode, just add to local store
+        // In create mode before draft is saved, just add to local store
         shipmentStore.addItem(item);
         toast.success("Item added successfully!");
       }
@@ -724,7 +724,7 @@ function AddShipmentModalContent({
         console.log("Delete API Result:", deleteResult);
 
         if (deleteResult.result) {
-          // Update work order status back to "In warehouse"
+          // Update work order status back to "In warehouse" for saved items
           if (itemToDelete.work_order_id) {
             await updateWorkOrderStatus(String(itemToDelete.work_order_id), "In warehouse");
           }
@@ -743,12 +743,7 @@ function AddShipmentModalContent({
         toast.error('Failed to delete item');
       }
     } else {
-      // If no ROWID, item hasn't been saved yet
-      // Still need to reset the work order status to "In warehouse"
-      if (itemToDelete.work_order_id) {
-        await updateWorkOrderStatus(String(itemToDelete.work_order_id), "In warehouse");
-      }
-
+      // If no ROWID, item hasn't been saved yet - just remove from local store without any API calls
       shipmentStore.deleteItem(index);
       toast.success('Item removed');
     }
@@ -1219,7 +1214,7 @@ function AddShipmentModalContent({
           isOpen={isAddItemFromWOModalOpen}
           onClose={() => setIsAddItemFromWOModalOpen(false)}
           onAddItem={handleAddItemFromWorkOrder}
-          availableWorkOrders={enrichedWorkOrders}
+          availableWorkOrders={enrichedWorkOrders.filter((wo) => wo.wo_status === "In warehouse")}
           selectedWorkOrderIds={shipmentStore.shipmentItems
             .map(item => String(item.work_order_id))
             .filter(id => id !== 'undefined' && id !== 'null')}
@@ -1304,7 +1299,7 @@ function AddShipmentModalContent({
                   type="button"
                   disabled={isReadyToShipSaving || shipmentStore.shipmentItems.length === 0}
                   onClick={handleReadyToShip}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-grey-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
                 >
                   {isReadyToShipSaving ? (
                     <>
