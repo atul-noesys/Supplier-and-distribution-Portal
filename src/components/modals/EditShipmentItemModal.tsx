@@ -177,15 +177,12 @@ export function EditShipmentItemModal({
                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                   Status
                 </label>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Select status</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Ready to Ship">Ready to Ship</option>
-                </select>
+                <input
+                  type="text"
+                  value={String(status || "")}
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-sm cursor-not-allowed opacity-75"
+                />
               </div>
 
                {/* Document */}

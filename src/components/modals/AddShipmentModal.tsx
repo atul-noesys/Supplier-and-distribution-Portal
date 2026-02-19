@@ -1064,14 +1064,16 @@ function AddShipmentModalContent({
                               <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 max-w-xs truncate">{item.remarks || '-'}</td>
                               <td className="px-4 py-3 text-center">
                                 <div className="flex items-center justify-center gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleEditItem(index)}
-                                    className="p-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded transition-colors"
-                                    title="Edit item"
-                                  >
-                                    <MdEdit className="w-4 h-4" />
-                                  </button>
+                                  {isEditMode && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleEditItem(index)}
+                                      className="p-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded transition-colors"
+                                      title="Edit item"
+                                    >
+                                      <MdEdit className="w-4 h-4" />
+                                    </button>
+                                  )}
                                   <button
                                     type="button"
                                     onClick={() => handleDeleteItem(index)}
