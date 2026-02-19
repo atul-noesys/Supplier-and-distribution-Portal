@@ -191,6 +191,24 @@ function AddShipmentModalContent({
     enabled: isOpen,
   });
 
+  // Fetch ALL work orders (without status filter) for status updates/lookups
+  const { data: allWorkOrders = [] } = useQuery({
+    queryKey: ["allWorkOrders", isOpen],
+    queryFn: async (): Promise<RowData[]> => {
+      const response = await nguageStore.GetPaginationData({
+        table: "work_order",
+        skip: 0,
+        take: 500,
+        NGaugeId: "44",
+      });
+
+      let items = response?.data || response || [];
+      return Array.isArray(items) ? (items as RowData[]) : [];
+    },
+    staleTime: 0,
+    enabled: isOpen,
+  });
+
   // Fetch PO items for mapping quantity, unit_price, and total
   const { data: poItems = [], refetch: refetchPoItems } = useQuery({
     queryKey: ["poItems", isOpen],
@@ -353,8 +371,8 @@ function AddShipmentModalContent({
   // Helper function to update work order status
   const updateWorkOrderStatus = async (workOrderId: string, newStatus: string) => {
     try {
-      // Find the work order by looking for the ROWID in the enriched work orders
-      const workOrder = enrichedWorkOrders.find((wo) => getWorkOrderId(wo) === workOrderId);
+      // Find the work order by looking for the ROWID in ALL work orders (not just filtered ones)
+      const workOrder = allWorkOrders.find((wo) => getWorkOrderId(wo) === workOrderId);
 
       if (!workOrder?.ROWID) {
         console.warn(`Could not find work order with ID: ${workOrderId}`);
@@ -388,6 +406,9 @@ function AddShipmentModalContent({
       }
 
       console.log(`Work order ${workOrderId} status updated to ${newStatus}`);
+      // Invalidate all work order queries to refresh the data
+      queryClient.invalidateQueries({ queryKey: ["workOrders"] });
+      queryClient.invalidateQueries({ queryKey: ["allWorkOrders"] });
     } catch (error) {
       console.error(`Error updating work order status for ${workOrderId}:`, error);
     }
@@ -512,8 +533,9 @@ function AddShipmentModalContent({
         let itemsSuccessCount = 0;
         let itemsFailureCount = 0;
 
-        for (const item of shipmentStore.shipmentItems) {
+        for (let itemIndex = 0; itemIndex < shipmentStore.shipmentItems.length; itemIndex++) {
           try {
+            const item = shipmentStore.shipmentItems[itemIndex];
             const itemToSave = toRowData(item);
 
             const itemResult = await nguageStore.AddRowData(
@@ -523,6 +545,15 @@ function AddShipmentModalContent({
             );
 
             if (!itemResult.error) {
+              // Capture the ROWID from the response
+              const rowId = typeof itemResult.result === 'string' ? itemResult.result : (itemResult.result as any)?.data;
+
+              // Update the item in store with the ROWID so it can be deleted later
+              shipmentStore.updateItem(itemIndex, {
+                ...item,
+                ROWID: rowId || "",
+              });
+
               itemsSuccessCount++;
             } else {
               itemsFailureCount++;
@@ -530,7 +561,7 @@ function AddShipmentModalContent({
             }
           } catch (itemError) {
             itemsFailureCount++;
-            console.error(`Error saving item ${item.item_code}:`, itemError);
+            console.error(`Error saving item:`, itemError);
           }
         }
 
@@ -628,13 +659,13 @@ function AddShipmentModalContent({
         if (!result.error) {
           // Get the ROWID from the result
           const rowId = typeof result.result === 'string' ? result.result : (result.result as any)?.data;
-          
+
           // Add the ROWID to the item
           const itemWithRowId: ShipmentItem = {
             ...item,
             ROWID: rowId || "",
           };
-          
+
           shipmentStore.addItem(itemWithRowId);
           toast.success("Item added successfully!");
           queryClient.invalidateQueries({ queryKey: ["shipmentItems"] });
@@ -707,9 +738,19 @@ function AddShipmentModalContent({
         toast.error('Failed to delete item');
       }
     } else {
-      // If no ROWID, just remove from local storage (new item not saved yet)
+      // If no ROWID, item hasn't been saved yet
+      // Still need to reset the work order status to "In warehouse"
+      if (itemToDelete.work_order_id) {
+        await updateWorkOrderStatus(String(itemToDelete.work_order_id), "In warehouse");
+      }
+
       shipmentStore.deleteItem(index);
       toast.success('Item removed');
+    }
+
+    // If no items left after deletion, disable "Ready to Ship" button
+    if (shipmentStore.shipmentItems.length === 0) {
+      setItemsSaved(false);
     }
   };
 
