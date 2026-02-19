@@ -531,7 +531,7 @@ export default observer(function ShipmentPage() {
                               );
                             })}
                             <td className="px-5 py-4 text-center">
-                              {String(row.shipment_status || "").toLowerCase() !== "ready to ship" && (
+                              {user?.roleId !== 5 && String(row.shipment_status || "").toLowerCase() !== "ready to ship" && (
                                 <button
                                   onClick={() => handleEditShipment(row)}
                                   className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"

@@ -71,7 +71,6 @@ function AddShipmentModalContent({
 
   // State Management
   const [step, setStep] = useState(1); // 1: Work Order Selection, 2: Shipment Form
-  const [isLoading, setIsLoading] = useState(false);
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [shipmentData, setShipmentData] = useState<KeyValueRecord | null>(null);
