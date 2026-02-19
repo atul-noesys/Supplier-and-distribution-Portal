@@ -19,6 +19,7 @@ const getStatusColor = (
     case "delivered":
     case "completed":
     case "approved":
+    case "ready to ship":
       return "success";
     case "pending":
     case "in transit":
@@ -475,8 +476,9 @@ export default observer(function ShipmentPage() {
                                 col.toLowerCase().includes("status") ||
                                 col.toLowerCase().includes("state")
                               ) {
+                                const isShipmentStatus = col.toLowerCase() === "shipment_status";
                                 return (
-                                  <td key={col} className="px-5 py-4">
+                                  <td key={col} className={isShipmentStatus ? "px-5 py-2.5 w-40" : "px-5 py-2.5"}>
                                     {value && <Badge color={getStatusColor(String(value))} variant="solid" size="sm">
                                       {String(value)}
                                     </Badge>
@@ -604,7 +606,7 @@ export default observer(function ShipmentPage() {
                                             // Check if it's a status field
                                             if (col.toLowerCase().includes("status")) {
                                               return (
-                                                <div key={col}>
+                                                <div key={col} className={col.toLowerCase() === "shipment_status" ? "min-w-[200px]" : ""}>
                                                   <Badge
                                                     color={getStatusColor(String(value))}
                                                     variant="solid"
