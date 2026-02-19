@@ -6,7 +6,7 @@ import { KeyValueRecord, RowData, ShipmentItem } from "@/types/nguage-rowdata";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { observer } from "mobx-react-lite";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { MdAdd, MdClose, MdDelete, MdEdit } from "react-icons/md";
 import { toast } from "react-toastify";
 import { v4 as uuidv4 } from "uuid";
@@ -74,6 +74,7 @@ function AddShipmentModalContent({
   const [workOrderSelections, setWorkOrderSelections] = useState<Set<string>>(new Set());
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   const [isAddItemFromWOModalOpen, setIsAddItemFromWOModalOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // Fetch pagination data using TanStack Query
   const { data: paginationData, refetch, isLoading: isLoadingVendor } = useQuery({
@@ -110,6 +111,56 @@ function AddShipmentModalContent({
     document: "",
     remarks: "",
   });
+
+  // Check if modal is opened in edit mode and initialize accordingly
+  useEffect(() => {
+    if (isOpen) {
+      const currentShipment = shipmentStore.getCurrentShipment();
+      const currentItems = shipmentStore.getCurrentShipmentItems();
+
+      if (currentShipment) {
+        // Edit mode: populate form with existing shipment data
+        setFormData({
+          shipment_id: currentShipment.shipment_id || "",
+          carrier_name: currentShipment.carrier_name || "",
+          shipment_date: currentShipment.shipment_date || "",
+          estimated_delivery_date: currentShipment.estimated_delivery_date || "",
+          actual_delivery_date: currentShipment.actual_delivery_date || "",
+          tracking_number: currentShipment.tracking_number || "",
+          invoice_id: currentShipment.invoice_id || "",
+          document: currentShipment.document || "",
+          remarks: currentShipment.remarks || "",
+        });
+
+        // Load shipment items from currentShipmentItems
+        shipmentStore.clearItems();
+        currentItems.forEach((item) => {
+          const shipmentItem: ShipmentItem = {
+            item_code: item.item_code || "",
+            item: item.item || "",
+            unit_price: item.unit_price || 0,
+            shipment_quantity: item.shipment_quantity || 0,
+            total: item.total || 0,
+            po_number: item.po_number || "",
+            shipment_status: item.shipment_status || "Pending",
+            work_order_id: item.work_order_id || "",
+            document: item.document || "",
+            ROWID: item.ROWID || "",
+          };
+          shipmentStore.addItem(shipmentItem);
+        });
+
+        // Set shipmentData so it shows the items step
+        setShipmentData(currentShipment as KeyValueRecord);
+        setIsEditMode(true);
+
+        // Go directly to step 2 (shipment form with items)
+        setStep(2);
+      } else {
+        setIsEditMode(false);
+      }
+    }
+  }, [isOpen, shipmentStore]);
 
   // Fetch work orders
   const { data: workOrders = [], isLoading: isLoadingWorkOrders, refetch: refetchWorkOrders } = useQuery({
@@ -313,57 +364,133 @@ function AddShipmentModalContent({
     setIsSaving(true);
 
     try {
-      console.log("Saving Shipment:", formData);
+      let shipmentToSave = toRowData(formData);
+
+      // Get the current shipment for ROWID
+      const currentShipment = shipmentStore.getCurrentShipment();
+      const isInEditMode = isEditMode && currentShipment?.ROWID;
+
+      if (isInEditMode) {
+        // Edit mode: Update existing shipment using UpdateRowDataDynamic
+        console.log("Updating Shipment (Edit Mode):", formData, "ROWID:", currentShipment.ROWID);
+
+        shipmentToSave = {
+          ...shipmentToSave,
+          shipment_status: "In draft",
+          vendor_id: currentLoggedInVendor?.vendor_id || "",
+          vendor_name: currentLoggedInVendor?.company_name || "",
+        }
+
+        const result = await nguageStore.UpdateRowDataDynamic(
+          shipmentToSave,
+          String(currentShipment.ROWID),
+          52,
+          "shipment_list"
+        );
+
+        if (!result.result) {
+          toast.error(`Failed to update: ${result.error}`);
+          return;
+        }
+
+        toast.success("Shipment updated successfully!");
+        queryClient.invalidateQueries({ queryKey: ["shipmentList"] });
+        queryClient.invalidateQueries({ queryKey: ["shipmentItems"] });
+      } else {
+        // Create mode: Add new shipment
+        console.log("Saving Shipment (Create Mode):", formData);
+
+        shipmentToSave = {
+          ...shipmentToSave,
+          shipment_status: "In draft",
+          vendor_id: currentLoggedInVendor?.vendor_id || "",
+          vendor_name: currentLoggedInVendor?.company_name || "",
+        }
+
+        const result = await nguageStore.AddDataSourceRow(
+          shipmentToSave,
+          52,
+          "shipment_list"
+        );
+
+        if (result.error) {
+          toast.error(`Failed to save: ${result.error}`);
+          return;
+        }
+
+        // Get row data using the returned rowId
+        const rowId = typeof result.result === 'string' ? result.result : (result.result as any)?.data;
+
+        let fetchedData: KeyValueRecord | null = null;
+        try {
+          const rowDataResponse = await nguageStore.GetRowData(52, rowId ?? '1', 'shipment_list');
+          if (rowDataResponse) {
+            fetchedData = rowDataResponse as KeyValueRecord;
+          }
+        } catch (fetchError) {
+          console.warn('Failed to fetch row data:', fetchError);
+        }
+
+        // Use fetched data if available, otherwise use form data with the generated shipment_id
+        const finalShipmentData = fetchedData || { ...formData, shipment_id: rowId || 'SID-****' };
+        setShipmentData(finalShipmentData);
+
+        // Update all items in store with shipment_id
+        const shipmentIdToUse = String(finalShipmentData.shipment_id || rowId || 'SID-****');
+        shipmentStore.shipmentItems.forEach((item, index) => {
+          shipmentStore.updateItem(index, {
+            ...item,
+            shipment_id: shipmentIdToUse,
+          });
+        });
+
+        toast.success("Shipment saved successfully! Now you can add items.");
+      }
+    } catch (error) {
+      console.error("Error saving shipment:", error);
+      toast.error("Failed to save shipment");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleReadyToShip = async () => {
+    setIsSaving(true);
+    try {
+      const currentShipment = shipmentStore.getCurrentShipment();
+      if (!currentShipment?.ROWID) {
+        toast.error("Shipment not found");
+        return;
+      }
 
       let shipmentToSave = toRowData(formData);
+
       shipmentToSave = {
         ...shipmentToSave,
-        shipment_status: "In draft",
+        shipment_status: "Ready to ship",
         vendor_id: currentLoggedInVendor?.vendor_id || "",
         vendor_name: currentLoggedInVendor?.company_name || "",
       }
 
-      const result = await nguageStore.AddDataSourceRow(
+      const result = await nguageStore.UpdateRowDataDynamic(
         shipmentToSave,
+        String(currentShipment.ROWID),
         52,
         "shipment_list"
       );
 
-      if (result.error) {
-        toast.error(`Failed to save: ${result.error}`);
+      if (!result.result) {
+        toast.error(`Failed to update: ${result.error}`);
         return;
       }
 
-      // Get row data using the returned rowId
-      const rowId = typeof result.result === 'string' ? result.result : (result.result as any)?.data;
-
-      let fetchedData: KeyValueRecord | null = null;
-      try {
-        const rowDataResponse = await nguageStore.GetRowData(52, rowId ?? '1', 'shipment_list');
-        if (rowDataResponse) {
-          fetchedData = rowDataResponse as KeyValueRecord;
-        }
-      } catch (fetchError) {
-        console.warn('Failed to fetch row data:', fetchError);
-      }
-
-      // Use fetched data if available, otherwise use form data with the generated shipment_id
-      const finalShipmentData = fetchedData || { ...formData, shipment_id: rowId || 'SID-****' };
-      setShipmentData(finalShipmentData);
-
-      // Update all items in store with shipment_id
-      const shipmentIdToUse = String(finalShipmentData.shipment_id || rowId || 'SID-****');
-      shipmentStore.shipmentItems.forEach((item, index) => {
-        shipmentStore.updateItem(index, {
-          ...item,
-          shipment_id: shipmentIdToUse,
-        });
-      });
-
-      toast.success("Shipment saved successfully! Now you can add items.");
+      toast.success("Shipment status updated to 'Ready to ship'!");
+      queryClient.invalidateQueries({ queryKey: ["shipmentList"] });
+      queryClient.invalidateQueries({ queryKey: ["shipmentItems"] });
+      handleClose();
     } catch (error) {
-      console.error("Error saving shipment:", error);
-      toast.error("Failed to save shipment");
+      console.error("Error updating shipment status:", error);
+      toast.error("Failed to update shipment status");
     } finally {
       setIsSaving(false);
     }
@@ -471,7 +598,9 @@ function AddShipmentModalContent({
     setSelectedWorkOrders([]);
     setWorkOrderSelections(new Set());
     shipmentStore.clearItems();
+    shipmentStore.clearCurrentShipment();
     setEditingItemIndex(null);
+    setIsEditMode(false);
     onClose();
   };
 
@@ -484,7 +613,7 @@ function AddShipmentModalContent({
         <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-5 py-3">
           <div>
             <h2 className="text-xl font-semibold text-gray-800">
-              Add New Shipment
+              {shipmentStore.getCurrentShipment() ? "Edit Shipment" : "Add New Shipment"}
             </h2>
           </div>
           <button
@@ -786,7 +915,7 @@ function AddShipmentModalContent({
                   <button
                     type="button"
                     onClick={handleOpenItemModal}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+                    className="inline-flex items-center gap-2 px-3 py-1.25 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
                   >
                     <MdAdd className="w-5 h-5" />
                     Add Item
@@ -819,7 +948,7 @@ function AddShipmentModalContent({
                                 <button
                                   type="button"
                                   onClick={handleOpenItemModal}
-                                  className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+                                  className="inline-flex items-center gap-2 px-3 py-1.25 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
                                 >
                                   <MdAdd className="w-4 h-4" />
                                   Add Item
@@ -919,13 +1048,13 @@ function AddShipmentModalContent({
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 border-t border-gray-200 dark:border-gray-700 px-8 py-4 bg-gray-50 dark:bg-gray-800">
-          <button
+          {!isEditMode && <button
             type="button"
             onClick={handleClose}
             className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium"
           >
             {step === 1 ? "Cancel" : "Close"}
-          </button>
+          </button>}
           {step === 1 ? (
             <button
               type="button"
@@ -938,7 +1067,41 @@ function AddShipmentModalContent({
             </button>
           ) : (
             <>
-              {!shipmentData ? (
+              {isEditMode ? (
+                // Edit mode: Show Ready to Ship and Update Shipment buttons
+                <>
+                  <button
+                    type="button"
+                    disabled={isSaving}
+                    onClick={handleSaveShipment}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
+                  >
+                    {isSaving ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Updating...
+                      </>
+                    ) : (
+                      "Update Draft"
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isSaving}
+                    onClick={handleReadyToShip}
+                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
+                  >
+                    {isSaving ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Updating...
+                      </>
+                    ) : (
+                      "Ready to Ship"
+                    )}
+                  </button>
+                </>
+              ) : !shipmentData ? (
                 // Step 1: Save the shipment master record
                 <button
                   type="button"
@@ -961,7 +1124,7 @@ function AddShipmentModalContent({
                   type="button"
                   disabled={isLoading || shipmentStore.shipmentItems.length === 0}
                   onClick={handleSubmitItems}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
                 >
                   {isLoading ? (
                     <>

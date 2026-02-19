@@ -1,9 +1,11 @@
 import { makeAutoObservable } from 'mobx';
-import { ShipmentItem } from '@/types/nguage-rowdata';
+import { ShipmentItem, RowData } from '@/types/nguage-rowdata';
 
 export class ShipmentStore {
   shipmentItems: ShipmentItem[] = [];
   editingItemIndex: number | null = null;
+  currentShipment: RowData | null = null;
+  currentShipmentItems: RowData[] = [];
 
   constructor() {
     makeAutoObservable(this);
@@ -39,6 +41,24 @@ export class ShipmentStore {
   clearItems() {
     this.shipmentItems = [];
     this.editingItemIndex = null;
+  }
+
+  setCurrentShipment(shipment: RowData, items: RowData[] = []) {
+    this.currentShipment = shipment;
+    this.currentShipmentItems = items;
+  }
+
+  clearCurrentShipment() {
+    this.currentShipment = null;
+    this.currentShipmentItems = [];
+  }
+
+  getCurrentShipment(): RowData | null {
+    return this.currentShipment;
+  }
+
+  getCurrentShipmentItems(): RowData[] {
+    return this.currentShipmentItems;
   }
 
   getItems(): ShipmentItem[] {

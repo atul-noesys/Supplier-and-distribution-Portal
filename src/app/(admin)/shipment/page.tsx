@@ -37,7 +37,7 @@ const getStatusColor = (
 const HIDDEN_COLUMNS = ["ROWID", "InfoveaveBatchId", "vendor_id", "vendor_name", "step_history"];
 
 export default observer(function ShipmentPage() {
-  const { nguageStore } = useStore();
+  const { nguageStore, shipmentStore } = useStore();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [isAddShipmentModalOpen, setIsAddShipmentModalOpen] = useState(false);
@@ -195,6 +195,49 @@ export default observer(function ShipmentPage() {
       previousUrlRef.current = null;
     }
     setPdfUrl(null);
+  };
+
+  // Handle edit shipment
+  const handleEditShipment = async (row: RowData) => {
+    const shipmentId = String(row.shipment_id || "");
+    const rowId = String(row.ROWID || "");
+    
+    try {
+      // Fetch fresh shipment data using GetRowData
+      const freshShipmentData = await nguageStore.GetRowData(52, rowId, "shipment_list");
+      
+      // Get items for this shipment
+      const itemsForShipment = itemsByShipment[shipmentId] || [];
+      
+      // Fetch fresh data for each item using GetRowData
+      const freshItemsData = await Promise.all(
+        itemsForShipment.map((item) => 
+          nguageStore.GetRowData(47, String(item.ROWID || ""), "shipment_list_items")
+        )
+      );
+      
+      // Filter out null values
+      const validFreshItems = freshItemsData.filter((item) => item !== null) as RowData[];
+      
+      // Store in the store with fresh API data
+      if (freshShipmentData) {
+        // Ensure ROWID is preserved in the fetched data
+        const shipmentWithROWID = {
+          ...freshShipmentData,
+          ROWID: rowId,
+        };
+        shipmentStore.setCurrentShipment(shipmentWithROWID, validFreshItems.length > 0 ? validFreshItems : itemsForShipment);
+      }
+      
+      // Open the modal
+      setIsAddShipmentModalOpen(true);
+    } catch (error) {
+      console.error("Error fetching shipment data:", error);
+      // Fallback to existing data if API call fails
+      const itemsForShipment = itemsByShipment[shipmentId] || [];
+      shipmentStore.setCurrentShipment(row, itemsForShipment);
+      setIsAddShipmentModalOpen(true);
+    }
   };
 
   // Function to highlight search term in text
@@ -394,6 +437,9 @@ export default observer(function ShipmentPage() {
                             .replace(/\b\w/g, (l) => l.toUpperCase())}
                         </th>
                       ))}
+                      <th className="px-5 py-1 text-left font-medium text-white text-xs uppercase tracking-wide">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -482,6 +528,17 @@ export default observer(function ShipmentPage() {
                                 </td>
                               );
                             })}
+                            <td className="px-5 py-4 text-center">
+                              <button
+                                onClick={() => handleEditShipment(row)}
+                                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
+                                title="Edit"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                              </button>
+                            </td>
                           </tr>
 
                           {/* Shipment Items */}
@@ -489,7 +546,7 @@ export default observer(function ShipmentPage() {
                             <>
                               {/* Items Header Row */}
                               <tr className="border-b border-gray-100 dark:border-white/5 bg-blue-100 dark:bg-blue-900/40">
-                                <td colSpan={columns.length} className="px-5 py-3">
+                                <td colSpan={columns.length + 1} className="px-5 py-3">
                                   <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(6, minmax(90px, 1fr)) 100px 50px" }}>
                                     {itemColumns.map((col) => (
                                       <div key={col} className="text-xs font-bold text-blue-900 dark:text-gray-300 uppercase tracking-wider">
@@ -514,7 +571,7 @@ export default observer(function ShipmentPage() {
                                   <React.Fragment key={itemIndex}>
                                     {/* Main Item Row */}
                                     <tr className="border-b border-gray-100 dark:border-white/5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
-                                      <td colSpan={columns.length} className="px-5 py-3">
+                                      <td colSpan={columns.length + 1} className="px-5 py-3">
                                         <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(6, minmax(90px, 1fr)) 100px 50px" }}>
 
                                           {/* Main Columns */}
@@ -628,9 +685,13 @@ export default observer(function ShipmentPage() {
 
       <AddShipmentModal
         isOpen={isAddShipmentModalOpen}
-        onClose={() => setIsAddShipmentModalOpen(false)}
+        onClose={() => {
+          setIsAddShipmentModalOpen(false);
+          shipmentStore.clearCurrentShipment();
+        }}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ["shipmentList"] });
+          shipmentStore.clearCurrentShipment();
         }}
       />
 
