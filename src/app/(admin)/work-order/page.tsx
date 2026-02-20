@@ -633,7 +633,7 @@ export default observer(function WorkOrderPage() {
       ) : (
         <div className="border-t border-gray-200 dark:border-white/5">
           <div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.6fr 1fr 0.9fr 0.6fr 70px 80px', gap: '0', minWidth: '100%' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.6fr 1.1fr 0.9fr 0.6fr 70px 80px', gap: '0', minWidth: '100%' }}>
               {/* Table Header */}
               {tableColumns.map((column) => (
                 <div
@@ -654,7 +654,7 @@ export default observer(function WorkOrderPage() {
             </div>
 
             {/* Table Body */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.6fr 1fr 0.9fr 0.6fr 70px 80px', gap: '0', minWidth: '100%' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.6fr 1.1fr 0.9fr 0.6fr 70px 80px', gap: '0', minWidth: '100%' }}>
               {paginatedItems.length === 0 ? (
                 <div style={{ gridColumn: '1 / -1' }} className="py-8 text-center bg-white dark:bg-gray-800">
                   <p className="text-gray-500 dark:text-gray-400">No work orders found</p>
@@ -680,7 +680,19 @@ export default observer(function WorkOrderPage() {
                       }
                       // Render Badge for wo_status field
                       else if (column.key === "wo_status") {
-                        const statusColor = String(value).toLowerCase().includes("warehouse") ? "blue" : "orange";
+                        const statusValue = String(value).toLowerCase();
+                        let statusColor: "blue" | "orange" | "green" = "orange";
+                        
+                        if (statusValue.includes("work in progress")) {
+                          statusColor = "blue";
+                        } else if (statusValue.includes("in warehouse")) {
+                          statusColor = "orange";
+                        } else if (statusValue.includes("ready to ship")) {
+                          statusColor = "green";
+                        } else if (statusValue.includes("in shipment")) {
+                          statusColor = "blue";
+                        }
+                        
                         cellContent = (
                           <Badge color={statusColor} variant="solid">
                             {value || "-"}
@@ -695,10 +707,10 @@ export default observer(function WorkOrderPage() {
                             className="cursor-pointer hover:opacity-75 transition-opacity"
                             title="View document"
                           >
-                            <AiOutlineEye className="ml-7 w-5 h-5 text-blue-600 dark:text-blue-400" />
+                            <AiOutlineEye className="ml-5 w-5 h-5 text-blue-600 dark:text-blue-400" />
                           </button>
                         ) : (
-                          <AiOutlineEyeInvisible className="ml-7 w-5 h-5 text-gray-400 dark:text-gray-500" />
+                          <AiOutlineEyeInvisible className="ml-5 w-5 h-5 text-gray-400 dark:text-gray-500" />
                         );
                       } else if (value !== null && value !== undefined && value !== "") {
                         // Render with highlight if search term exists
