@@ -689,7 +689,7 @@ export default observer(function WorkOrderPage() {
                           statusColor = "orange";
                         } else if (statusValue.includes("ready to ship")) {
                           statusColor = "green";
-                        } else if (statusValue.includes("in shipment")) {
+                        } else if (statusValue.includes("in transit")) {
                           statusColor = "blue";
                         }
                         
