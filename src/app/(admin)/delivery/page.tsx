@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ReadyToShipModal } from "@/components/modals/ReadyToShipModal";
+import { ReadyToShipModal } from "@/components/modals/AddDeliveryModal";
 import { MdClose, MdArrowDropDown, MdOpenInNew } from "react-icons/md";
 import { useStore } from "@/store/store-context";
 import { RowData } from "@/types/nguage-rowdata";
