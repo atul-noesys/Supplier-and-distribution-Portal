@@ -1,211 +1,191 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { ReadyToShipModal } from "@/components/modals/AddDeliveryModal";
-import { MdClose, MdArrowDropDown, MdOpenInNew } from "react-icons/md";
+import { PDFPreview } from "@/components/pdf-preview";
+import Badge from "@/components/ui/badge/Badge";
 import { useStore } from "@/store/store-context";
 import { RowData } from "@/types/nguage-rowdata";
 import { useQuery } from "@tanstack/react-query";
 import { observer } from "mobx-react-lite";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+import { MdClose, MdDone } from "react-icons/md";
 
-const HIDDEN_COLUMNS = ["ROWID", "InfoveaveBatchId"];
-const DATE_COLUMNS = ["actual_delivery_date", "delivery_acceptance_date"];
-
-// Helper function to format dates by removing timestamp
-const formatDateValue = (value: any, columnName: string): string => {
-    if (!value) return "-";
-    const stringValue = String(value);
-    if (DATE_COLUMNS.includes(columnName)) {
-        // Extract only the date part (YYYY-MM-DD)
-        const dateMatch = stringValue.match(/^\d{4}-\d{2}-\d{2}/);
-        return dateMatch ? dateMatch[0] : stringValue;
-    }
-    return stringValue;
+const getStatusColor = (
+  status: string,
+): "primary" | "success" | "error" | "warning" | "info" | "light" | "dark" => {
+  const lowerStatus = status?.toLowerCase() || "";
+  switch (lowerStatus) {
+    case "delivered":
+    case "completed":
+    case "approved":
+    case "ready to ship":
+      return "success";
+    case "pending":
+    case "in transit":
+      return "warning";
+    case "shipped":
+    case "processing":
+      return "info";
+    case "cancelled":
+    case "failed":
+      return "error";
+    default:
+      return "primary";
+  }
 };
+
+const HIDDEN_COLUMNS = ["ROWID", "InfoveaveBatchId", "vendor_id", "vendor_name", "step_history"];
+
 
 export default observer(function DeliveryPage() {
     const { nguageStore } = useStore();
     const [searchTerm, setSearchTerm] = useState<string>("");
-    const [isReadyToShipModalOpen, setIsReadyToShipModalOpen] = useState(false);
-    const [expandedDeliveries, setExpandedDeliveries] = useState<Set<string>>(new Set());
-    const [selectedItemForDetails, setSelectedItemForDetails] = useState<RowData | null>(null);
+    const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
+    const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+    const [loadingPdf, setLoadingPdf] = useState(false);
+    const [pdfError, setPdfError] = useState<string | null>(null);
+    const previousUrlRef = useRef<string | null>(null);
 
-    // Define columns for main view and details view
-    const MAIN_ITEM_COLUMNS = [
-        "shipment_id",
-        "delivery_location",
-        "delivery_accepted_by",
-        "actual_delivery_date",
-        "delivery_acceptance_date",
-        "delivery_qc_passed",
-        "document",
-        "remarks",
-    ];
-    const DETAILS_COLUMNS: string[] = [];
 
-    // Fetch delivery list data
-    const { data: deliveryData = [], isLoading: isLoadingDelivery, error: deliveryError } = useQuery({
-        queryKey: ["deliveryList"],
+
+    // Fetch auth token
+    const { data: authToken = null } = useQuery({
+        queryKey: ["authToken"],
+        queryFn: () => localStorage.getItem("access_token"),
+        staleTime: 0,
+        gcTime: 0,
+    });
+
+    // Fetch shipment list data
+    const { data: shipmentData = [], isLoading, error } = useQuery({
+        queryKey: ["deliveryShipmentList", authToken],
         queryFn: async () => {
             try {
                 const paginationData = await nguageStore.GetPaginationData({
-                    table: "delivery_list",
+                    table: "shipment_list",
                     skip: 0,
                     take: null,
-                    NGaugeId: "53",
+                    NGaugeId: "52",
                 });
 
                 const result = Array.isArray(paginationData) ? paginationData : (paginationData?.data || []);
-                return result as RowData[];
+                // Filter to show only "In transit" shipments
+                return (result as RowData[]).filter(
+                    (item) => String(item.shipment_status || "").toLowerCase() === "in transit"
+                );
             } catch (err) {
-                console.error("Error fetching delivery data:", err);
+                console.error("Error fetching shipment data:", err);
                 throw err;
             }
         },
         staleTime: 0,
+        enabled: !!authToken,
     });
 
-    // Fetch delivery items data
-    const { data: deliveryItems = [] } = useQuery({
-        queryKey: ["deliveryItems"],
-        queryFn: async () => {
-            try {
-                const paginationData = await nguageStore.GetPaginationData({
-                    table: "delivery_list_items",
-                    skip: 0,
-                    take: null,
-                    NGaugeId: "54",
-                });
 
-                const result = Array.isArray(paginationData) ? paginationData : (paginationData?.data || []);
-                return result as RowData[];
-            } catch (err) {
-                console.error("Error fetching delivery items:", err);
-                throw err;
-            }
-        },
-        staleTime: 0,
-    });
 
     // Get table columns from first row, excluding hidden columns
-    const allColumns = deliveryData && deliveryData.length > 0 ? Object.keys(deliveryData[0]) : [];
+    const allColumns = shipmentData && shipmentData.length > 0 ? Object.keys(shipmentData[0]) : [];
     const columns = allColumns.filter((col) => !HIDDEN_COLUMNS.includes(col));
 
-    // Toggle delivery expansion
-    const toggleDelivery = (deliveryId: string) => {
-        const newExpandedDeliveries = new Set(expandedDeliveries);
-        if (newExpandedDeliveries.has(deliveryId)) {
-            newExpandedDeliveries.delete(deliveryId);
-        } else {
-            newExpandedDeliveries.add(deliveryId);
+
+
+    // Fetch PDF document
+    const fetchPdf = useCallback(async (docName: string | null) => {
+        if (!docName) {
+            setPdfUrl(null);
+            return;
         }
-        setExpandedDeliveries(newExpandedDeliveries);
-    };
 
-    // Open details modal for item
-    const openItemDetailsModal = (item: RowData) => {
-        setSelectedItemForDetails(item);
-    };
+        setLoadingPdf(true);
+        setPdfError(null);
 
-    // Close details modal
-    const closeItemDetailsModal = () => {
-        setSelectedItemForDetails(null);
-    };
+        try {
+            const apiUrl = `/api/GetPdfUrl?attachment=${encodeURIComponent(docName)}`;
 
-    // Group delivery items by delivery_id
-    const itemsByDelivery: Record<string, RowData[]> = {};
-    deliveryItems.forEach((item: RowData) => {
-        const deliveryId = String(item.delivery_id || "");
-        if (!itemsByDelivery[deliveryId]) {
-            itemsByDelivery[deliveryId] = [];
+            const pdfResponse = await fetch(apiUrl, {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+            });
+
+            if (!pdfResponse.ok) {
+                throw new Error(
+                    `Failed to fetch PDF: ${pdfResponse.status} ${pdfResponse.statusText}`,
+                );
+            }
+
+            const pdfBlob = await pdfResponse.blob();
+            const blobUrl = URL.createObjectURL(pdfBlob);
+            if (previousUrlRef.current) {
+                URL.revokeObjectURL(previousUrlRef.current);
+            }
+            previousUrlRef.current = blobUrl;
+            setPdfUrl(blobUrl);
+        } catch (err) {
+            console.error("Failed to fetch PDF:", err);
+            setPdfError(err instanceof Error ? err.message : "Failed to load PDF");
+            setPdfUrl(null);
+        } finally {
+            setLoadingPdf(false);
         }
-        itemsByDelivery[deliveryId].push(item);
-    });
+    }, [authToken]);
 
-    // Filter items based on search term
-    const filteredItems = !searchTerm.trim()
-        ? deliveryItems
-        : deliveryItems.filter((item) => {
-            const shipmentId = String(item.shipment_id || "").toLowerCase();
-            const deliveryLocation = String(item.delivery_location || "").toLowerCase();
+    // Handle PDF fetching when document selection changes
+    useEffect(() => {
+        fetchPdf(selectedDocument);
+    }, [selectedDocument, fetchPdf]);
+
+    // Handle viewing document
+    const handleViewDocument = (docName: string) => {
+        setSelectedDocument(docName);
+    };
+
+    // Close PDF viewer
+    const closePdfViewer = () => {
+        setSelectedDocument(null);
+        if (previousUrlRef.current) {
+            URL.revokeObjectURL(previousUrlRef.current);
+            previousUrlRef.current = null;
+        }
+        setPdfUrl(null);
+    };
+
+    // Function to highlight search term in text
+    const highlightText = (text: string | null | undefined, highlight: string) => {
+        if (!text) return text;
+        if (!highlight.trim()) return text;
+
+        const regex = new RegExp(`(${highlight})`, "gi");
+        const parts = text.split(regex);
+
+        return parts.map((part, index) =>
+            regex.test(part) ? (
+                <span key={index} className="bg-yellow-300 dark:bg-yellow-400 dark:text-gray-900 font-semibold">
+                    {part}
+                </span>
+            ) : (
+                part
+            )
+        );
+    };
+
+
+
+    // Filter data based on search term
+    const filteredData = !searchTerm.trim()
+        ? shipmentData
+        : shipmentData.filter((row) => {
+            const shipmentIdStr = String(row.shipment_id || "").toLowerCase();
+            const carrierName = String(row.carrier_name || "").toLowerCase();
+            const invoiceId = String(row.invoice_id || "").toLowerCase();
 
             return (
-                shipmentId.includes(searchTerm.toLowerCase()) ||
-                deliveryLocation.includes(searchTerm.toLowerCase())
+                shipmentIdStr.includes(searchTerm.toLowerCase()) ||
+                carrierName.includes(searchTerm.toLowerCase()) ||
+                invoiceId.includes(searchTerm.toLowerCase())
             );
         });
-
-    // Get delivery IDs that have matching items
-    const deliveryIdsWithMatchingItems = new Set(
-        filteredItems.map((item) => String(item.delivery_id || ""))
-    );
-
-    // Filter data based on search term - include deliveries that match OR have matching items
-    const filteredData = !searchTerm.trim()
-        ? deliveryData
-        : deliveryData.filter((row) => {
-            const deliveryId = String(row.delivery_id || "");
-            const deliveryIdStr = String(row.delivery_id || "").toLowerCase();
-            const searchLower = searchTerm.toLowerCase();
-
-            const deliveryMatches = deliveryIdStr.includes(searchLower);
-
-            // Include if delivery matches OR has items that match
-            return deliveryMatches || deliveryIdsWithMatchingItems.has(deliveryId);
-        });
-
-    // Auto-expand deliveries when search term exists
-    useEffect(() => {
-        if (searchTerm.trim() !== "") {
-            // Expand all deliveries that have matching items or delivery data
-            const matchingDeliveryIds = new Set<string>();
-
-            // Check delivery data
-            deliveryData.forEach((delivery) => {
-                const deliveryId = String(delivery.delivery_id || "");
-                const deliveryIdStr = delivery.delivery_id ? String(delivery.delivery_id).toLowerCase() : "";
-
-                if (deliveryIdStr.includes(searchTerm.toLowerCase())) {
-                    matchingDeliveryIds.add(deliveryId);
-                }
-            });
-
-            // Check item data
-            deliveryItems.forEach((item) => {
-                const shipmentId = String(item.shipment_id || "").toLowerCase();
-                const deliveryLocation = String(item.delivery_location || "").toLowerCase();
-
-                if (
-                    shipmentId.includes(searchTerm.toLowerCase()) ||
-                    deliveryLocation.includes(searchTerm.toLowerCase())
-                ) {
-                    const deliveryId = String(item.delivery_id || "");
-                    matchingDeliveryIds.add(deliveryId);
-                }
-            });
-
-            setExpandedDeliveries(matchingDeliveryIds);
-        } else {
-            // Collapse all when search is cleared
-            setExpandedDeliveries(new Set());
-        }
-    }, [searchTerm]);
-
-    // Delivery items columns
-    const ITEM_HIDDEN_COLUMNS = ["ROWID", "InfoveaveBatchId"];
-    const itemsAllColumns = deliveryItems && deliveryItems.length > 0 ? Object.keys(deliveryItems[0]) : [];
-
-    // Filter to only show main view columns (case-insensitive matching)
-    const itemColumns = MAIN_ITEM_COLUMNS.filter((col) =>
-        itemsAllColumns.some((apiCol) => apiCol.toLowerCase() === col.toLowerCase())
-    );
-
-    // Get available detail columns from the data
-    const availableDetailColumns = itemsAllColumns.filter(
-        (col) =>
-            !ITEM_HIDDEN_COLUMNS.includes(col) &&
-            !MAIN_ITEM_COLUMNS.some((mainCol) => mainCol.toLowerCase() === col.toLowerCase())
-    );
 
     return (
         <div className="space-y-6">
@@ -213,12 +193,12 @@ export default observer(function DeliveryPage() {
                 {/* Header with Title and Search */}
                 <div className="border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/5 px-6 py-4">
                     <div className="flex justify-between items-center gap-4">
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Delivery List</h2>
-                        <div className="flex items-center gap-3 flex-1 max-w-[460px]">
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">In Transit Delivery List</h2>
+                        <div className="flex items-center gap-3 flex-1 max-w-115">
                             <div className="relative flex-1">
                                 <input
                                     type="text"
-                                    placeholder="Search deliveries..."
+                                    placeholder="Search by Shipment ID/Carrier/Invoice ID/Item Code/Item"
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="w-full px-4 py-2.25 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none text-sm"
@@ -233,34 +213,28 @@ export default observer(function DeliveryPage() {
                                     </button>
                                 )}
                             </div>
-                            <button
-                                onClick={() => setIsReadyToShipModalOpen(true)}
-                                className="px-4 py-2.25 bg-blue-800 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
-                            >
-                                CREATE DELIVERY
-                            </button>
                         </div>
                     </div>
                 </div>
 
                 {/* Content */}
                 <div className="px-6 py-4">
-                    {isLoadingDelivery ? (
+                    {isLoading ? (
                         <div className="flex items-center justify-center py-8">
                             <div className="animate-spin">
                                 <div className="h-8 w-8 border-4 border-brand-500 border-t-transparent rounded-full"></div>
                             </div>
                         </div>
-                    ) : deliveryError ? (
+                    ) : error ? (
                         <div className="flex items-center justify-center py-8">
                             <p className="text-error-600 dark:text-error-400">
-                                Failed to fetch delivery data
+                                Failed to fetch shipment data
                             </p>
                         </div>
                     ) : filteredData.length === 0 ? (
                         <div className="flex items-center justify-center py-8">
                             <p className="text-gray-600 dark:text-gray-400">
-                                {searchTerm ? "No deliveries match your search" : "No deliveries found"}
+                                {searchTerm ? "No shipments match your search" : "No shipments in transit"}
                             </p>
                         </div>
                     ) : (
@@ -272,7 +246,7 @@ export default observer(function DeliveryPage() {
                                             {columns.map((col) => (
                                                 <th
                                                     key={col}
-                                                    className="px-5 py-2.5 text-left font-medium text-white text-xs uppercase tracking-wide"
+                                                    className="px-5 py-1 text-left font-medium text-white text-xs uppercase tracking-wide"
                                                 >
                                                     {col
                                                         .replace(/_/g, " ")
@@ -286,112 +260,92 @@ export default observer(function DeliveryPage() {
                                     </thead>
                                     <tbody>
                                         {filteredData.map((row, index) => {
-                                            const deliveryId = String(row.delivery_id || "");
-                                            const hasItems = itemsByDelivery[deliveryId] && itemsByDelivery[deliveryId].length > 0;
-                                            const isExpanded = expandedDeliveries.has(deliveryId);
+                                            const shipmentId = String(row.shipment_id || "");
 
                                             return (
                                                 <React.Fragment key={row.ROWID || index}>
-                                                    {/* Delivery Header Row */}
+                                                    {/* Shipment Header Row */}
                                                     <tr
-                                                        className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/2 transition-colors cursor-pointer group"
-                                                        onClick={() => hasItems && toggleDelivery(deliveryId)}
+                                                        className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/2 transition-colors"
                                                     >
                                                         <td className="pl-1 text-gray-700 dark:text-gray-300 font-semibold text-sm">
                                                             <div className="flex items-center gap-1">
-                                                                {hasItems && (
-                                                                    <MdArrowDropDown
-                                                                        className={`w-6 h-6 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-400 transition-transform duration-200 ${isExpanded ? "" : "-rotate-90"
-                                                                            }`}
-                                                                    />
-                                                                )}
-                                                                {!hasItems && (
-                                                                    <div className="w-6 h-6" />
-                                                                )}
-                                                                {String(row[columns[0]] || "")}
+                                                                <div className="w-6"></div>
+                                                                {searchTerm ? highlightText(String(row[columns[0]] || ""), searchTerm) : String(row[columns[0]] || "")}
                                                             </div>
                                                         </td>
                                                         {columns.slice(1).map((col) => {
                                                             const value = row[col];
+
+                                                            // Check if it's a status field
+                                                            if (
+                                                                col.toLowerCase().includes("status") ||
+                                                                col.toLowerCase().includes("state")
+                                                            ) {
+                                                                const isShipmentStatus = col.toLowerCase() === "shipment_status";
+                                                                return (
+                                                                    <td key={col} className={isShipmentStatus ? "px-3 py-2.5 w-32" : "px-3 py-2.5"}>
+                                                                        {value && <Badge color={getStatusColor(String(value))} variant="solid" size="sm">
+                                                                            {String(value)}
+                                                                        </Badge>
+                                                                        }
+                                                                    </td>
+                                                                );
+                                                            }
+
+                                                            // Check if it's a date field
+                                                            if (col.toLowerCase().includes("date")) {
+                                                                return (
+                                                                    <td
+                                                                        key={col}
+                                                                        className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm"
+                                                                    >
+                                                                        {value
+                                                                            ? new Date(String(value)).toLocaleDateString()
+                                                                            : "-"}
+                                                                    </td>
+                                                                );
+                                                            }
+
+                                                            // Check if it's a document field
+                                                            if (col.toLowerCase().includes("document")) {
+                                                                return (
+                                                                    <td key={col} className="px-11 py-4">
+                                                                        {value ? (
+                                                                            <button
+                                                                                onClick={() => handleViewDocument(value as string)}
+                                                                                className="cursor-pointer hover:opacity-75 transition-opacity"
+                                                                                title="View document"
+                                                                            >
+                                                                                <AiOutlineEye className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                                                            </button>
+                                                                        ) : (
+                                                                            <AiOutlineEyeInvisible className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                                                                        )}
+                                                                    </td>
+                                                                );
+                                                            }
+
+                                                            // Default cell rendering with highlight
                                                             return (
                                                                 <td
                                                                     key={col}
                                                                     className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm"
                                                                 >
-                                                                    {String(value || "-")}
+                                                                    {searchTerm ? highlightText(String(value || "-"), searchTerm) : String(value || "-")}
                                                                 </td>
                                                             );
                                                         })}
                                                         <td className="px-5 py-4 text-center">
-                                                            {/* Actions */}
+                                                            <button
+                                                                onClick={() => console.log("Accept delivery for shipment:", shipmentId)}
+                                                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors text-sm flex items-center gap-1 justify-center"
+                                                            >
+                                                                <MdDone className="w-5 h-5" />
+                                                                Accept
+                                                            </button>
                                                         </td>
                                                     </tr>
-
-                                                    {/* Delivery Items */}
-                                                    {isExpanded && hasItems && (
-                                                        <tr className="border-b border-gray-100 dark:border-white/5">
-                                                            <td colSpan={columns.length + 1} className="p-0">
-                                                                <div className="overflow-x-auto">
-                                                                    <table className="w-full">
-                                                                        <thead>
-                                                                            <tr className="border-b border-gray-100 dark:border-white/5 bg-blue-100 dark:bg-gray-700">
-                                                                                {itemColumns.map((col) => (
-                                                                                    <th
-                                                                                        key={col}
-                                                                                        className="px-5 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide"
-                                                                                    >
-                                                                                        {col
-                                                                                            .replace(/_/g, " ")
-                                                                                            .replace(/\b\w/g, (l) => l.toUpperCase())}
-                                                                                    </th>
-                                                                                ))}
-                                                                                <th className="px-5 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
-                                                                                    Details
-                                                                                </th>
-                                                                            </tr>
-                                                                        </thead>
-                                                                        <tbody>
-                                                                            {itemsByDelivery[deliveryId].map((item, itemIndex) => {
-                                                                                return (
-                                                                                    <tr
-                                                                                        key={itemIndex}
-                                                                                        className="border-b border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-gray-800/30 hover:bg-blue-50 dark:hover:bg-gray-800/50 transition-colors"
-                                                                                    >
-                                                                                        {itemColumns.map((col) => {
-                                                                                            // Find the actual column in item data (case-insensitive)
-                                                                                            const actualCol = itemsAllColumns.find(
-                                                                                                (apiCol) => apiCol.toLowerCase() === col.toLowerCase()
-                                                                                            );
-                                                                                            const value = actualCol
-                                                                                                ? item[actualCol as keyof RowData]
-                                                                                                : undefined;
-
-                                                                                            return (
-                                                                                                <td
-                                                                                                    key={col}
-                                                                                                    className="px-5 py-3 text-sm text-gray-600 dark:text-gray-400"
-                                                                                                >
-                                                                                                    {formatDateValue(value, col)}
-                                                                                                </td>
-                                                                                            );
-                                                                                        })}
-                                                                                        <td className="px-5 py-3 text-center">
-                                                                                            <button
-                                                                                                onClick={() => openItemDetailsModal(item)}
-                                                                                                className="px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded transition-colors"
-                                                                                            >
-                                                                                                <MdOpenInNew className="w-4 h-4" />
-                                                                                            </button>
-                                                                                        </td>
-                                                                                    </tr>
-                                                                                );
-                                                                            })}
-                                                                        </tbody>
-                                                                    </table>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    )}
                                                 </React.Fragment>
                                             );
                                         })}
@@ -403,104 +357,62 @@ export default observer(function DeliveryPage() {
                 </div>
             </div>
 
-            {/* Item Details Modal */}
-            {selectedItemForDetails && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-4/5 max-h-[90vh] overflow-y-auto">
-                        {/* Modal Header */}
-                        <div className="sticky top-0 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-6 py-4 flex justify-between items-center">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                Delivery Item Details
-                            </h3>
+            {/* PDF Viewer Modal */}
+            {selectedDocument && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-2/3 h-5/6 flex flex-col">
+                        {/* Header */}
+                        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4">
+                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                {selectedDocument}
+                            </h2>
                             <button
-                                onClick={closeItemDetailsModal}
-                                className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 transition-colors"
+                                onClick={closePdfViewer}
+                                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                             >
                                 <MdClose className="w-6 h-6" />
                             </button>
                         </div>
 
-                        {/* Modal Content */}
-                        <div className="p-6 space-y-6">
-                            {/* Main Item Information */}
-                            <div>
-                                <div className="grid grid-cols-3 gap-6">
-                                    {itemColumns.map((col) => {
-                                        // Find the actual column in item data (case-insensitive)
-                                        const actualCol = itemsAllColumns.find(
-                                            (apiCol) => apiCol.toLowerCase() === col.toLowerCase()
-                                        );
-                                        const value = actualCol
-                                            ? selectedItemForDetails[actualCol as keyof RowData]
-                                            : undefined;
-                                        const label = col
-                                            .replace(/_/g, " ")
-                                            .replace(/\b\w/g, (l) => l.toUpperCase());
-
-                                        return (
-                                            <div key={col}>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                    {label}
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    disabled
-                                                    value={formatDateValue(value, col)}
-                                                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
-                                                />
-                                            </div>
-                                        );
-                                    })}
+                        {/* Content */}
+                        <div className="flex-1 overflow-hidden">
+                            {pdfError ? (
+                                <div className="flex h-full items-center justify-center">
+                                    <div className="text-center">
+                                        <div className="mb-2 text-lg font-medium text-red-500">
+                                            Error
+                                        </div>
+                                        <div className="text-gray-600 dark:text-gray-400">{pdfError}</div>
+                                        <button
+                                            className="mt-4 rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+                                            onClick={() => handleViewDocument(selectedDocument)}
+                                        >
+                                            Retry
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-
-                            {/* Additional Details */}
-                            {availableDetailColumns.length > 0 && (
-                                <div>
-                                    <div className="grid grid-cols-3 gap-6">
-                                        {availableDetailColumns.map((col) => {
-                                            const value = selectedItemForDetails[col as keyof RowData];
-                                            const label = col
-                                                .replace(/_/g, " ")
-                                                .replace(/\b\w/g, (l) => l.toUpperCase());
-
-                                            return (
-                                                <div key={col}>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                                        {label}
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        disabled
-                                                        value={formatDateValue(value, col)}
-                                                        className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
-                                                    />
-                                                </div>
-                                            );
-                                        })}
+                            ) : loadingPdf ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <div className="animate-spin">
+                                        <div className="h-8 w-8 border-4 border-brand-500 border-t-transparent rounded-full"></div>
+                                    </div>
+                                </div>
+                            ) : pdfUrl ? (
+                                <PDFPreview
+                                    pdfUrl={pdfUrl}
+                                    docName={selectedDocument}
+                                />
+                            ) : (
+                                <div className="flex h-full items-center justify-center">
+                                    <div className="text-center text-gray-600 dark:text-gray-400">
+                                        No PDF loaded
                                     </div>
                                 </div>
                             )}
                         </div>
-
-                        {/* Modal Footer */}
-                        <div className="border-t border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-6 py-4 flex justify-end">
-                            <button
-                                onClick={closeItemDetailsModal}
-                                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium text-sm"
-                            >
-                                Close
-                            </button>
-                        </div>
                     </div>
                 </div>
             )}
-
-            {/* Ready to Ship Modal */}
-            <ReadyToShipModal
-                isOpen={isReadyToShipModalOpen}
-                onClose={() => setIsReadyToShipModalOpen(false)}
-            />
         </div>
     );
 });
