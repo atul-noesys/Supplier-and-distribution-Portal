@@ -79,7 +79,6 @@ function AddShipmentModalContent({
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   const [isAddItemFromWOModalOpen, setIsAddItemFromWOModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [isReadyToShipSaving, setIsReadyToShipSaving] = useState(false);
   const [itemsSaved, setItemsSaved] = useState(false);
 
   // Fetch pagination data using TanStack Query
@@ -147,7 +146,6 @@ function AddShipmentModalContent({
             shipment_quantity: item.shipment_quantity || 0,
             total: item.total || 0,
             po_number: item.po_number || "",
-            shipment_status: item.shipment_status || "Pending",
             work_order_id: item.work_order_id || "",
             document: item.document || "",
             ROWID: item.ROWID || item.rowid || "",
@@ -359,7 +357,6 @@ function AddShipmentModalContent({
         shipment_quantity: wo.quantity || 0,
         total: (Number(wo.unit_price || 0) * Number(wo.quantity || 0)),
         po_number: wo.po_number || "",
-        shipment_status: "Pending",
         work_order_id: getWorkOrderId(wo),
         document: "",
       };
@@ -449,7 +446,7 @@ function AddShipmentModalContent({
 
         shipmentToSave = {
           ...shipmentToSave,
-          shipment_status: "In draft",
+          shipment_status: formData.carrier_name !== ""  ? "In transit" : "Ready to ship",
           vendor_id: currentLoggedInVendor?.vendor_id || "",
           vendor_name: currentLoggedInVendor?.company_name || "",
         }
@@ -469,7 +466,7 @@ function AddShipmentModalContent({
         // Update work order statuses to "Ready to ship"
         for (const item of shipmentStore.shipmentItems) {
           if (item.work_order_id) {
-            await updateWorkOrderStatus(String(item.work_order_id), "Ready to ship");
+            await updateWorkOrderStatus(String(item.work_order_id), formData.carrier_name !== ""  ? "In transit" : "Ready to ship");
           }
         }
 
@@ -483,7 +480,7 @@ function AddShipmentModalContent({
 
         shipmentToSave = {
           ...shipmentToSave,
-          shipment_status: "In draft",
+          shipment_status: formData.carrier_name !== ""  ? "In transit" : "Ready to ship",
           vendor_id: currentLoggedInVendor?.vendor_id || "",
           vendor_name: currentLoggedInVendor?.company_name || "",
         }
@@ -525,10 +522,10 @@ function AddShipmentModalContent({
           });
         });
 
-        // Update work order statuses to "In shipment" for all items
+        // Update work order statuses based on carrier field
         for (const item of shipmentStore.shipmentItems) {
           if (item.work_order_id) {
-            await updateWorkOrderStatus(String(item.work_order_id), "In shipment");
+            await updateWorkOrderStatus(String(item.work_order_id), formData.carrier_name !== ""  ? "In transit" : "Ready to ship");
           }
         }
 
@@ -588,57 +585,6 @@ function AddShipmentModalContent({
       toast.error("Failed to save shipment");
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  const handleReadyToShip = async () => {
-    setIsReadyToShipSaving(true);
-    try {
-      const currentShipment = shipmentStore.getCurrentShipment();
-      if (!currentShipment?.ROWID) {
-        toast.error("Shipment not found");
-        return;
-      }
-
-      let shipmentToSave = toRowData(formData);
-
-      shipmentToSave = {
-        ...shipmentToSave,
-        shipment_status: "In transit",
-        vendor_id: currentLoggedInVendor?.vendor_id || "",
-        vendor_name: currentLoggedInVendor?.company_name || "",
-      }
-
-      const result = await nguageStore.UpdateRowDataDynamic(
-        shipmentToSave,
-        String(currentShipment.ROWID),
-        52,
-        "shipment_list"
-      );
-
-      if (!result.result) {
-        toast.error(`Failed to update: ${result.error}`);
-        return;
-      }
-
-      // Update work order statuses to "In transit" for all items
-      for (const item of shipmentStore.shipmentItems) {
-        if (item.work_order_id) {
-          await updateWorkOrderStatus(String(item.work_order_id), "In transit");
-        }
-      }
-
-      toast.success(<span>Shipment <b>{shipmentToSave.shipment_id}</b> is Ready to ship!</span>);
-      queryClient.invalidateQueries({ queryKey: ["shipmentList"] });
-      queryClient.invalidateQueries({ queryKey: ["shipmentItems"] });
-      queryClient.invalidateQueries({ queryKey: ["workOrders"] });
-      onSuccess?.();
-      handleClose();
-    } catch (error) {
-      console.error("Error updating shipment status:", error);
-      toast.error("Failed to update shipment status");
-    } finally {
-      setIsReadyToShipSaving(false);
     }
   };
 
@@ -1208,41 +1154,24 @@ function AddShipmentModalContent({
           ) : (
             <>
               {isEditMode ? (
-                // Edit mode: Show Ready to Ship and Update Shipment buttons
-                <>
-                  <button
-                    type="button"
-                    disabled={isSaving}
-                    onClick={handleSaveShipment}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
-                  >
-                    {isSaving ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Updating...
-                      </>
-                    ) : (
-                      "Update Draft"
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isSaving || shipmentStore.shipmentItems.length === 0}
-                    onClick={handleReadyToShip}
-                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
-                  >
-                    {isReadyToShipSaving ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Preparing to Ship...
-                      </>
-                    ) : (
-                      "Ready to Ship"
-                    )}
-                  </button>
-                </>
+                // Edit mode: Show Update Shipment button
+                <button
+                  type="button"
+                  disabled={isSaving}
+                  onClick={handleSaveShipment}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
+                >
+                  {isSaving ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Updating...
+                    </>
+                  ) : (
+                    "Update Draft"
+                  )}
+                </button>
               ) : !shipmentData ? (
-                // Step 1: Save the shipment master record and items
+                // Create mode: Save the shipment master record and items
                 <button
                   type="button"
                   disabled={isSaving || shipmentStore.shipmentItems.length === 0}
@@ -1258,24 +1187,7 @@ function AddShipmentModalContent({
                     "Save Shipment"
                   )}
                 </button>
-              ) : (
-                // Show Ready to Ship button after shipment is saved
-                <button
-                  type="button"
-                  disabled={isReadyToShipSaving || shipmentStore.shipmentItems.length === 0}
-                  onClick={handleReadyToShip}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
-                >
-                  {isReadyToShipSaving ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Preparing to Ship...
-                    </>
-                  ) : (
-                    "Ready to Ship"
-                  )}
-                </button>
-              )}
+              ) : null}
             </>
           )}
         </div>
