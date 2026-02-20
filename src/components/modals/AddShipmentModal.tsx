@@ -466,10 +466,10 @@ function AddShipmentModalContent({
           return;
         }
 
-        // Update work order statuses to "In shipment"
+        // Update work order statuses to "Ready to ship"
         for (const item of shipmentStore.shipmentItems) {
           if (item.work_order_id) {
-            await updateWorkOrderStatus(String(item.work_order_id), "In shipment");
+            await updateWorkOrderStatus(String(item.work_order_id), "Ready to ship");
           }
         }
 
@@ -604,7 +604,7 @@ function AddShipmentModalContent({
 
       shipmentToSave = {
         ...shipmentToSave,
-        shipment_status: "Ready to ship",
+        shipment_status: "In transit",
         vendor_id: currentLoggedInVendor?.vendor_id || "",
         vendor_name: currentLoggedInVendor?.company_name || "",
       }
@@ -621,10 +621,10 @@ function AddShipmentModalContent({
         return;
       }
 
-      // Update work order statuses to "Ready to ship" for all items
+      // Update work order statuses to "In transit" for all items
       for (const item of shipmentStore.shipmentItems) {
         if (item.work_order_id) {
-          await updateWorkOrderStatus(String(item.work_order_id), "Ready to ship");
+          await updateWorkOrderStatus(String(item.work_order_id), "In transit");
         }
       }
 
