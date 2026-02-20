@@ -4,7 +4,7 @@ import { useStore } from "@/store/store-context";
 import { RowData } from "@/types/nguage-rowdata";
 import { useQuery } from "@tanstack/react-query";
 import { observer } from "mobx-react-lite";
-import { MdClose } from "react-icons/md";
+import { MdClose, MdDelete, MdAdd } from "react-icons/md";
 import { useState } from "react";
 import { toast } from "react-toastify";
 
@@ -30,7 +30,9 @@ function AddDeliveryModalContent({
   const { nguageStore } = useStore();
   const [step, setStep] = useState(1); // 1: Items list, 2: Delivery form
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
+  const [selectedDeliveryItems, setSelectedDeliveryItems] = useState<RowData[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
   const [deliveryFormData, setDeliveryFormData] = useState<DeliveryFormData>({
     delivery_id: "DID-****",
     shipment_id: "",
@@ -145,6 +147,10 @@ function AddDeliveryModalContent({
     const shipmentId = String(firstSelectedItem.shipment_id || "");
     const shipmentDetails = shipmentDetailMap[shipmentId] || {};
 
+    // Store all selected items
+    const selected = Array.from(selectedItems).map(idx => filteredItems[idx]);
+    setSelectedDeliveryItems(selected);
+
     setDeliveryFormData({
       delivery_id: "DID-****",
       shipment_id: String(firstSelectedItem.shipment_id || ""),
@@ -159,6 +165,8 @@ function AddDeliveryModalContent({
 
   const handleBackStep = () => {
     setStep(1);
+    setSelectedDeliveryItems([]);
+    setIsAddItemModalOpen(false);
     setDeliveryFormData({
       delivery_id: "DID-****",
       shipment_id: "",
@@ -182,6 +190,25 @@ function AddDeliveryModalContent({
       const file = e.target.files[0];
       handleInputChange("document", file.name);
     }
+  };
+
+  const handleDeleteItem = (index: number) => {
+    const updatedItems = selectedDeliveryItems.filter((_, idx) => idx !== index);
+    setSelectedDeliveryItems(updatedItems);
+    toast.success("Item removed");
+  };
+
+  const handleAddItem = (item: RowData) => {
+    // Check if item already exists
+    const itemExists = selectedDeliveryItems.some(
+      (existingItem) => existingItem.ROWID === item.ROWID
+    );
+    if (itemExists) {
+      toast.warning("Item already added");
+      return;
+    }
+    setSelectedDeliveryItems([...selectedDeliveryItems, item]);
+    toast.success("Item added successfully");
   };
 
   const handleSaveDelivery = async (e: React.FormEvent) => {
@@ -454,6 +481,122 @@ function AddDeliveryModalContent({
                       placeholder="Additional remarks"
                       rows={1}
                     />
+                  </div>
+                </div>
+              </div>
+
+              {/* Delivery Items Section */}
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Delivery Items
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddItemModalOpen(true)}
+                    className="px-3 py-1.25 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
+                  >
+                    <MdAdd className="w-5 h-5" />
+                    Add Item
+                  </button>
+                </div>
+
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-linear-to-r from-blue-700 to-blue-800 dark:from-blue-900 dark:to-blue-950">
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">
+                            Item Code
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">
+                            Item Name
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">
+                            Unit Price
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">
+                            Qty
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">
+                            Total
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">
+                            PO #
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">
+                            Remarks
+                          </th>
+                          <th className="px-4 py-3 text-center text-xs font-semibold text-white uppercase tracking-wide">
+                            Action
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {selectedDeliveryItems.length === 0 ? (
+                          <tr>
+                            <td colSpan={8} className="px-4 py-12 text-center">
+                              <div className="flex flex-col items-center justify-center">
+                                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                                  No items selected for delivery
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => setIsAddItemModalOpen(true)}
+                                  className="px-3 py-1.25 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center gap-2"
+                                >
+                                  <MdAdd className="w-5 h-5" />
+                                  Add Item
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : (
+                          selectedDeliveryItems.map((item, index) => (
+                            <tr
+                              key={index}
+                              className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                            >
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
+                                {item.item_code || "-"}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 max-w-xs truncate">
+                                {item.item || "-"}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                                ${parseFloat(String(item.unit_price || 0)).toFixed(2)}
+                              </td>
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
+                                {item.shipment_quantity || 0}
+                              </td>
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
+                                ${
+                                  item.total
+                                    ? parseFloat(String(item.total)).toFixed(2)
+                                    : "0.00"
+                                }
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
+                                {item.po_number || "-"}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 max-w-xs truncate">
+                                {item.remarks || "-"}
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteItem(index)}
+                                  className="inline-flex items-center justify-center p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                                  title="Delete item"
+                                >
+                                  <MdDelete className="w-4 h-4" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>
