@@ -111,7 +111,6 @@ function AddShipmentModalContent({
     carrier_name: "",
     shipment_date: "",
     estimated_delivery_date: "",
-    actual_delivery_date: "",
     tracking_number: "",
     invoice_id: "",
     document: "",
@@ -131,7 +130,6 @@ function AddShipmentModalContent({
           carrier_name: currentShipment.carrier_name || "",
           shipment_date: currentShipment.shipment_date || "",
           estimated_delivery_date: currentShipment.estimated_delivery_date || "",
-          actual_delivery_date: currentShipment.actual_delivery_date || "",
           tracking_number: currentShipment.tracking_number || "",
           invoice_id: currentShipment.invoice_id || "",
           document: currentShipment.document || "",
@@ -422,12 +420,13 @@ function AddShipmentModalContent({
     e.preventDefault();
 
     // Validate required fields
-    const requiredFields = [
-      "carrier_name",
-      "shipment_date",
-      "tracking_number",
-      "invoice_id",
-    ];
+    const requiredFields = ["invoice_id"];
+    
+    // If carrier_name is provided, make shipment_date, estimated_delivery_date, and tracking_number mandatory
+    if (formData.carrier_name) {
+      requiredFields.push("shipment_date", "estimated_delivery_date", "tracking_number");
+    }
+    
     const missingFields = requiredFields.filter((field) => !formData[field]);
 
     if (missingFields.length > 0) {
@@ -760,7 +759,6 @@ function AddShipmentModalContent({
       carrier_name: "",
       shipment_date: "",
       estimated_delivery_date: "",
-      actual_delivery_date: "",
       tracking_number: "",
       invoice_id: "",
       document: "",
@@ -906,9 +904,6 @@ function AddShipmentModalContent({
             <form onSubmit={handleSaveShipment} className="space-y-8">
               {/* Shipment Details Section */}
               <div>
-                {/* <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                  Shipment Details
-                </h3> */}
 
                 <div className="grid grid-cols-3 gap-4">
                   {/* Shipment ID */}
@@ -920,21 +915,48 @@ function AddShipmentModalContent({
                       type="text"
                       disabled
                       value={String(shipmentData?.shipment_id ?? 'SID-****')}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 cursor-not-allowed text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-sm bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 cursor-not-allowed text-sm"
                       placeholder="Auto-generated"
+                    />
+                  </div>
+
+                  {/* Invoice ID */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Invoice ID <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.invoice_id as string}
+                      onChange={(e) => handleInputChange("invoice_id", e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      placeholder="e.g., AR-IPX-5454"
+                    />
+                  </div> 
+
+                  {/* Document */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Document
+                    </label>
+                    <input
+                      type="file"
+                      onChange={handleFileChange}
+                      disabled={isUploadingDocument}
+                      className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-sm file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                      accept=".pdf,.doc,.docx,.jpg,.png"
                     />
                   </div>
 
                   {/* Carrier Name */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Carrier Name <span className="text-red-500">*</span>
+                      Carrier Name
                     </label>
                     <select
                       value={formData.carrier_name as string}
                       onChange={(e) => handleInputChange("carrier_name", e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                      required
+                      className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                     >
                       <option value="">Select carrier</option>
                       <option value="DHL Express">DHL Express</option>
@@ -948,7 +970,7 @@ function AddShipmentModalContent({
                   {/* Shipment Date */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Shipment Date <span className="text-red-500">*</span>
+                      Shipment Date {formData.carrier_name && <span className="text-red-500">*</span>}
                     </label>
                     <DatePicker
                       id="shipment_date"
@@ -959,7 +981,6 @@ function AddShipmentModalContent({
                           ? new Date(String(formData.shipment_date))
                           : undefined
                       }
-                      required
                       onChange={(selectedDates) => {
                         if (selectedDates.length > 0) {
                           const date = selectedDates[0];
@@ -976,7 +997,7 @@ function AddShipmentModalContent({
                   {/* Estimated Delivery Date */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Estimated Delivery Date
+                      Estimated Delivery Date {formData.carrier_name && <span className="text-red-500">*</span>}
                     </label>
                     <DatePicker
                       id="estimated_delivery_date"
@@ -1000,72 +1021,17 @@ function AddShipmentModalContent({
                     />
                   </div>
 
-                  {/* Actual Delivery Date */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Actual Delivery Date
-                    </label>
-                    <DatePicker
-                      id="actual_delivery_date"
-                      placeholder="Select date"
-                      mode="single"
-                      defaultDate={
-                        formData.actual_delivery_date
-                          ? new Date(String(formData.actual_delivery_date))
-                          : undefined
-                      }
-                      onChange={(selectedDates) => {
-                        if (selectedDates.length > 0) {
-                          const date = selectedDates[0];
-                          const year = date.getFullYear();
-                          const month = String(date.getMonth() + 1).padStart(2, "0");
-                          const day = String(date.getDate()).padStart(2, "0");
-                          const formattedDate = `${year}-${month}-${day}`;
-                          handleInputChange("actual_delivery_date", formattedDate);
-                        }
-                      }}
-                    />
-                  </div>
-
                   {/* Tracking Number */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Tracking Number <span className="text-red-500">*</span>
+                      Tracking Number {formData.carrier_name && <span className="text-red-500">*</span>}
                     </label>
                     <input
                       type="text"
                       value={formData.tracking_number as string}
                       onChange={(e) => handleInputChange("tracking_number", e.target.value)}
-                      className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                       placeholder="e.g., TK-ENG-123456789"
-                    />
-                  </div>
-
-                  {/* Invoice ID */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Invoice ID <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.invoice_id as string}
-                      onChange={(e) => handleInputChange("invoice_id", e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                      placeholder="e.g., AR-IPX-5454"
-                    />
-                  </div>
-
-                  {/* Document */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Document
-                    </label>
-                    <input
-                      type="file"
-                      onChange={handleFileChange}
-                      disabled={isUploadingDocument}
-                      className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                      accept=".pdf,.doc,.docx,.jpg,.png"
                     />
                   </div>
 
@@ -1077,7 +1043,7 @@ function AddShipmentModalContent({
                     <textarea
                       value={formData.remarks as string}
                       onChange={(e) => handleInputChange("remarks", e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
+                      className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
                       placeholder="Additional remarks"
                       rows={1}
                     />
@@ -1286,10 +1252,10 @@ function AddShipmentModalContent({
                   {isSaving ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Saving Draft...
+                      Saving Shipment...
                     </>
                   ) : (
-                    "Save Draft"
+                    "Save Shipment"
                   )}
                 </button>
               ) : (
