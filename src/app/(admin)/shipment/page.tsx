@@ -300,7 +300,7 @@ export default observer(function ShipmentPage() {
       // Collapse all when search is cleared
       setExpandedShipments(new Set());
     }
-  }, [searchTerm, shipmentData, shipmentItems]);
+  }, [searchTerm]);
 
   // Shipment items columns (excluding hidden columns)
   const ITEM_HIDDEN_COLUMNS = ["ROWID", "InfoveaveBatchId"];

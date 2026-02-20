@@ -189,7 +189,7 @@ export default observer(function DeliveryPage() {
             // Collapse all when search is cleared
             setExpandedDeliveries(new Set());
         }
-    }, [searchTerm, deliveryData, deliveryItems]);
+    }, [searchTerm]);
 
     // Delivery items columns
     const ITEM_HIDDEN_COLUMNS = ["ROWID", "InfoveaveBatchId"];
@@ -213,7 +213,7 @@ export default observer(function DeliveryPage() {
                 {/* Header with Title and Search */}
                 <div className="border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/5 px-6 py-4">
                     <div className="flex justify-between items-center gap-4">
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Delivery Management</h2>
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Delivery List</h2>
                         <div className="flex items-center gap-3 flex-1 max-w-[460px]">
                             <div className="relative flex-1">
                                 <input
@@ -237,7 +237,7 @@ export default observer(function DeliveryPage() {
                                 onClick={() => setIsReadyToShipModalOpen(true)}
                                 className="px-4 py-2.25 bg-blue-800 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
                             >
-                                VIEW READY TO SHIP
+                                CREATE DELIVERY
                             </button>
                         </div>
                     </div>
