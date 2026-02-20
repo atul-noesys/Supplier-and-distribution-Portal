@@ -11,7 +11,7 @@ interface ReadyToShipModalProps {
   onClose: () => void;
 }
 
-function ReadyToShipModalContent({
+function AddDeliveryModalContent({
   isOpen,
   onClose,
 }: ReadyToShipModalProps) {
@@ -211,4 +211,4 @@ function ReadyToShipModalContent({
   );
 }
 
-export const ReadyToShipModal = observer(ReadyToShipModalContent);
+export const ReadyToShipModal = observer(AddDeliveryModalContent);
