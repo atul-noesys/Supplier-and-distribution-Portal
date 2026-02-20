@@ -43,6 +43,25 @@ function AddDeliveryModalContent({
     remarks: "",
   });
 
+  // Clear all states when closing modal
+  const handleCloseModal = () => {
+    setStep(1);
+    setSelectedItems(new Set());
+    setSelectedDeliveryItems([]);
+    setIsSaving(false);
+    setIsAddItemModalOpen(false);
+    setDeliveryFormData({
+      delivery_id: "DID-****",
+      shipment_id: "",
+      vendor_id: "",
+      vendor_name: "",
+      invoice_id: "",
+      document: "",
+      remarks: "",
+    });
+    onClose();
+  };
+
   // Fetch shipment list data
   const { data: shipmentListData = [] } = useQuery({
     queryKey: ["shipmentList", isOpen],
@@ -236,8 +255,7 @@ function AddDeliveryModalContent({
       console.log("Saving delivery:", deliveryData);
 
       toast.success("Delivery created successfully");
-      handleBackStep();
-      onClose();
+      handleCloseModal();
     } catch (error) {
       console.error("Error saving delivery:", error);
       toast.error("Failed to save delivery");
@@ -259,7 +277,7 @@ function AddDeliveryModalContent({
             {step === 1 ? "Create new delivery list" : "Create Delivery"}
           </h2>
           <button
-            onClick={onClose}
+            onClick={handleCloseModal}
             className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
           >
             <MdClose className="w-6 h-6" />
@@ -609,7 +627,7 @@ function AddDeliveryModalContent({
           {step === 1 ? (
             <>
               <button
-                onClick={onClose}
+                onClick={handleCloseModal}
                 className="px-4 py-2 bg-gray-300 dark:bg-gray-700 text-gray-900 dark:text-white font-medium rounded-lg hover:bg-gray-400 dark:hover:bg-gray-600 transition-colors"
               >
                 Close
