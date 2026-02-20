@@ -11,27 +11,27 @@ import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { MdClose, MdDone } from "react-icons/md";
 
 const getStatusColor = (
-  status: string,
+    status: string,
 ): "primary" | "success" | "error" | "warning" | "info" | "light" | "dark" => {
-  const lowerStatus = status?.toLowerCase() || "";
-  switch (lowerStatus) {
-    case "delivered":
-    case "completed":
-    case "approved":
-    case "ready to ship":
-      return "success";
-    case "pending":
-    case "in transit":
-      return "warning";
-    case "shipped":
-    case "processing":
-      return "info";
-    case "cancelled":
-    case "failed":
-      return "error";
-    default:
-      return "primary";
-  }
+    const lowerStatus = status?.toLowerCase() || "";
+    switch (lowerStatus) {
+        case "delivered":
+        case "completed":
+        case "approved":
+        case "ready to ship":
+            return "success";
+        case "pending":
+        case "in transit":
+            return "warning";
+        case "shipped":
+        case "processing":
+            return "info";
+        case "cancelled":
+        case "failed":
+            return "error";
+        default:
+            return "primary";
+    }
 };
 
 const HIDDEN_COLUMNS = ["ROWID", "InfoveaveBatchId", "vendor_id", "vendor_name", "step_history"];
@@ -268,11 +268,10 @@ export default observer(function DeliveryPage() {
                                                     <tr
                                                         className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/2 transition-colors"
                                                     >
-                                                        <td className="pl-1 text-gray-700 dark:text-gray-300 font-semibold text-sm">
-                                                            <div className="flex items-center gap-1">
-                                                                <div className="w-6"></div>
-                                                                {searchTerm ? highlightText(String(row[columns[0]] || ""), searchTerm) : String(row[columns[0]] || "")}
-                                                            </div>
+                                                        <td className="pl-5 text-gray-700 dark:text-gray-300 font-semibold text-sm">
+
+                                                            {searchTerm ? highlightText(String(row[columns[0]] || ""), searchTerm) : String(row[columns[0]] || "")}
+
                                                         </td>
                                                         {columns.slice(1).map((col) => {
                                                             const value = row[col];
@@ -339,7 +338,7 @@ export default observer(function DeliveryPage() {
                                                         <td className="px-5 py-4 text-center">
                                                             <button
                                                                 onClick={() => console.log("Accept delivery for shipment:", shipmentId)}
-                                                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors text-sm flex items-center gap-1 justify-center"
+                                                                className="px-4 py-1 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors text-sm flex items-center gap-1 justify-center"
                                                             >
                                                                 <MdDone className="w-5 h-5" />
                                                                 Accept
