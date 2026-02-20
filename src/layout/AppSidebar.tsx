@@ -10,7 +10,8 @@ import {
   HorizontaLDots,
   ListIcon,
   TaskIcon,
-  BoxIcon
+  TruckIcon,
+  BoxIconLine
 } from "../icons/index";
 
 type NavItem = {
@@ -37,9 +38,14 @@ const navItems: NavItem[] = [
     path: "/work-order",
   },
   {
-    icon: <BoxIcon />,
+    icon: <TruckIcon />,
     name: "Shipment",
     path: "/shipment",
+  },
+  {
+    icon: <BoxIconLine />,
+    name: "Delivery",
+    path: "/delivery",
   },
   // {
   //   icon: <GridIcon />,

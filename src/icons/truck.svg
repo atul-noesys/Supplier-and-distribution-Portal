@@ -1,0 +1,48 @@
+<svg
+  width="24"
+  height="24"
+  viewBox="0 0 100 100"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <path
+    fill-rule="evenodd"
+    clip-rule="evenodd"
+    d="M68.516 70.008H27.682a2.117 2.117 0 1 1 0-4.236h38.717V29.8a6.745 6.745 0 0 0-6.737-6.737h-46.19A6.745 6.745 0 0 0 6.735 29.8V63.56c0 1.22.993 2.212 2.213 2.212h4.524a2.117 2.117 0 1 1 0 4.236H8.948A6.455 6.455 0 0 1 2.5 63.56V29.8c0-6.05 4.922-10.972 10.972-10.972h46.19c6.05 0 10.972 4.922 10.972 10.972V67.89c0 1.17-.948 2.118-2.118 2.118z"
+    fill="currentColor"
+    stroke="currentColor"
+    stroke-width="1.5"
+    stroke-linejoin="round"
+    stroke-linecap="round"
+  />
+  <path
+    fill-rule="evenodd"
+    clip-rule="evenodd"
+    d="M92.663 70.008h-2.051a2.117 2.117 0 1 1 0-4.236h2.051c.332 0 .602-.27.602-.6V48.462c0-.8-.225-1.58-.65-2.258L85.224 34.43a4.223 4.223 0 0 0-3.597-1.99H70.644v33.331h5.748a2.117 2.117 0 1 1 0 4.236h-7.866a2.117 2.117 0 0 1-2.117-2.118V30.323c0-1.17.947-2.118 2.117-2.118h13.1a8.435 8.435 0 0 1 7.185 3.974l7.391 11.774a8.47 8.47 0 0 1 1.298 4.51v16.708a4.842 4.842 0 0 1-4.837 4.837z"
+    fill="currentColor"
+    stroke="currentColor"
+    stroke-width="1.5"
+    stroke-linejoin="round"
+    stroke-linecap="round"
+  />
+  <path
+    fill-rule="evenodd"
+    clip-rule="evenodd"
+    d="M20.576 81.173c-5.492 0-9.96-4.468-9.96-9.96 0-5.493 4.468-9.96 9.96-9.96s9.96 4.467 9.96 9.96c0 5.492-4.467 9.96-9.96 9.96zm0-15.685a5.732 5.732 0 0 0-5.725 5.725c0 3.156 2.569 5.725 5.725 5.725s5.725-2.569 5.725-5.725a5.732 5.732 0 0 0-5.725-5.725z"
+    fill="currentColor"
+    stroke="currentColor"
+    stroke-width="1.5"
+    stroke-linejoin="round"
+    stroke-linecap="round"
+  />
+  <path
+    fill-rule="evenodd"
+    clip-rule="evenodd"
+    d="M83.503 81.173c-5.492 0-9.96-4.468-9.96-9.96 0-5.493 4.468-9.96 9.96-9.96 5.493 0 9.961 4.467 9.961 9.96 0 5.492-4.468 9.96-9.96 9.96zm0-15.685a5.732 5.732 0 0 0-5.725 5.725 5.731 5.731 0 0 0 5.725 5.725 5.732 5.732 0 0 0 5.726-5.725 5.732 5.732 0 0 0-5.726-5.725z"
+    fill="currentColor"
+    stroke="currentColor"
+    stroke-width="1.5"
+    stroke-linejoin="round"
+    stroke-linecap="round"
+  />
+</svg>
