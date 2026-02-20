@@ -597,6 +597,7 @@ function AddShipmentModalContent({
       toast.error("Failed to save shipment");
     } finally {
       setIsSaving(false);
+      handleClose();
     }
   };
 
@@ -1215,12 +1216,12 @@ function AddShipmentModalContent({
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 border-t border-gray-200 dark:border-gray-700 px-5 py-4 bg-gray-50 dark:bg-gray-800">
-          {!isEditMode && <button
+          {!isEditMode && step === 1 && <button
             type="button"
             onClick={handleClose}
             className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium"
           >
-            {step === 1 ? "Cancel" : "Close"}
+            Cancel
           </button>}
           {step === 1 ? (
             <button

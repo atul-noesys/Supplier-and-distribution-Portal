@@ -1,4 +1,8 @@
 /* Custom react-toastify styling */
+.Toastify__toast-container {
+  z-index: 40;
+}
+
 .Toastify__toast {
   width: 350px;
   min-width: 350px;
