@@ -80,6 +80,7 @@ function AddShipmentModalContent({
   const [isAddItemFromWOModalOpen, setIsAddItemFromWOModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [itemsSaved, setItemsSaved] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Fetch pagination data using TanStack Query
   const { data: paginationData, refetch, isLoading: isLoadingVendor } = useQuery({
@@ -169,7 +170,7 @@ function AddShipmentModalContent({
 
   // Fetch work orders
   const { data: workOrders = [], isLoading: isLoadingWorkOrders, refetch: refetchWorkOrders } = useQuery({
-    queryKey: ["workOrders", isOpen, isEditMode],
+    queryKey: ["workOrderItems", isOpen, isEditMode],
     queryFn: async (): Promise<RowData[]> => {
       const response = await nguageStore.GetPaginationData({
         table: "work_order",
@@ -406,7 +407,7 @@ function AddShipmentModalContent({
 
       console.log(`Work order ${workOrderId} status updated to ${newStatus}`);
       // Invalidate all work order queries to refresh the data
-      queryClient.invalidateQueries({ queryKey: ["workOrders"] });
+      queryClient.invalidateQueries({ queryKey: ["workOrderItems"] });
       queryClient.invalidateQueries({ queryKey: ["allWorkOrders"] });
     } catch (error) {
       console.error(`Error updating work order status for ${workOrderId}:`, error);
@@ -417,6 +418,7 @@ function AddShipmentModalContent({
     e.preventDefault();
 
     // Validate required fields
+    const errors: Record<string, string> = {};
     const requiredFields = ["invoice_id"];
     
     // If carrier_name is provided, make shipment_date, estimated_delivery_date, and tracking_number mandatory
@@ -424,12 +426,22 @@ function AddShipmentModalContent({
       requiredFields.push("shipment_date", "estimated_delivery_date", "tracking_number");
     }
     
-    const missingFields = requiredFields.filter((field) => !formData[field]);
+    requiredFields.forEach((field) => {
+      if (!formData[field]) {
+        const fieldLabel = field
+          .replace(/_/g, " ")
+          .replace(/\b\w/g, (char) => char.toUpperCase());
+        errors[field] = `${fieldLabel} is required`;
+      }
+    });
 
-    if (missingFields.length > 0) {
-      toast.error(`Please fill in required fields: ${missingFields.join(", ")}`);
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return;
     }
+
+    // Clear errors if validation passes
+    setFieldErrors({});
 
     setIsSaving(true);
 
@@ -473,7 +485,7 @@ function AddShipmentModalContent({
         toast.success("Shipment updated successfully!");
         queryClient.invalidateQueries({ queryKey: ["shipmentList"] });
         queryClient.invalidateQueries({ queryKey: ["shipmentItems"] });
-        queryClient.invalidateQueries({ queryKey: ["workOrders"] });
+        queryClient.invalidateQueries({ queryKey: ["workOrderItems"] });
       } else {
         // Create mode: Add new shipment and items in one go
         console.log("Saving Shipment (Create Mode):", formData);
@@ -578,7 +590,7 @@ function AddShipmentModalContent({
 
         queryClient.invalidateQueries({ queryKey: ["shipmentList"] });
         queryClient.invalidateQueries({ queryKey: ["shipmentItems"] });
-        queryClient.invalidateQueries({ queryKey: ["workOrders"] });
+        queryClient.invalidateQueries({ queryKey: ["workOrderItems"] });
       }
     } catch (error) {
       console.error("Error saving shipment:", error);
@@ -681,7 +693,7 @@ function AddShipmentModalContent({
         }
         queryClient.invalidateQueries({ queryKey: ["shipmentList"] });
         queryClient.invalidateQueries({ queryKey: ["shipmentItems"] });
-        queryClient.invalidateQueries({ queryKey: ["workOrders"] });
+        queryClient.invalidateQueries({ queryKey: ["workOrderItems"] });
       } catch (error) {
         console.error("Error deleting item:", error);
         toast.error('Failed to delete item');
@@ -718,6 +730,7 @@ function AddShipmentModalContent({
     setEditingItemIndex(null);
     setIsEditMode(false);
     setItemsSaved(false);
+    setFieldErrors({});
     onClose();
   };
 
@@ -874,10 +887,32 @@ function AddShipmentModalContent({
                     <input
                       type="text"
                       value={formData.invoice_id as string}
-                      onChange={(e) => handleInputChange("invoice_id", e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      onChange={(e) => {
+                        handleInputChange("invoice_id", e.target.value);
+                        if (fieldErrors.invoice_id) {
+                          setFieldErrors(prev => {
+                            const newErrors = { ...prev };
+                            delete newErrors.invoice_id;
+                            return newErrors;
+                          });
+                        }
+                      }}
+                      className={`w-full px-3 py-2 border ${
+                        fieldErrors.invoice_id
+                          ? "border-red-500 dark:border-red-500"
+                          : "border-gray-300 dark:border-gray-600"
+                      } rounded-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 ${
+                        fieldErrors.invoice_id
+                          ? "focus:ring-red-500"
+                          : "focus:ring-blue-500"
+                      } text-sm`}
                       placeholder="e.g., AR-IPX-5454"
                     />
+                    {fieldErrors.invoice_id && (
+                      <p className="text-[10px] text-red-600 dark:text-red-400">
+                        {fieldErrors.invoice_id}
+                      </p>
+                    )}
                   </div> 
 
                   {/* Document */}
@@ -935,9 +970,21 @@ function AddShipmentModalContent({
                           const day = String(date.getDate()).padStart(2, "0");
                           const formattedDate = `${year}-${month}-${day}`;
                           handleInputChange("shipment_date", formattedDate);
+                          if (fieldErrors.shipment_date) {
+                            setFieldErrors(prev => {
+                              const newErrors = { ...prev };
+                              delete newErrors.shipment_date;
+                              return newErrors;
+                            });
+                          }
                         }
                       }}
                     />
+                    {fieldErrors.shipment_date && (
+                      <p className="text-[10px] text-red-600 dark:text-red-400">
+                        {fieldErrors.shipment_date}
+                      </p>
+                    )}
                   </div>
 
                   {/* Estimated Delivery Date */}
@@ -962,9 +1009,21 @@ function AddShipmentModalContent({
                           const day = String(date.getDate()).padStart(2, "0");
                           const formattedDate = `${year}-${month}-${day}`;
                           handleInputChange("estimated_delivery_date", formattedDate);
+                          if (fieldErrors.estimated_delivery_date) {
+                            setFieldErrors(prev => {
+                              const newErrors = { ...prev };
+                              delete newErrors.estimated_delivery_date;
+                              return newErrors;
+                            });
+                          }
                         }
                       }}
                     />
+                    {fieldErrors.estimated_delivery_date && (
+                      <p className="text-[10px] text-red-600 dark:text-red-400">
+                        {fieldErrors.estimated_delivery_date}
+                      </p>
+                    )}
                   </div>
 
                   {/* Tracking Number */}
@@ -975,10 +1034,32 @@ function AddShipmentModalContent({
                     <input
                       type="text"
                       value={formData.tracking_number as string}
-                      onChange={(e) => handleInputChange("tracking_number", e.target.value)}
-                      className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      onChange={(e) => {
+                        handleInputChange("tracking_number", e.target.value);
+                        if (fieldErrors.tracking_number) {
+                          setFieldErrors(prev => {
+                            const newErrors = { ...prev };
+                            delete newErrors.tracking_number;
+                            return newErrors;
+                          });
+                        }
+                      }}
+                      className={`w-full px-3 py-2.5 border ${
+                        fieldErrors.tracking_number
+                          ? "border-red-500 dark:border-red-500"
+                          : "border-gray-300 dark:border-gray-600"
+                      } rounded-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 ${
+                        fieldErrors.tracking_number
+                          ? "focus:ring-red-500"
+                          : "focus:ring-blue-500"
+                      } text-sm`}
                       placeholder="e.g., TK-ENG-123456789"
                     />
+                    {fieldErrors.tracking_number && (
+                      <p className="text-[10px] text-red-600 dark:text-red-400">
+                        {fieldErrors.tracking_number}
+                      </p>
+                    )}
                   </div>
 
                   {/* Remarks */}
@@ -1167,7 +1248,7 @@ function AddShipmentModalContent({
                       Updating...
                     </>
                   ) : (
-                    "Update Draft"
+                    "Update Shipment"
                   )}
                 </button>
               ) : !shipmentData ? (
