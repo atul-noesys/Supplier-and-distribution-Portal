@@ -325,6 +325,7 @@ export default observer(function DeliveryPage() {
             console.log(`✓ Work order ${workOrderId} status updated to ${newStatus}`);
             // Invalidate work order queries to refresh the data
             queryClient.invalidateQueries({ queryKey: ["allWorkOrdersDelivery"] });
+            queryClient.invalidateQueries({ queryKey: ["workOrderItems"] });
         } catch (error) {
             console.error(`✗ Error updating work order status for ${workOrderId}:`, error);
             throw error;
