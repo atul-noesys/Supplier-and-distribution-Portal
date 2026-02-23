@@ -745,7 +745,7 @@ export default observer(function PurchaseOrderPage() {
             {/* Header */}
             <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {selectedDocument}
+                {selectedDocument.slice(42)}
               </h2>
               <button
                 onClick={closePdfViewer}

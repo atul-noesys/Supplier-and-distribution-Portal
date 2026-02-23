@@ -62,7 +62,7 @@ export default function KanbanColumn({ step, items, searchTerm = "", onEditClick
         <div className={`w-12 h-1 ${colors.text} rounded-full opacity-50 mt-2`}></div>
       </div>
 
-      <div className="flex-1 space-y-3 overflow-y-auto max-h-140 pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800" style={{
+      <div className="flex-1 space-y-3 overflow-y-auto max-h-128 pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800" style={{
         scrollbarWidth: 'thin',
       }}>
         {items.length === 0 ? (
