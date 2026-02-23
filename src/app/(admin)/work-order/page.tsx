@@ -141,7 +141,7 @@ export default observer(function WorkOrderPage() {
       // Return items as-is without adding non-existent fields
       return items as RowData[];
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     enabled: !!authToken,
   });
 
@@ -182,7 +182,7 @@ export default observer(function WorkOrderPage() {
         return [];
       }
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     enabled: !!authToken,
   });
 
@@ -1079,7 +1079,7 @@ export default observer(function WorkOrderPage() {
                 </div>
 
                 {/* Remarks - Textarea (Full Width) */}
-                <div className="col-span-2">
+                <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Remarks
                   </label>
