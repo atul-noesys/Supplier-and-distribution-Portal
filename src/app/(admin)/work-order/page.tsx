@@ -681,13 +681,15 @@ export default observer(function WorkOrderPage() {
                       // Render Badge for wo_status field
                       else if (column.key === "wo_status") {
                         const statusValue = String(value).toLowerCase();
-                        let statusColor: "blue" | "orange" | "green" | "warning" = "orange";
+                        let statusColor: "blue" | "orange" | "green" | "warning" | "purple"  = "orange";
                         
                         if (statusValue.includes("work in progress")) {
                           statusColor = "warning";
                         } else if (statusValue.includes("in warehouse")) {
                           statusColor = "blue";
                         } else if (statusValue.includes("ready to ship")) {
+                          statusColor = "purple";
+                        } else if (statusValue.includes("delivered")) {
                           statusColor = "green";
                         } else if (statusValue.includes("in transit")) {
                           statusColor = "orange";
