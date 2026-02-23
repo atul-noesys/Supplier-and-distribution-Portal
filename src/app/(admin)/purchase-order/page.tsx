@@ -603,17 +603,17 @@ export default observer(function PurchaseOrderPage() {
                         <td className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">
                           {searchTerm ? highlightText(po.vendor_name || po.vendor_id, searchTerm) : (po.vendor_name || po.vendor_id)}
                         </td>
-                        <td className="pl-12 px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">
+                        <td className="pl-11 px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">
                           {po.document ? (
                             <button
                               onClick={() => handleViewDocument(po.document!)}
                               className="cursor-pointer hover:opacity-75 transition-opacity"
                               title="View document"
                             >
-                              <AiOutlineEye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                              <AiOutlineEye className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                             </button>
                           ) : (
-                            <AiOutlineEyeInvisible className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                            <AiOutlineEyeInvisible className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                           )}
                         </td>
                         <td className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm truncate" title={po.remarks || "No remarks"}>
@@ -677,17 +677,17 @@ export default observer(function PurchaseOrderPage() {
                                   <div className="text-gray-700 dark:text-gray-300">$ {formatNumber(item.unit_price)}</div>
                                   <div className="text-gray-700 dark:text-gray-300">{item.quantity}</div>
                                   <div className="text-gray-700 dark:text-gray-300 font-semibold">$ {formatNumber(item.total || 0)}</div>
-                                  <div className="pl-7 text-gray-700 dark:text-gray-300 truncate" title={item.document || "No document"}>
+                                  <div className="pl-6 text-gray-700 dark:text-gray-300 truncate" title={item.document || "No document"}>
                                     {item.document ? (
                                       <button
                                         onClick={() => handleViewDocument(item.document!)}
                                         className="cursor-pointer hover:opacity-75 transition-opacity"
                                         title="View document"
                                       >
-                                        <AiOutlineEye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                        <AiOutlineEye className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                                       </button>
                                     ) : (
-                                      <AiOutlineEyeInvisible className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                                      <AiOutlineEyeInvisible className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                                     )}
                                   </div>
                                   <div className="text-gray-700 dark:text-gray-300 truncate" title={item.remarks || "No remarks"}>
