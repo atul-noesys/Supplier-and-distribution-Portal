@@ -4,7 +4,7 @@ import { PDFPreview } from "@/components/pdf-preview";
 import Badge from "@/components/ui/badge/Badge";
 import { useStore } from "@/store/store-context";
 import { RowData } from "@/types/nguage-rowdata";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { observer } from "mobx-react-lite";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
@@ -43,11 +43,13 @@ const getStatusColor = (
 };
 
 const HIDDEN_COLUMNS = ["ROWID", "InfoveaveBatchId", "vendor_id", "vendor_name", "step_history"];
-const HIDDEN_COLUMNS_MODAL = ["ROWID", "InfoveaveBatchId", "step_history"];
+const HIDDEN_COLUMNS_MODAL = ["ROWID", "InfoveaveBatchId", "step_history", "actual_delivery_date", "delivery_accepted_by"];
 
 
 export default observer(function DeliveryPage() {
     const { nguageStore } = useStore();
+    const user = nguageStore.currentUser;
+    const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState<string>("");
     const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -87,9 +89,12 @@ export default observer(function DeliveryPage() {
                 });
 
                 const result = Array.isArray(paginationData) ? paginationData : (paginationData?.data || []);
-                // Filter to show only "In transit" shipments
+                // Filter to show both "In transit" and "Delivered" shipments
                 return (result as RowData[]).filter(
-                    (item) => String(item.shipment_status || "").toLowerCase() === "in transit"
+                    (item) => {
+                        const status = String(item.shipment_status || "").toLowerCase();
+                        return status === "in transit" || status === "delivered";
+                    }
                 );
             } catch (err) {
                 console.error("Error fetching shipment data:", err);
@@ -203,11 +208,55 @@ export default observer(function DeliveryPage() {
     };
 
     // Handle submit accept delivery
-    const handleSubmitAcceptDelivery = () => {
-        console.log("Accept delivery with remarks:", acceptModalRemarks);
-        console.log("Data:", acceptModalData);
-        // TODO: Implement API call to submit the acceptance
-        closeAcceptModal();
+    const handleSubmitAcceptDelivery = async () => {
+        if (!acceptModalData) return;
+
+        try {
+            // Get current user from store
+            const currentUser = nguageStore.currentUser;
+            const username = currentUser?.userName || "Unknown";
+
+            // Get current date in ISO format
+            const currentDate = new Date().toISOString().split('T')[0];
+
+            // Prepare updated data with actual delivery date and accepted by username
+            const updatedData = {
+                ...acceptModalData,
+                actual_delivery_date: currentDate,
+                delivery_accepted_by: username,
+                remarks: acceptModalRemarks,
+                shipment_status: "Delivered"
+            };
+
+            // Use UpdateRowDataDynamic to update the shipment record
+            const result = await nguageStore.UpdateRowDataDynamic(
+                updatedData,
+                String(acceptModalData.ROWID),
+                52,
+                "shipment_list"
+            );
+
+            if (!result.result) {
+                throw new Error(result.error || "Failed to accept delivery");
+            }
+
+            console.log("Delivery accepted successfully");
+            
+            // Invalidate the query to refresh the shipment list
+            await queryClient.invalidateQueries({ 
+                queryKey: ["deliveryShipmentList"] 
+            });
+            
+            closeAcceptModal();
+            
+            // Optionally show success message (implement toast if available)
+            // toast.success("Delivery accepted successfully!");
+        } catch (error) {
+            console.error("Error accepting delivery:", error);
+            setAcceptModalError(error instanceof Error ? error.message : "Failed to accept delivery");
+            // Optionally show error message
+            // toast.error("Failed to accept delivery");
+        }
     };
 
     // Handle document upload
@@ -288,7 +337,7 @@ export default observer(function DeliveryPage() {
                 {/* Header with Title and Search */}
                 <div className="border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/5 px-6 py-4">
                     <div className="flex justify-between items-center gap-4">
-                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">In Transit Delivery List</h2>
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Delivery List</h2>
                         <div className="flex items-center gap-3 flex-1 max-w-115">
                             <div className="relative flex-1">
                                 <input
@@ -329,7 +378,7 @@ export default observer(function DeliveryPage() {
                     ) : filteredData.length === 0 ? (
                         <div className="flex items-center justify-center py-8">
                             <p className="text-gray-600 dark:text-gray-400">
-                                {searchTerm ? "No shipments match your search" : "No shipments in transit"}
+                                {searchTerm ? "No shipments match your search" : "No shipments found"}
                             </p>
                         </div>
                     ) : (
@@ -431,13 +480,15 @@ export default observer(function DeliveryPage() {
                                                             );
                                                         })}
                                                         <td className="px-2 py-2 text-center">
-                                                            <button
-                                                                onClick={() => handleAcceptDelivery(String(row.ROWID || ""))}
-                                                                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded text-sm flex items-center gap-1 justify-center whitespace-nowrap"
-                                                            >
-                                                                <MdDone className="w-4 h-4" />
-                                                                Accept
-                                                            </button>
+                                                            {user?.roleId === 5 && String(row.shipment_status || "").toLowerCase() !== "delivered" && (
+                                                                <button
+                                                                    onClick={() => handleAcceptDelivery(String(row.ROWID || ""))}
+                                                                    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded text-sm flex items-center gap-1 justify-center whitespace-nowrap"
+                                                                >
+                                                                    <MdDone className="w-4 h-4" />
+                                                                    Accept
+                                                                </button>
+                                                            )}
                                                         </td>
                                                     </tr>
                                                 </React.Fragment>
