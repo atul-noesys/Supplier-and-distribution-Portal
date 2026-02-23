@@ -639,10 +639,10 @@ export default observer(function DeliveryPage() {
                                                                                 className="cursor-pointer hover:opacity-75 transition-opacity"
                                                                                 title="View document"
                                                                             >
-                                                                                <AiOutlineEye className="ml-7 w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                                                                <AiOutlineEye className="ml-6 w-5 h-5 text-blue-600 dark:text-blue-400" />
                                                                             </button>
                                                                         ) : (
-                                                                            <AiOutlineEyeInvisible className="ml-7 w-4 h-4 text-gray-400 dark:text-gray-500" />
+                                                                            <AiOutlineEyeInvisible className="ml-6 w-5 h-5 text-gray-400 dark:text-gray-500" />
                                                                         )}
                                                                     </td>
                                                                 );
