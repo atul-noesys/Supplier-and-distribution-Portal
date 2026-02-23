@@ -2,12 +2,13 @@
 
 import AddPOModal from "@/components/modals/AddPOModal";
 import Badge from "@/components/ui/badge/Badge";
+import { PDFPreview } from "@/components/pdf-preview";
 import { useStore } from "@/store/store-context";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { observer } from "mobx-react-lite";
-import { Fragment, useEffect, useState } from "react";
-import { AiOutlineCheck } from "react-icons/ai";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { AiOutlineCheck, AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { MdArrowDropDown, MdClose } from "react-icons/md";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { toast } from "react-toastify";
@@ -20,6 +21,8 @@ interface PurchaseOrder {
   vendor_name?: string;
   InfoveaveBatchId: number;
   ROWID: number;
+  document?: string | null;
+  remarks?: string | null;
 }
 
 interface PurchaseOrderItem {
@@ -72,6 +75,11 @@ export default observer(function PurchaseOrderPage() {
   const [isAddPOModalOpen, setIsAddPOModalOpen] = useState(false);
   const [loadingItemROWID, setLoadingItemROWID] = useState<number | null>(null);
   const [loadingPONumber, setLoadingPONumber] = useState<string | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [loadingPdf, setLoadingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
+  const previousUrlRef = useRef<string | null>(null);
 
   // Fetch auth token - refresh on component mount
   const { data: authToken = null } = useQuery({
@@ -80,6 +88,67 @@ export default observer(function PurchaseOrderPage() {
     staleTime: 0,
     gcTime: 0,
   });
+
+  // Fetch PDF document
+  const fetchPdf = useCallback(async (docName: string | null) => {
+    if (!docName) {
+      setPdfUrl(null);
+      return;
+    }
+
+    setLoadingPdf(true);
+    setPdfError(null);
+
+    try {
+      const apiUrl = `/api/GetPdfUrl?attachment=${encodeURIComponent(docName)}`;
+
+      const pdfResponse = await fetch(apiUrl, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+
+      if (!pdfResponse.ok) {
+        throw new Error(
+          `Failed to fetch PDF: ${pdfResponse.status} ${pdfResponse.statusText}`,
+        );
+      }
+
+      const pdfBlob = await pdfResponse.blob();
+      const blobUrl = URL.createObjectURL(pdfBlob);
+      if (previousUrlRef.current) {
+        URL.revokeObjectURL(previousUrlRef.current);
+      }
+      previousUrlRef.current = blobUrl;
+      setPdfUrl(blobUrl);
+    } catch (err) {
+      console.error("Failed to fetch PDF:", err);
+      setPdfError(err instanceof Error ? err.message : "Failed to load PDF");
+      setPdfUrl(null);
+    } finally {
+      setLoadingPdf(false);
+    }
+  }, [authToken]);
+
+  // Handle PDF fetching when document selection changes
+  useEffect(() => {
+    fetchPdf(selectedDocument);
+  }, [selectedDocument, fetchPdf]);
+
+  // Handle viewing document
+  const handleViewDocument = (docName: string) => {
+    setSelectedDocument(docName);
+  };
+
+  // Close PDF viewer
+  const closePdfViewer = () => {
+    setSelectedDocument(null);
+    if (previousUrlRef.current) {
+      URL.revokeObjectURL(previousUrlRef.current);
+      previousUrlRef.current = null;
+    }
+    setPdfUrl(null);
+  };
 
   // Get the current user from the store
   const user = nguageStore.currentUser;
@@ -478,8 +547,8 @@ export default observer(function PurchaseOrderPage() {
           </div>
           ) : (
             <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-white/5 bg-white dark:bg-white/3">
-              <div className="max-w-full overflow-x-auto">
-                <table className="w-full">
+              <div className="w-full">
+                <table className="w-full table-fixed">
                 <thead>
                   <tr className="border-b border-blue-900 bg-blue-800 dark:bg-blue-700">
                     <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide">
@@ -493,6 +562,12 @@ export default observer(function PurchaseOrderPage() {
                     </th>
                     <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide">
                       Vendor Name
+                    </th>
+                    <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide">
+                      Document
+                    </th>
+                    <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide">
+                      Remarks
                     </th>
                     {user?.roleId !== 5 && (
                       <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide" style={{ width: '175px' }}>
@@ -528,6 +603,22 @@ export default observer(function PurchaseOrderPage() {
                         <td className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">
                           {searchTerm ? highlightText(po.vendor_name || po.vendor_id, searchTerm) : (po.vendor_name || po.vendor_id)}
                         </td>
+                        <td className="pl-12 px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">
+                          {po.document ? (
+                            <button
+                              onClick={() => handleViewDocument(po.document!)}
+                              className="cursor-pointer hover:opacity-75 transition-opacity"
+                              title="View document"
+                            >
+                              <AiOutlineEye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            </button>
+                          ) : (
+                            <AiOutlineEyeInvisible className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                          )}
+                        </td>
+                        <td className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm truncate" title={po.remarks || "No remarks"}>
+                          {po.remarks || <span className="text-gray-400 dark:text-gray-500">-</span>}
+                        </td>
                         {user?.roleId !== 5 && (
                           <td className="px-5 py-4">
                             {itemsByPO[po.po_number]?.some((item) => item.work_order_created !== "Yes") ? (
@@ -559,13 +650,15 @@ export default observer(function PurchaseOrderPage() {
                       {expandedPOs.has(po.po_number) && itemsByPO[po.po_number] && itemsByPO[po.po_number].length > 0 && (
                         <>
                           <tr className="border-b border-gray-100 dark:border-white/5 bg-blue-100 dark:bg-blue-900/40">
-                            <td colSpan={user?.roleId !== 5 ? 5 : 4} className="px-5 py-3">
-                              <div className="grid gap-6" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 0.9fr' }}>
+                            <td colSpan={user?.roleId !== 5 ? 7 : 6} className="px-5 py-3">
+                              <div className="grid gap-6" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 1.2fr 1.2fr 1.4fr' }}>
                                 <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Item Code</div>
                                 <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Item Name</div>
                                 <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Unit Price</div>
                                 <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Qty</div>
                                 <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Total</div>
+                                <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Document</div>
+                                <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Remarks</div>
                                 <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">WO Created</div>
                               </div>
                             </td>
@@ -575,8 +668,8 @@ export default observer(function PurchaseOrderPage() {
                               key={item.ROWID}
                               className="border-b border-gray-100 dark:border-white/5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
                             >
-                              <td colSpan={user?.roleId !== 5 ? 5 : 4} className="px-5 py-4">
-                                <div className="grid gap-6 text-sm" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 0.9fr' }}>
+                              <td colSpan={user?.roleId !== 5 ? 7 : 6} className="px-5 py-4">
+                                <div className="grid gap-6 text-sm" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 1.2fr 1.2fr 1.4fr' }}>
                                   <div className="text-gray-700 dark:text-gray-300">{item.item_code}</div>
                                   <div className="text-gray-700 dark:text-gray-300">
                                     {searchTerm ? highlightText(item.item, searchTerm) : item.item}
@@ -584,6 +677,22 @@ export default observer(function PurchaseOrderPage() {
                                   <div className="text-gray-700 dark:text-gray-300">$ {formatNumber(item.unit_price)}</div>
                                   <div className="text-gray-700 dark:text-gray-300">{item.quantity}</div>
                                   <div className="text-gray-700 dark:text-gray-300 font-semibold">$ {formatNumber(item.total || 0)}</div>
+                                  <div className="pl-7 text-gray-700 dark:text-gray-300 truncate" title={item.document || "No document"}>
+                                    {item.document ? (
+                                      <button
+                                        onClick={() => handleViewDocument(item.document!)}
+                                        className="cursor-pointer hover:opacity-75 transition-opacity"
+                                        title="View document"
+                                      >
+                                        <AiOutlineEye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                      </button>
+                                    ) : (
+                                      <AiOutlineEyeInvisible className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                                    )}
+                                  </div>
+                                  <div className="text-gray-700 dark:text-gray-300 truncate" title={item.remarks || "No remarks"}>
+                                    {item.remarks || <span className="text-gray-400 dark:text-gray-500">-</span>}
+                                  </div>
                                   <div>
                                     {item.work_order_created === "Yes" ? (
                                       <Badge color="success" variant="solid" size="sm">
@@ -628,6 +737,63 @@ export default observer(function PurchaseOrderPage() {
           )}
         </div>
       </div>
+
+      {/* PDF Viewer Modal */}
+      {selectedDocument && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-2/3 h-5/6 flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {selectedDocument}
+              </h2>
+              <button
+                onClick={closePdfViewer}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <MdClose className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-hidden">
+              {pdfError ? (
+                <div className="flex h-full items-center justify-center">
+                  <div className="text-center">
+                    <div className="mb-2 text-lg font-medium text-red-500">
+                      Error
+                    </div>
+                    <div className="text-gray-600 dark:text-gray-400">{pdfError}</div>
+                    <button
+                      className="mt-4 rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+                      onClick={() => handleViewDocument(selectedDocument)}
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </div>
+              ) : loadingPdf ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin">
+                    <div className="h-8 w-8 border-4 border-brand-500 border-t-transparent rounded-full"></div>
+                  </div>
+                </div>
+              ) : pdfUrl ? (
+                <PDFPreview
+                  pdfUrl={pdfUrl}
+                  docName={selectedDocument}
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center">
+                  <div className="text-center text-gray-600 dark:text-gray-400">
+                    No PDF loaded
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add PO Modal */}
       <AddPOModal
