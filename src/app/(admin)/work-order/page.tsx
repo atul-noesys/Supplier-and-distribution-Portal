@@ -670,10 +670,19 @@ export default observer(function WorkOrderPage() {
                       if (column.key === "start_date" || column.key === "end_date") {
                         cellContent = formatDate(String(value || ""));
                       }
-                      // Render Badge for step field
+                      // Render Badge for step field with color mapping
                       else if (column.key === "step") {
+                        const stepValue = String(value || "");
+                        const stepColors: Record<string, "blue" | "purple" | "pink" | "orange" | "green"> = {
+                          "Step 1": "blue",
+                          "Step 2": "purple",
+                          "Step 3": "pink",
+                          "Step 4": "orange",
+                          "Step 5": "green",
+                        };
+                        const stepColor = stepColors[stepValue] || "blue";
                         cellContent = (
-                          <Badge color="green" variant="solid">
+                          <Badge color={stepColor} variant="light">
                             {value || "-"}
                           </Badge>
                         );

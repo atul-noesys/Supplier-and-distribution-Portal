@@ -21,7 +21,7 @@ const tableStyles = `
 
 const getStatusColor = (
     status: string,
-): "primary" | "success" | "error" | "warning" | "info" | "light" | "dark" => {
+): "primary" | "success" | "error" | "warning" | "info" | "light" | "dark" | "orange" => {
     const lowerStatus = status?.toLowerCase() || "";
     switch (lowerStatus) {
         case "delivered":
@@ -31,7 +31,7 @@ const getStatusColor = (
             return "success";
         case "pending":
         case "in transit":
-            return "warning";
+            return "orange";
         case "shipped":
         case "processing":
             return "info";
