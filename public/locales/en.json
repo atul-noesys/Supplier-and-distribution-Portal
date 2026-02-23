@@ -1,0 +1,16 @@
+{
+  "sidebar": {
+    "overview": "Overview",
+    "analytics": "Analytics",
+    "reports": "Reports",
+    "users": "Users",
+    "products": "Products",
+    "orders": "Orders",
+    "dashboard": "Dashboard",
+    "purchaseOrder": "Purchase Order",
+    "workOrder": "Work Order",
+    "shipment": "Shipment",
+    "delivery": "Delivery",
+    "menu": "Menu"
+  }
+}

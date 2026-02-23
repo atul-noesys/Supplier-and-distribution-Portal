@@ -1,0 +1,16 @@
+{
+  "sidebar": {
+    "overview": "概览",
+    "analytics": "分析",
+    "reports": "报告",
+    "users": "用户",
+    "products": "产品",
+    "orders": "订单",
+    "dashboard": "仪表板",
+    "purchaseOrder": "采购订单",
+    "workOrder": "工作单",
+    "shipment": "装运",
+    "delivery": "交付",
+    "menu": "菜单"
+  }
+}

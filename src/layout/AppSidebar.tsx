@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useSidebar } from "../context/SidebarContext";
+import { useTranslation } from "@/i18n/useTranslation";
 import {
   ChevronDownIcon,
   GridIcon,
@@ -21,42 +22,39 @@ type NavItem = {
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
 };
 
-const navItems: NavItem[] = [
+const getNavItems = (t: (key: string) => string): NavItem[] => [
   {
     icon: <GridIcon />,
-    name: "Dashboard",
+    name: t('sidebar.dashboard'),
     path: "/",
   },
   {
     icon: <ListIcon />,
-    name: "Purchase Order",
+    name: t('sidebar.purchaseOrder'),
     path: "/purchase-order",
   },
   {
     icon: <TaskIcon />,
-    name: "Work Order",
+    name: t('sidebar.workOrder'),
     path: "/work-order",
   },
   {
     icon: <TruckIcon />,
-    name: "Shipment",
+    name: t('sidebar.shipment'),
     path: "/shipment",
   },
   {
     icon: <BoxIconLine />,
-    name: "Delivery",
+    name: t('sidebar.delivery'),
     path: "/delivery",
   },
-  // {
-  //   icon: <GridIcon />,
-  //   name: "Products",
-  //   path: "/products",
-  // },
 ];
 
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered, toggleMobileSidebar } = useSidebar();
   const pathname = usePathname();
+  const { t } = useTranslation();
+  const navItems = getNavItems(t);
 
   const renderMenuItems = (
     navItems: NavItem[],
@@ -284,7 +282,7 @@ const AppSidebar: React.FC = () => {
                   }`}
               >
                 {isExpanded || isHovered || isMobileOpen ? (
-                  "Menu"
+                  t('sidebar.menu')
                 ) : (
                   <HorizontaLDots />
                 )}
