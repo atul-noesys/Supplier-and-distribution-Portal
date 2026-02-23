@@ -11,6 +11,13 @@ import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { MdClose, MdDone } from "react-icons/md";
 import { v4 as uuidv4 } from "uuid";
 
+const tableStyles = `
+  .delivery-table td {
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+`;
+
 const getStatusColor = (
     status: string,
 ): "primary" | "success" | "error" | "warning" | "info" | "light" | "dark" => {
@@ -276,6 +283,7 @@ export default observer(function DeliveryPage() {
 
     return (
         <div className="space-y-6">
+            <style>{tableStyles}</style>
             <div className="rounded-lg border border-gray-200 dark:border-white/5 bg-white dark:bg-white/3 overflow-hidden">
                 {/* Header with Title and Search */}
                 <div className="border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/5 px-6 py-4">
@@ -326,21 +334,21 @@ export default observer(function DeliveryPage() {
                         </div>
                     ) : (
                         <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-white/5 bg-white dark:bg-white/3">
-                            <div className="max-w-full overflow-x-auto">
-                                <table className="w-full">
+                            <div className="w-full">
+                                <table className="delivery-table w-full table-fixed">
                                     <thead>
                                         <tr className="border-b border-blue-900 bg-blue-800 dark:bg-blue-700">
                                             {columns.map((col) => (
                                                 <th
                                                     key={col}
-                                                    className="px-5 py-1 text-left font-medium text-white text-xs uppercase tracking-wide"
+                                                    className="px-2 py-2 text-left font-medium text-white text-xs uppercase tracking-wide"
                                                 >
                                                     {col
                                                         .replace(/_/g, " ")
                                                         .replace(/\b\w/g, (l) => l.toUpperCase())}
                                                 </th>
                                             ))}
-                                            <th className="px-5 py-1 text-left font-medium text-white text-xs uppercase tracking-wide">
+                                            <th className="px-2 py-2 text-left font-medium text-white text-xs uppercase tracking-wide">
                                                 Actions
                                             </th>
                                         </tr>
@@ -355,7 +363,7 @@ export default observer(function DeliveryPage() {
                                                     <tr
                                                         className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/2 transition-colors"
                                                     >
-                                                        <td className="pl-5 text-gray-700 dark:text-gray-300 font-semibold text-sm">
+                                                        <td className="pl-2 pr-1 py-2 text-gray-700 dark:text-gray-300 font-semibold text-sm">
 
                                                             {searchTerm ? highlightText(String(row[columns[0]] || ""), searchTerm) : String(row[columns[0]] || "")}
 
@@ -370,7 +378,7 @@ export default observer(function DeliveryPage() {
                                                             ) {
                                                                 const isShipmentStatus = col.toLowerCase() === "shipment_status";
                                                                 return (
-                                                                    <td key={col} className={isShipmentStatus ? "px-3 py-2.5 w-32" : "px-3 py-2.5"}>
+                                                                    <td key={col} className={isShipmentStatus ? "px-1 py-2 w-28" : "px-1 py-2"}>
                                                                         {value && <Badge color={getStatusColor(String(value))} variant="solid" size="sm">
                                                                             {String(value)}
                                                                         </Badge>
@@ -384,7 +392,7 @@ export default observer(function DeliveryPage() {
                                                                 return (
                                                                     <td
                                                                         key={col}
-                                                                        className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm"
+                                                                        className="px-2 py-2 text-gray-600 dark:text-gray-400 text-sm"
                                                                     >
                                                                         {value
                                                                             ? new Date(String(value)).toLocaleDateString()
@@ -396,17 +404,17 @@ export default observer(function DeliveryPage() {
                                                             // Check if it's a document field
                                                             if (col.toLowerCase().includes("document")) {
                                                                 return (
-                                                                    <td key={col} className="px-11 py-4">
+                                                                    <td key={col} className="px-2 py-2">
                                                                         {value ? (
                                                                             <button
                                                                                 onClick={() => handleViewDocument(value as string)}
                                                                                 className="cursor-pointer hover:opacity-75 transition-opacity"
                                                                                 title="View document"
                                                                             >
-                                                                                <AiOutlineEye className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                                                                <AiOutlineEye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                                                                             </button>
                                                                         ) : (
-                                                                            <AiOutlineEyeInvisible className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                                                                            <AiOutlineEyeInvisible className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                                                                         )}
                                                                     </td>
                                                                 );
@@ -416,18 +424,18 @@ export default observer(function DeliveryPage() {
                                                             return (
                                                                 <td
                                                                     key={col}
-                                                                    className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm"
+                                                                    className="px-2 py-2 text-gray-600 dark:text-gray-400 text-sm"
                                                                 >
                                                                     {searchTerm ? highlightText(String(value || "-"), searchTerm) : String(value || "-")}
                                                                 </td>
                                                             );
                                                         })}
-                                                        <td className="px-5 py-4 text-center">
+                                                        <td className="px-2 py-2 text-center">
                                                             <button
                                                                 onClick={() => handleAcceptDelivery(String(row.ROWID || ""))}
-                                                                className="px-4 py-1 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors text-sm flex items-center gap-1 justify-center"
+                                                                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded text-sm flex items-center gap-1 justify-center whitespace-nowrap"
                                                             >
-                                                                <MdDone className="w-5 h-5" />
+                                                                <MdDone className="w-4 h-4" />
                                                                 Accept
                                                             </button>
                                                         </td>
