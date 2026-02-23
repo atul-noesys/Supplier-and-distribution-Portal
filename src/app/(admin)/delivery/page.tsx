@@ -10,6 +10,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { MdClose, MdDone } from "react-icons/md";
 import { v4 as uuidv4 } from "uuid";
+import { toast } from "react-toastify";
 
 const tableStyles = `
   .delivery-table td {
@@ -99,6 +100,45 @@ export default observer(function DeliveryPage() {
             } catch (err) {
                 console.error("Error fetching shipment data:", err);
                 throw err;
+            }
+        },
+        staleTime: 0,
+        enabled: !!authToken,
+    });
+
+    // Fetch ALL work orders for status updates/lookups
+    const { data: allWorkOrders = [] } = useQuery({
+        queryKey: ["allWorkOrdersDelivery", authToken],
+        queryFn: async (): Promise<RowData[]> => {
+            const response = await nguageStore.GetPaginationData({
+                table: "work_order",
+                skip: 0,
+                take: 500,
+                NGaugeId: "44",
+            });
+            let items = response?.data || response || [];
+            return Array.isArray(items) ? (items as RowData[]) : [];
+        },
+        staleTime: 0,
+        enabled: !!authToken,
+    });
+
+    // Fetch shipment items for mapping
+    const { data: shipmentItems = [] } = useQuery({
+        queryKey: ["shipmentItemsDelivery", authToken],
+        queryFn: async (): Promise<RowData[]> => {
+            try {
+                const paginationData = await nguageStore.GetPaginationData({
+                    table: "shipment_list_items",
+                    skip: 0,
+                    take: null,
+                    NGaugeId: "47",
+                });
+                const result = Array.isArray(paginationData) ? paginationData : (paginationData?.data || []);
+                return result as RowData[];
+            } catch (err) {
+                console.error("Error fetching shipment items:", err);
+                return [];
             }
         },
         staleTime: 0,
@@ -207,10 +247,96 @@ export default observer(function DeliveryPage() {
         setIsUploadingDocument(false);
     };
 
+    // Helper function to update work order status
+    const updateWorkOrderStatus = async (workOrderId: string, newStatus: string) => {
+        try {
+            console.log(`\n=== Updating Work Order Status ===`);
+            console.log(`Work Order ID: ${workOrderId}`);
+            console.log(`New Status: ${newStatus}`);
+            console.log(`Total work orders available: ${allWorkOrders.length}`);
+            
+            // Find the work order by matching the expression field value
+            const workOrder = allWorkOrders.find((wo) => {
+                // Find the expression column (dynamic JSON key)
+                const expressionKey = Object.keys(wo).find(
+                    (key) => key.includes("expression") && key.includes("@po_number") && key.includes("@item_code")
+                );
+                
+                // Get the expression value which is the concatenated po_number + item_code
+                const woId = expressionKey ? String(wo[expressionKey] || "") : "";
+                
+                console.log(`Checking WO: ${woId} against ${workOrderId}`);
+                return woId === workOrderId;
+            });
+
+            if (!workOrder) {
+                console.error(`Could not find work order matching ID: ${workOrderId}`);
+                console.log("Available work orders:", allWorkOrders.map(wo => {
+                    const expressionKey = Object.keys(wo).find(
+                        (key) => key.includes("expression") && key.includes("@po_number") && key.includes("@item_code")
+                    );
+                    return {
+                        id: expressionKey ? wo[expressionKey] : "N/A",
+                        po_number: wo.po_number,
+                        item_code: wo.item_code,
+                        ROWID: wo.ROWID
+                    };
+                }));
+                throw new Error(`Work order not found: ${workOrderId}`);
+            }
+
+            if (!workOrder.ROWID) {
+                console.error(`Work order found but has no ROWID: ${workOrderId}`);
+                throw new Error(`Work order has no ROWID: ${workOrderId}`);
+            }
+
+            console.log(`Found work order with ROWID: ${workOrder.ROWID}`);
+
+            // Fetch the full work order data
+            const fullWorkOrderData = await nguageStore.GetRowData(44, String(workOrder.ROWID), 'work_order');
+
+            if (!fullWorkOrderData) {
+                console.error(`Could not fetch full work order data for ROWID: ${workOrder.ROWID}`);
+                throw new Error(`Could not fetch work order data for ROWID: ${workOrder.ROWID}`);
+            }
+
+            console.log(`Fetched full work order data, current status: ${fullWorkOrderData.wo_status}`);
+
+            // Spread the entire object and only update wo_status
+            const updatedWorkOrder = {
+                ...fullWorkOrderData,
+                wo_status: newStatus,
+            };
+
+            console.log(`Updating work order with new status: ${newStatus}`);
+            const result = await nguageStore.UpdateRowDataDynamic(
+                updatedWorkOrder,
+                String(workOrder.ROWID),
+                44,
+                'work_order'
+            );
+
+            if (!result.result) {
+                const errorMsg = `Failed to update work order status: ${result.error}`;
+                console.error(errorMsg);
+                throw new Error(errorMsg);
+            }
+
+            console.log(`✓ Work order ${workOrderId} status updated to ${newStatus}`);
+            // Invalidate work order queries to refresh the data
+            queryClient.invalidateQueries({ queryKey: ["allWorkOrdersDelivery"] });
+        } catch (error) {
+            console.error(`✗ Error updating work order status for ${workOrderId}:`, error);
+            throw error;
+        }
+    };
+
     // Handle submit accept delivery
     const handleSubmitAcceptDelivery = async () => {
         if (!acceptModalData) return;
 
+        setAcceptModalLoading(true);
+        
         try {
             // Get current user from store
             const currentUser = nguageStore.currentUser;
@@ -241,21 +367,71 @@ export default observer(function DeliveryPage() {
             }
 
             console.log("Delivery accepted successfully");
+            toast.success("Shipment marked as delivered!");
+
+            // Get shipment ID for finding associated items
+            const shipmentId = String(acceptModalData.shipment_id || "");
+            console.log(`Looking for items with shipment_id: ${shipmentId}`);
+            console.log(`Current shipmentItems data:`, shipmentItems);
+
+            // Find all items related to this shipment and update their work orders
+            const itemsForShipment = shipmentItems.filter(
+                (item) => String(item.shipment_id || "") === shipmentId
+            );
+
+            console.log(`Found ${itemsForShipment.length} items for shipment ${shipmentId}`);
+            console.log("Items for shipment:", itemsForShipment);
+
+            if (itemsForShipment.length === 0) {
+                console.warn(`No items found for shipment ${shipmentId}. Work orders will not be updated.`);
+                console.log("Debugging: Checking if shipment_id field exists in items...");
+                console.log("Sample item structure:", shipmentItems[0]);
+                toast.warning("No shipment items found. Work orders were not updated.");
+            } else {
+                // Update work order statuses to "Delivered"
+                let successCount = 0;
+                let failureCount = 0;
+                
+                for (const item of itemsForShipment) {
+                    console.log(`Processing item:`, item);
+                    if (item.work_order_id) {
+                        console.log(`Updating work order: ${item.work_order_id}`);
+                        try {
+                            await updateWorkOrderStatus(String(item.work_order_id), "Delivered");
+                            successCount++;
+                        } catch (woError) {
+                            console.error(`Failed to update work order ${item.work_order_id}:`, woError);
+                            failureCount++;
+                        }
+                    } else {
+                        console.warn(`Item has no work_order_id:`, item);
+                    }
+                }
+                
+                if (successCount > 0) {
+                    toast.success(`${successCount} work order(s) updated to "Delivered"`);
+                }
+                if (failureCount > 0) {
+                    toast.error(`Failed to update ${failureCount} work order(s)`);
+                }
+            }
             
-            // Invalidate the query to refresh the shipment list
+            // Invalidate the queries to refresh the data
             await queryClient.invalidateQueries({ 
                 queryKey: ["deliveryShipmentList"] 
             });
+            await queryClient.invalidateQueries({ 
+                queryKey: ["allWorkOrdersDelivery"] 
+            });
             
             closeAcceptModal();
-            
-            // Optionally show success message (implement toast if available)
-            // toast.success("Delivery accepted successfully!");
         } catch (error) {
             console.error("Error accepting delivery:", error);
-            setAcceptModalError(error instanceof Error ? error.message : "Failed to accept delivery");
-            // Optionally show error message
-            // toast.error("Failed to accept delivery");
+            const errorMessage = error instanceof Error ? error.message : "Failed to accept delivery";
+            setAcceptModalError(errorMessage);
+            toast.error(errorMessage);
+        } finally {
+            setAcceptModalLoading(false);
         }
     };
 
@@ -578,13 +754,7 @@ export default observer(function DeliveryPage() {
 
                         {/* Content */}
                         <div className="flex-1 overflow-y-auto p-6">
-                            {acceptModalLoading ? (
-                                <div className="flex items-center justify-center py-8">
-                                    <div className="animate-spin">
-                                        <div className="h-8 w-8 border-4 border-brand-500 border-t-transparent rounded-full"></div>
-                                    </div>
-                                </div>
-                            ) : acceptModalError ? (
+                            {acceptModalError ? (
                                 <div className="flex items-center justify-center py-8">
                                     <p className="text-error-600 dark:text-error-400">
                                         {acceptModalError}
@@ -678,9 +848,21 @@ export default observer(function DeliveryPage() {
                             <button
                                 onClick={handleSubmitAcceptDelivery}
                                 disabled={acceptModalLoading}
-                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors"
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors flex items-center gap-2 justify-center"
                             >
-                                Accept Delivery
+                                {acceptModalLoading ? (
+                                    <>
+                                        <div className="animate-spin">
+                                            <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                                        </div>
+                                        Accepting Delivery...
+                                    </>
+                                ) : (
+                                    <>
+                                        <MdDone className="w-4 h-4" />
+                                        Accept Delivery
+                                    </>
+                                )}
                             </button>
                         </div>
                     </div>
