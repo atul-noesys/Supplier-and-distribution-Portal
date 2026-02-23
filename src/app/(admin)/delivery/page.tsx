@@ -216,7 +216,6 @@ export default observer(function DeliveryPage() {
 
     // Handle Accept button click - fetch row data and open modal
     const handleAcceptDelivery = useCallback(async (rowId: string) => {
-        setShowAcceptModal(true);
         setAcceptModalLoading(true);
         setAcceptModalError(null);
         setAcceptModalData(null);
@@ -226,12 +225,15 @@ export default observer(function DeliveryPage() {
             const rowData = await nguageStore.GetRowData(52, rowId, "shipment_list");
             if (rowData) {
                 setAcceptModalData(rowData);
+                setShowAcceptModal(true);
             } else {
                 setAcceptModalError("Failed to load shipment data");
+                setShowAcceptModal(true);
             }
         } catch (err) {
             console.error("Error fetching row data:", err);
             setAcceptModalError(err instanceof Error ? err.message : "Failed to load shipment data");
+            setShowAcceptModal(true);
         } finally {
             setAcceptModalLoading(false);
         }
@@ -741,7 +743,7 @@ export default observer(function DeliveryPage() {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                     <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-2/3 max-h-5/6 flex flex-col overflow-hidden">
                         {/* Header */}
-                        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-white/5">
+                        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-5 py-3 bg-gray-50 dark:bg-white/5">
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                                 Accept Delivery
                             </h2>
@@ -839,7 +841,7 @@ export default observer(function DeliveryPage() {
                         </div>
 
                         {/* Footer */}
-                        <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-white/5 flex justify-end gap-3">
+                        <div className="border-t border-gray-200 dark:border-gray-700 px-5 py-3 bg-gray-50 dark:bg-white/5 flex justify-end gap-3">
                             <button
                                 onClick={closeAcceptModal}
                                 className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
