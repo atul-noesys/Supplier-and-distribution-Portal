@@ -1,16 +1,30 @@
 {
-  "sidebar": {
-    "overview": "Overview",
-    "analytics": "Analytics",
-    "reports": "Reports",
-    "users": "Users",
-    "products": "Products",
-    "orders": "Orders",
-    "dashboard": "Dashboard",
-    "purchaseOrder": "Purchase Order",
-    "workOrder": "Work Order",
-    "shipment": "Shipment",
-    "delivery": "Delivery",
-    "menu": "Menu"
-  }
+    "purchaseOrderPage": {
+        "title": "Purchase Orders",
+        "addPO": "Add PO",
+        "search": "Search by PO number/Item name/Vendor name",
+        "poNumber": "PO Number",
+        "issueDate": "Issue Date",
+        "status": "Status",
+        "vendorName": "Vendor Name",
+        "document": "Document",
+        "remarks": "Remarks",
+        "woCreated": "WO Created",
+        "createWO": "Create WO",
+        "createAllWO": "Create All WO"
+    },
+    "sidebar": {
+        "overview": "Overview",
+        "analytics": "Analytics",
+        "reports": "Reports",
+        "users": "Users",
+        "products": "Products",
+        "orders": "Orders",
+        "dashboard": "Dashboard",
+        "purchaseOrder": "Purchase Order",
+        "workOrder": "Work Order",
+        "shipment": "Shipment",
+        "delivery": "Delivery",
+        "menu": "Menu"
+    }
 }

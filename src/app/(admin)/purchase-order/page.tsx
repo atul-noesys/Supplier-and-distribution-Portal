@@ -12,6 +12,7 @@ import { AiOutlineCheck, AiOutlineEye, AiOutlineEyeInvisible } from "react-icons
 import { MdArrowDropDown, MdClose } from "react-icons/md";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { toast } from "react-toastify";
+import { useTranslation } from "@/i18n";
 
 interface PurchaseOrder {
   po_number: string;
@@ -70,6 +71,7 @@ const getStatusColor = (
 export default observer(function PurchaseOrderPage() {
   const { nguageStore } = useStore();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   const [expandedPOs, setExpandedPOs] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [isAddPOModalOpen, setIsAddPOModalOpen] = useState(false);
@@ -521,7 +523,7 @@ export default observer(function PurchaseOrderPage() {
                   onClick={() => setIsAddPOModalOpen(true)}
                   className="px-4 py-2.25 bg-blue-800 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
                 >
-                  + ADD PO
+                  + {t('purchaseOrderPage.addPO')}
                 </button>
               )}
             </div>
