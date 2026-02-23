@@ -9,6 +9,7 @@ import { observer } from "mobx-react-lite";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { MdClose, MdDone } from "react-icons/md";
+import { v4 as uuidv4 } from "uuid";
 
 const getStatusColor = (
     status: string,
@@ -35,6 +36,7 @@ const getStatusColor = (
 };
 
 const HIDDEN_COLUMNS = ["ROWID", "InfoveaveBatchId", "vendor_id", "vendor_name", "step_history"];
+const HIDDEN_COLUMNS_MODAL = ["ROWID", "InfoveaveBatchId", "step_history"];
 
 
 export default observer(function DeliveryPage() {
@@ -45,6 +47,15 @@ export default observer(function DeliveryPage() {
     const [loadingPdf, setLoadingPdf] = useState(false);
     const [pdfError, setPdfError] = useState<string | null>(null);
     const previousUrlRef = useRef<string | null>(null);
+    
+    // Modal states
+    const [showAcceptModal, setShowAcceptModal] = useState(false);
+    const [acceptModalData, setAcceptModalData] = useState<RowData | null>(null);
+    const [acceptModalLoading, setAcceptModalLoading] = useState(false);
+    const [acceptModalError, setAcceptModalError] = useState<string | null>(null);
+    const [acceptModalRemarks, setAcceptModalRemarks] = useState<string>("");
+    const [isUploadingDocument, setIsUploadingDocument] = useState(false);
+    const [uploadMessage, setUploadMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
 
 
@@ -149,6 +160,82 @@ export default observer(function DeliveryPage() {
             previousUrlRef.current = null;
         }
         setPdfUrl(null);
+    };
+
+    // Handle Accept button click - fetch row data and open modal
+    const handleAcceptDelivery = useCallback(async (rowId: string) => {
+        setShowAcceptModal(true);
+        setAcceptModalLoading(true);
+        setAcceptModalError(null);
+        setAcceptModalData(null);
+        setAcceptModalRemarks("");
+
+        try {
+            const rowData = await nguageStore.GetRowData(52, rowId, "shipment_list");
+            if (rowData) {
+                setAcceptModalData(rowData);
+            } else {
+                setAcceptModalError("Failed to load shipment data");
+            }
+        } catch (err) {
+            console.error("Error fetching row data:", err);
+            setAcceptModalError(err instanceof Error ? err.message : "Failed to load shipment data");
+        } finally {
+            setAcceptModalLoading(false);
+        }
+    }, [nguageStore]);
+
+    // Close accept modal
+    const closeAcceptModal = () => {
+        setShowAcceptModal(false);
+        setAcceptModalData(null);
+        setAcceptModalError(null);
+        setAcceptModalRemarks("");
+        setUploadMessage(null);
+        setIsUploadingDocument(false);
+    };
+
+    // Handle submit accept delivery
+    const handleSubmitAcceptDelivery = () => {
+        console.log("Accept delivery with remarks:", acceptModalRemarks);
+        console.log("Data:", acceptModalData);
+        // TODO: Implement API call to submit the acceptance
+        closeAcceptModal();
+    };
+
+    // Handle document upload
+    const handleEditDocumentChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            const file = e.target.files[0];
+            const fileNameToUpload = "Ngauge" + uuidv4() + file.name;
+
+            setIsUploadingDocument(true);
+            setUploadMessage(null);
+
+            try {
+                console.log("Uploading file:", file.name);
+                const uploadResult = await nguageStore.UploadAttachFile(file, fileNameToUpload);
+                console.log("Upload result:", uploadResult);
+
+                if (uploadResult) {
+                    setAcceptModalData((prev) => {
+                        if (!prev) return null;
+                        return {
+                            ...prev,
+                            document: fileNameToUpload,
+                        };
+                    });
+                    setUploadMessage({ type: "success", text: "File uploaded successfully!" });
+                } else {
+                    setUploadMessage({ type: "error", text: "File upload failed" });
+                }
+            } catch (error) {
+                console.error("Upload error:", error);
+                setUploadMessage({ type: "error", text: "An error occurred while uploading the file" });
+            } finally {
+                setIsUploadingDocument(false);
+            }
+        }
     };
 
     // Function to highlight search term in text
@@ -337,7 +424,7 @@ export default observer(function DeliveryPage() {
                                                         })}
                                                         <td className="px-5 py-4 text-center">
                                                             <button
-                                                                onClick={() => console.log("Accept delivery for shipment:", shipmentId)}
+                                                                onClick={() => handleAcceptDelivery(String(row.ROWID || ""))}
                                                                 className="px-4 py-1 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors text-sm flex items-center gap-1 justify-center"
                                                             >
                                                                 <MdDone className="w-5 h-5" />
@@ -408,6 +495,134 @@ export default observer(function DeliveryPage() {
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Accept Delivery Modal */}
+            {showAcceptModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-2/3 max-h-5/6 flex flex-col overflow-hidden">
+                        {/* Header */}
+                        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-white/5">
+                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                Accept Delivery
+                            </h2>
+                            <button
+                                onClick={closeAcceptModal}
+                                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                            >
+                                <MdClose className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 overflow-y-auto p-6">
+                            {acceptModalLoading ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <div className="animate-spin">
+                                        <div className="h-8 w-8 border-4 border-brand-500 border-t-transparent rounded-full"></div>
+                                    </div>
+                                </div>
+                            ) : acceptModalError ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <p className="text-error-600 dark:text-error-400">
+                                        {acceptModalError}
+                                    </p>
+                                </div>
+                            ) : acceptModalData ? (
+                                <div className="grid grid-cols-3 gap-4">
+                                    {/* Display all fields as disabled except documents and remarks */}
+                                    {(() => {
+                                        const entries = Object.entries(acceptModalData);
+                                        const regularEntries = entries.filter(([key]) => !HIDDEN_COLUMNS_MODAL.includes(key) && !key.toLowerCase().includes("document") && !key.toLowerCase().includes("remark"));
+                                        const docRemarkEntries = entries.filter(([key]) => (key.toLowerCase().includes("document") || key.toLowerCase().includes("remark")));
+                                        return [...regularEntries, ...docRemarkEntries];
+                                    })().map(([key, value]) => {
+                                        const isDocument = key.toLowerCase().includes("document");
+                                        const isRemark = key.toLowerCase().includes("remark");
+                                        const isDisabled = !isDocument && !isRemark;
+
+                                        return (
+                                            <div key={key}>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                    {key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                                                </label>
+                                                {isDocument ? (
+                                                    <div>
+                                                        <input
+                                                            type="file"
+                                                            onChange={handleEditDocumentChange}
+                                                            disabled={isUploadingDocument}
+                                                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50"
+                                                        />
+                                                        {acceptModalData.document && (
+                                                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                                                                Current: {acceptModalData.document}
+                                                            </p>
+                                                        )}
+                                                        {uploadMessage && (
+                                                            <p className={`text-xs font-medium mt-2 ${uploadMessage.type === "success" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                                                                {uploadMessage.text}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                ) : isRemark ? (
+                                                    <textarea
+                                                        value={isRemark ? acceptModalRemarks : String(value || "")}
+                                                        onChange={(e) => isRemark && setAcceptModalRemarks(e.target.value)}
+                                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm focus:outline-none focus:border-blue-500 resize-none"
+                                                        rows={3}
+                                                        placeholder="Add remarks"
+                                                    />
+                                                ) : key.toLowerCase().includes("status") || key.toLowerCase().includes("state") ? (
+                                                    <div>
+                                                        <Badge color={getStatusColor(String(value))} variant="solid">
+                                                            {String(value)}
+                                                        </Badge>
+                                                    </div>
+                                                ) : (
+                                                    <input
+                                                        type="text"
+                                                        value={String(value || "-")}
+                                                        disabled={isDisabled}
+                                                        className={`w-full px-3 py-2 border rounded-lg text-sm ${
+                                                            isDisabled
+                                                                ? "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-500 cursor-not-allowed"
+                                                                : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:border-blue-500"
+                                                        }`}
+                                                        readOnly={isDisabled}
+                                                    />
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-center py-8">
+                                    <div className="text-center text-gray-600 dark:text-gray-400">
+                                        No data available
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-white/5 flex justify-end gap-3">
+                            <button
+                                onClick={closeAcceptModal}
+                                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSubmitAcceptDelivery}
+                                disabled={acceptModalLoading}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors"
+                            >
+                                Accept Delivery
+                            </button>
                         </div>
                     </div>
                 </div>
