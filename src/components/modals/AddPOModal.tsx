@@ -442,24 +442,35 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
 
                 {/* PO Issue Date */}
                 <div>
-                  <DatePicker
-                    id="po_issue_date"
-                    label="Issue Date"
-                    placeholder="Select date"
-                    mode="single"
-                    defaultDate={formData.po_issue_date ? new Date(String(formData.po_issue_date)) : undefined}
-                    required
-                    onChange={(selectedDates) => {
-                      if (selectedDates.length > 0) {
-                        const date = selectedDates[0];
-                        const year = date.getFullYear();
-                        const month = String(date.getMonth() + 1).padStart(2, '0');
-                        const day = String(date.getDate()).padStart(2, '0');
-                        const formattedDate = `${year}-${month}-${day}`;
-                        handleInputChange('po_issue_date', formattedDate);
-                      }
-                    }}
-                  />
+                  {isEditMode ?
+                    (<>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Issue Date
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.po_issue_date ? new Date(String(formData.po_issue_date)).toISOString().slice(0,10) : ""}
+                        disabled
+                        className="w-full px-4 py-1.75 border border-gray-300 dark:border-gray-600 rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 cursor-not-allowed"
+                      /> </>) : (
+                      <DatePicker
+                        id="po_issue_date"
+                        label="Issue Date"
+                        placeholder="Select date"
+                        mode="single"
+                        defaultDate={formData.po_issue_date ? new Date(String(formData.po_issue_date)) : undefined}
+                        required
+                        onChange={(selectedDates) => {
+                          if (selectedDates.length > 0) {
+                            const date = selectedDates[0];
+                            const year = date.getFullYear();
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const day = String(date.getDate()).padStart(2, '0');
+                            const formattedDate = `${year}-${month}-${day}`;
+                            handleInputChange('po_issue_date', formattedDate);
+                          }
+                        }}
+                      />)}
                 </div>
 
                 {/* Vendor Name */}
@@ -470,7 +481,8 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
                   <select
                     value={String(formData.vendor_name ?? '')}
                     onChange={(e) => handleVendorChange(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={isEditMode}
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                     required
                   >
                     <option value="">Select vendor</option>
@@ -490,7 +502,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
                   <input
                     type="text"
                     value={String(formData.vendor_id ?? '')}
-                    disabled
+                    disabled={isEditMode}
                     className="w-full px-4 py-1.75 border border-gray-300 dark:border-gray-600 rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 cursor-not-allowed"
                   />
                 </div>
@@ -646,7 +658,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
               onClick={handleSaveItems}
               className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
             >
-              {isEditMode ? 'Done' : 'Submit'}
+              {isEditMode ? 'Update Purchase Order' : 'Submit'}
             </button>
           ) : (
             <button

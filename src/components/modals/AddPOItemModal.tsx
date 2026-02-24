@@ -264,12 +264,18 @@ function AddPOItemModalContent({
                                     <select
                                         value={String(formData.item_code ?? '')}
                                         onChange={(e) => handleInputChange('item_code', e.target.value)}
-                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-3 py-2.25 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none disabled:bg-gray-100"
                                         required
+                                        disabled={true}
                                     >
                                         <option value="">Select item code</option>
                                         {isLoading && <option disabled>Loading items...</option>}
                                         {error && <option disabled>Error loading items</option>}
+                                        {formData.item_code && Array.isArray(paginationData) && !paginationData.find((item: any) => item.Item_code === formData.item_code) && (
+                                            <option value={String(formData.item_code)}>
+                                                {formData.item_code}
+                                            </option>
+                                        )}
                                         {Array.isArray(paginationData) && paginationData.length > 0 ? (
                                             paginationData.map((item: any) => (
                                                 <option key={item.ROWID} value={item.Item_code}>
