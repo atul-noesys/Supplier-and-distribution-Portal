@@ -1,6 +1,6 @@
 "use client";
 
-import { PDFPreview } from "@/components/pdf-preview";
+import PDFViewerModal from "@/components/common/PDFViewerModal";
 import Badge from "@/components/ui/badge/Badge";
 import { useStore } from "@/store/store-context";
 import { RowData } from "@/types/nguage-rowdata";
@@ -53,6 +53,7 @@ export default observer(function DeliveryPage() {
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState<string>("");
     const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
+    const [relatedDocuments, setRelatedDocuments] = useState<string[]>([]);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
     const [loadingPdf, setLoadingPdf] = useState(false);
     const [pdfError, setPdfError] = useState<string | null>(null);
@@ -200,13 +201,19 @@ export default observer(function DeliveryPage() {
     }, [selectedDocument, fetchPdf]);
 
     // Handle viewing document
-    const handleViewDocument = (docName: string) => {
+    const handleViewDocument = (docName: string, docs?: string[]) => {
         setSelectedDocument(docName);
+        if (docs && docs.length > 0) {
+            setRelatedDocuments(docs);
+        } else {
+            setRelatedDocuments([docName]);
+        }
     };
 
     // Close PDF viewer
     const closePdfViewer = () => {
         setSelectedDocument(null);
+        setRelatedDocuments([]);
         if (previousUrlRef.current) {
             URL.revokeObjectURL(previousUrlRef.current);
             previousUrlRef.current = null;
@@ -682,61 +689,16 @@ export default observer(function DeliveryPage() {
             </div>
 
             {/* PDF Viewer Modal */}
-            {selectedDocument && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-2/3 h-5/6 flex flex-col">
-                        {/* Header */}
-                        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4">
-                            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                {selectedDocument.slice(42)}
-                            </h2>
-                            <button
-                                onClick={closePdfViewer}
-                                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                            >
-                                <MdClose className="w-6 h-6" />
-                            </button>
-                        </div>
-
-                        {/* Content */}
-                        <div className="flex-1 overflow-hidden">
-                            {pdfError ? (
-                                <div className="flex h-full items-center justify-center">
-                                    <div className="text-center">
-                                        <div className="mb-2 text-lg font-medium text-red-500">
-                                            Error
-                                        </div>
-                                        <div className="text-gray-600 dark:text-gray-400">{pdfError}</div>
-                                        <button
-                                            className="mt-4 rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-                                            onClick={() => handleViewDocument(selectedDocument)}
-                                        >
-                                            Retry
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : loadingPdf ? (
-                                <div className="flex items-center justify-center py-8">
-                                    <div className="animate-spin">
-                                        <div className="h-8 w-8 border-4 border-brand-500 border-t-transparent rounded-full"></div>
-                                    </div>
-                                </div>
-                            ) : pdfUrl ? (
-                                <PDFPreview
-                                    pdfUrl={pdfUrl}
-                                    docName={selectedDocument}
-                                />
-                            ) : (
-                                <div className="flex h-full items-center justify-center">
-                                    <div className="text-center text-gray-600 dark:text-gray-400">
-                                        No PDF loaded
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
+            <PDFViewerModal
+                selectedDocument={selectedDocument}
+                documents={relatedDocuments}
+                pdfUrl={pdfUrl}
+                loadingPdf={loadingPdf}
+                pdfError={pdfError}
+                onClose={closePdfViewer}
+                onRetry={handleViewDocument}
+                onDocumentSelect={handleViewDocument}
+            />
 
             {/* Accept Delivery Modal */}
             {showAcceptModal && (
