@@ -64,7 +64,7 @@ export default function PDFViewerModal({
         </div>
 
         {/* Content with Sidebar */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden rounded-bl-lg">
           {/* Left Sidebar - Document List */}
           {allDocuments.length > 0 && (
             <div className="w-68 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 overflow-y-auto">
