@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import * as React from 'react';
 import { MdClose, MdEdit, MdDelete } from 'react-icons/md';
 import { useQuery } from '@tanstack/react-query';
@@ -40,12 +40,42 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
   const [poData, setPoData] = useState<KeyValueRecord | null>(null);
   const [showItemModal, setShowItemModal] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [tableBodyHeight, setTableBodyHeight] = useState(155);
+  const tableBodyRef = useRef<HTMLDivElement>(null);
+  const [isLoadingItems, setIsLoadingItems] = useState(false);
   const [formData, setFormData] = useState<KeyValueRecord>({
     po_issue_date: '',
     vendor_id: '',
     vendor_name: '',
     po_status: 'Pending',
   });
+
+  // Calculate table body height dynamically
+  const calculateTableHeight = useCallback(() => {
+    if (!tableBodyRef.current) return;
+
+    const parent = tableBodyRef.current.parentElement; // the container div
+    if (!parent) return;
+
+    const parentRect = parent.getBoundingClientRect();
+    const contentArea = parent.closest('[class*="overflow-y-auto"]') as HTMLElement;
+
+    if (contentArea) {
+      const contentRect = contentArea.getBoundingClientRect();
+      const availableHeight = contentRect.height - parentRect.top + contentRect.top - 120; // 120px for padding/gaps
+      const calculatedHeight = Math.max(155, Math.min(350, availableHeight));
+      setTableBodyHeight(calculatedHeight);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      calculateTableHeight();
+      // Recalculate on resize
+      window.addEventListener('resize', calculateTableHeight);
+      return () => window.removeEventListener('resize', calculateTableHeight);
+    }
+  }, [isOpen, calculateTableHeight]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -108,6 +138,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
   React.useEffect(() => {
     const fetchPoItems = async () => {
       if (isEditMode && initialData?.po_number) {
+        setIsLoadingItems(true);
         try {
           const authToken = localStorage.getItem("access_token");
           const response = await axios.post(
@@ -162,6 +193,8 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
         } catch (error) {
           console.error('Error fetching PO items:', error);
           toast.error('Failed to load PO items');
+        } finally {
+          setIsLoadingItems(false);
         }
       }
     };
@@ -323,7 +356,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
   const handleEditItem = (index: number) => {
     const item = poStore.poItems[index];
     const rowId = item?.rowId ? String(item.rowId) : null;
-    
+
     if (!rowId) {
       toast.error('Item ID is missing');
       return;
@@ -497,114 +530,108 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
                   </button>
                 </div>
 
-                {poStore.poItems.length === 0 ? (
-                  <div className="border border-gray-300 dark:border-gray-600">
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr 1fr 0.8fr 1fr 0.8fr 0.8fr 1fr 0.7fr', gap: '0' }}>
-                      {/* Table Header */}
-                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Item Code</div>
-                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Item Name</div>
-                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Unit Price</div>
-                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Qty</div>
-                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Total</div>
-                      {/* <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Status</div>
-                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Step</div> */}
-                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">PO #</div>
-                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Vendor ID</div>
-                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Vendor</div>
-                      {/* <div className="bg-blue-600 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-600">Remarks</div> */}
-                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 right-0 col-span-1 text-right border-l border-blue-800 dark:border-blue-800 z-10">Actions</div>
+                <div className="border border-gray-300 dark:border-gray-600 rounded overflow-hidden">
+                  {/* Table Header - Fixed */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr 1fr 0.8fr 1fr 0.8fr 0.8fr 1fr 0.7fr', gap: '0' }}>
+                    <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider col-span-1 border-r border-blue-800 dark:border-blue-800">Item Code</div>
+                    <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider col-span-1 border-r border-blue-800 dark:border-blue-800">Item Name</div>
+                    <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider col-span-1 border-r border-blue-800 dark:border-blue-800">Unit Price</div>
+                    <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider col-span-1 border-r border-blue-800 dark:border-blue-800">Qty</div>
+                    <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider col-span-1 border-r border-blue-800 dark:border-blue-800">Total</div>
+                    <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider col-span-1 border-r border-blue-800 dark:border-blue-800">PO #</div>
+                    <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider col-span-1 border-r border-blue-800 dark:border-blue-800">Vendor ID</div>
+                    <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider col-span-1 border-r border-blue-800 dark:border-blue-800">Vendor</div>
+                    <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider col-span-1 border-l border-blue-800 dark:border-blue-800">Actions</div>
+                  </div>
 
-                      {/* Empty State - Centered Add Button */}
-                      <div style={{ gridColumn: '1 / -1' }} className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-600">
-                        <div className="flex flex-col items-center justify-center py-10 px-4">
-                          <p className="text-gray-500 dark:text-gray-400 text-sm mb-2">No items added yet</p>
-                          <button
-                            type="button"
-                            onClick={handleOpenItemModal}
-                            className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-                          >
-                            + Add PO Item
-                          </button>
+                  {/* Table Body - Scrollable */}
+                  <div ref={tableBodyRef} style={{ height: `${tableBodyHeight}px`, overflowY: 'auto' }}>
+                    {isLoadingItems ? (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr 1fr 0.8fr 1fr 0.8fr 0.8fr 1fr 0.7fr', gap: '0' }}>
+                        {/* Loading State */}
+                        <div style={{ gridColumn: '1 / -1' }} className="bg-white dark:bg-gray-800">
+                          <div className="flex flex-col items-center justify-center py-16 px-4">
+                            <div className="w-6 h-6 border-3 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="border border-gray-300 dark:border-gray-600">
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr 1fr 0.8fr 1fr 0.8fr 0.8fr 1fr 0.7fr', gap: '0' }}>
-                      {/* Table Header */}
-                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Item Code</div>
-                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Item Name</div>
-                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Unit Price</div>
-                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Qty</div>
-                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Total</div>
-                      {/* <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Status</div>
-                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Step</div> */}
-                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">PO #</div>
-                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Vendor ID</div>
-                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Vendor</div>
-                      {/* <div className="bg-blue-600 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-600">Remarks</div> */}
-                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 right-0 col-span-1 text-right border-l border-blue-800 dark:border-blue-800 z-10">Actions</div>
-
-                      {/* Table Body */}
-                      {poStore.poItems.map((item, index) => (
-                        <React.Fragment key={index}>
-                          <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
-                            <p className="text-sm text-gray-900 dark:text-white font-medium">{item.item_code}</p>
+                    ) : poStore.poItems.length === 0 ? (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr 1fr 0.8fr 1fr 0.8fr 0.8fr 1fr 0.7fr', gap: '0' }}>
+                        {/* Empty State - Centered Add Button */}
+                        <div style={{ gridColumn: '1 / -1' }} className="bg-white dark:bg-gray-800">
+                          <div className="flex flex-col items-center justify-center py-8 px-4">
+                            <p className="text-gray-500 dark:text-gray-400 text-sm mb-2">No items added yet</p>
+                            <button
+                              type="button"
+                              onClick={handleOpenItemModal}
+                              className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                            >
+                              + Add PO Item
+                            </button>
                           </div>
-                          <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
-                            <p className="text-sm text-gray-900 dark:text-white">{item.item}</p>
-                          </div>
-                          <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
-                            <p className="text-sm text-gray-900 dark:text-white font-medium">${parseFloat(String(item.unit_price || 0)).toFixed(2)}</p>
-                          </div>
-                          <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
-                            <p className="text-sm text-gray-900 dark:text-white font-medium">{item.quantity}</p>
-                          </div>
-                          <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
-                            <p className="text-sm text-gray-900 dark:text-white font-medium">${item.total ? parseFloat(String(item.total)).toFixed(2) : '0.00'}</p>
-                          </div>
-                          {/* <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr 1fr 0.8fr 1fr 0.8fr 0.8fr 1fr 0.7fr', gap: '0' }}>
+                        {poStore.poItems.map((item, index) => (
+                          <React.Fragment key={index}>
+                            <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
+                              <p className="text-sm text-gray-900 dark:text-white font-medium">{item.item_code}</p>
+                            </div>
+                            <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
+                              <p className="text-sm text-gray-900 dark:text-white">{item.item}</p>
+                            </div>
+                            <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
+                              <p className="text-sm text-gray-900 dark:text-white font-medium">${parseFloat(String(item.unit_price || 0)).toFixed(2)}</p>
+                            </div>
+                            <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
+                              <p className="text-sm text-gray-900 dark:text-white font-medium">{item.quantity}</p>
+                            </div>
+                            <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
+                              <p className="text-sm text-gray-900 dark:text-white font-medium">${item.total ? parseFloat(String(item.total)).toFixed(2) : '0.00'}</p>
+                            </div>
+                            {/* <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
                             <p className="text-sm text-gray-700 dark:text-gray-300">{item.status || '-'}</p>
                           </div>
                           <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
                             <p className="text-sm text-gray-700 dark:text-gray-300">{item.step_name || '-'}</p>
                           </div> */}
-                          <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
-                            <p className="text-sm text-gray-700 dark:text-gray-300">{item.po_number || '-'}</p>
-                          </div>
-                          <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
-                            <p className="text-sm text-gray-700 dark:text-gray-300">{item.vendor_id || '-'}</p>
-                          </div>
-                          <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
-                            <p className="text-sm text-gray-700 dark:text-gray-300">{item.vendor_name || '-'}</p>
-                          </div>
-                          {/* <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
+                            <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
+                              <p className="text-sm text-gray-700 dark:text-gray-300">{item.po_number || '-'}</p>
+                            </div>
+                            <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
+                              <p className="text-sm text-gray-700 dark:text-gray-300">{item.vendor_id || '-'}</p>
+                            </div>
+                            <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
+                              <p className="text-sm text-gray-700 dark:text-gray-300">{item.vendor_name || '-'}</p>
+                            </div>
+                            {/* <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
                             <p className="text-sm text-gray-700 dark:text-gray-300">{item.remarks || '-'}</p>
                           </div> */}
-                          <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-l flex items-center justify-end gap-1 sticky right-0 z-10">
-                            <button
-                              type="button"
-                              onClick={() => handleEditItem(index)}
-                              className="p-1.5 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded transition-colors"
-                              title="Edit item"
-                            >
-                              <MdEdit className="w-4 h-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteItem(index)}
-                              className="p-1.5 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors"
-                              title="Delete item"
-                            >
-                              <MdDelete className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </React.Fragment>
-                      ))}
-                    </div>
+                            <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-l flex items-center justify-end gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleEditItem(index)}
+                                className="p-1.5 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded transition-colors"
+                                title="Edit item"
+                              >
+                                <MdEdit className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteItem(index)}
+                                className="p-1.5 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors"
+                                title="Delete item"
+                              >
+                                <MdDelete className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             )}
           </form>
