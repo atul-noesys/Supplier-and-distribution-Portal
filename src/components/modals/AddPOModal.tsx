@@ -6,6 +6,7 @@ import { MdClose, MdEdit, MdDelete } from 'react-icons/md';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { observer } from 'mobx-react-lite';
+import axios from 'axios';
 import DatePicker from '@/components/form/date-picker';
 import { useStore } from '@/store/store-context';
 import AddPOItemModal from './AddPOItemModal';
@@ -30,13 +31,15 @@ interface AddPOModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  initialData?: any;
 }
 
-function AddPOModalContent({ isOpen, onClose, onSuccess }: AddPOModalProps) {
+function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOModalProps) {
   const { nguageStore, poStore } = useStore();
   const [isSaved, setIsSaved] = useState(false);
   const [poData, setPoData] = useState<KeyValueRecord | null>(null);
   const [showItemModal, setShowItemModal] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [formData, setFormData] = useState<KeyValueRecord>({
     po_issue_date: '',
     vendor_id: '',
@@ -70,6 +73,101 @@ function AddPOModalContent({ isOpen, onClose, onSuccess }: AddPOModalProps) {
       refetch();
     }
   }, [isOpen, refetch]);
+
+  // Initialize form data when editing existing PO
+  React.useEffect(() => {
+    if (isOpen && initialData) {
+      setIsEditMode(true);
+      setPoData(initialData);
+      setFormData({
+        po_number: String(initialData.po_number || ''),
+        po_issue_date: String(initialData.po_issue_date ? initialData.po_issue_date.split('T')[0] : ''),
+        vendor_id: String(initialData.vendor_id || ''),
+        vendor_name: String(initialData.vendor_name || ''),
+        po_status: String(initialData.po_status || 'Pending'),
+        document: String(initialData.document || ''),
+        remarks: String(initialData.remarks || ''),
+        ROWID: initialData.ROWID,
+        InfoveaveBatchId: initialData.InfoveaveBatchId,
+      });
+      setIsSaved(true);
+    } else if (isOpen) {
+      setIsEditMode(false);
+      setPoData(null);
+      setFormData({
+        po_issue_date: '',
+        vendor_id: '',
+        vendor_name: '',
+        po_status: 'Pending',
+      });
+      setIsSaved(false);
+    }
+  }, [isOpen, initialData]);
+
+  // Fetch and load PO items when editing
+  React.useEffect(() => {
+    const fetchPoItems = async () => {
+      if (isEditMode && initialData?.po_number) {
+        try {
+          const authToken = localStorage.getItem("access_token");
+          const response = await axios.post(
+            "/api/GetPOItems",
+            {
+              table: "PurchaseOrder",
+              skip: 0,
+              take: null,
+              NGaugeId: undefined,
+            },
+            {
+              headers: {
+                "Content-Type": "application/json",
+                ...(authToken && { Authorization: `Bearer ${authToken}` }),
+              },
+            }
+          );
+
+          // Filter items for this specific PO
+          const poItems = (response.data.data || [])
+            .filter((item: any) => item.po_number === initialData.po_number)
+            .map((item: any) => {
+              const totalKey = Object.keys(item).find(
+                (key) => key.includes("@unit_price * @quantity") || key.includes("expression")
+              );
+              const total = totalKey ? item[totalKey] : (Number(item.unit_price) || 0) * (Number(item.quantity) || 0);
+
+              return {
+                po_number: String(item.po_number || ''),
+                item_code: String(item.item_code || ''),
+                item: String(item.item || ''),
+                unit_price: Number(item.unit_price) || 0,
+                quantity: Number(item.quantity) || 0,
+                status: String(item.status || ''),
+                step_name: String(item.step_name || ''),
+                document: item.document || null,
+                work_order_created: item.work_order_created || null,
+                remarks: item.remarks || null,
+                vendor_id: String(item.vendor_id || ''),
+                vendor_name: String(item.vendor_name || ''),
+                InfoveaveBatchId: Number(item.InfoveaveBatchId) || 0,
+                rowId: item.ROWID,
+                total: total,
+              };
+            });
+
+          // Clear existing items and load new ones
+          poStore.clearItems();
+          poItems.forEach((item: any) => {
+            poStore.addItem(item);
+          });
+        } catch (error) {
+          console.error('Error fetching PO items:', error);
+          toast.error('Failed to load PO items');
+        }
+      }
+    };
+
+    fetchPoItems();
+  }, [isEditMode, initialData?.po_number, poStore]);
 
   // Filter vendors with is_account_created: true
   const availableVendors = Array.isArray(paginationData)
@@ -111,50 +209,79 @@ function AddPOModalContent({ isOpen, onClose, onSuccess }: AddPOModalProps) {
 
       const poToSave = toRowData(formData);
 
-      const result = await nguageStore.AddRowData(
-        poToSave,
-        41,
-        'purchase_orders'
-      );
+      if (isEditMode && formData.ROWID) {
+        // Edit existing PO
+        const authToken = localStorage.getItem("access_token");
+        const updatedData = {
+          ...poToSave,
+          ROWID: formData.ROWID,
+        };
 
-      if (result.error) {
-        toast.error(`Failed to save: ${result.error}`);
-        return;
-      }
+        await axios.put(
+          "/api/EditRow",
+          updatedData,
+          {
+            headers: {
+              "Content-Type": "application/json",
+              ...(authToken && { Authorization: `Bearer ${authToken}` }),
+            },
+          }
+        );
 
-      // Get row data using the returned rowId
-      const rowId = typeof result.result === 'string' ? result.result : (result.result as any)?.data;
-      const rowData = await nguageStore.GetRowData(41, rowId ?? '1', 'purchase_orders');
-
-      if (!rowData) {
-        console.warn('Row data fetch returned null');
+        setPoData(formData as KeyValueRecord);
+        toast.success('Purchase Order updated successfully!');
       } else {
-        // Normalize API response to key-value record
-        setPoData(rowData as KeyValueRecord);
-      }
+        // Create new PO
+        const result = await nguageStore.AddRowData(
+          poToSave,
+          41,
+          'purchase_orders'
+        );
 
-      setIsSaved(true);
-      toast.success('Purchase Order created successfully!');
-      onSuccess?.();
+        if (result.error) {
+          toast.error(`Failed to save: ${result.error}`);
+          return;
+        }
+
+        // Get row data using the returned rowId
+        const rowId = typeof result.result === 'string' ? result.result : (result.result as any)?.data;
+        const rowData = await nguageStore.GetRowData(41, rowId ?? '1', 'purchase_orders');
+
+        if (!rowData) {
+          console.warn('Row data fetch returned null');
+        } else {
+          // Normalize API response to key-value record
+          setPoData(rowData as KeyValueRecord);
+        }
+
+        setIsSaved(true);
+        toast.success('Purchase Order created successfully! Now add items.');
+      }
 
       // Show items section after saving
       // Items section will auto-appear since isSaved is true
     } catch (error) {
       console.error('Error saving PO:', error);
-      toast.error('Failed to save Purchase Order');
+      if (axios.isAxiosError(error) && error.response?.data?.message) {
+        toast.error(`Failed to save: ${error.response.data.message}`);
+      } else {
+        toast.error('Failed to save Purchase Order');
+      }
     }
   };
 
-  const handleSaveItems = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveItems = async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
 
     try {
-      toast.success('Purchase Order items saved successfully!');
+      toast.success('Purchase Order ' + (isEditMode ? 'updated' : 'created') + ' successfully!');
       onSuccess?.();
       handleClose();
     } catch (error) {
       console.error('Error saving items:', error);
-      toast.error('Failed to save items');
+      toast.error('Failed to save Purchase Order');
     }
   };
 
@@ -248,7 +375,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess }: AddPOModalProps) {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4 bg-white dark:bg-gray-900">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Add Purchase Order
+            {isEditMode ? 'Edit Purchase Order' : 'Add Purchase Order'}
           </h2>
           <button
             onClick={handleClose}
@@ -372,15 +499,15 @@ function AddPOModalContent({ isOpen, onClose, onSuccess }: AddPOModalProps) {
 
                 {poStore.poItems.length === 0 ? (
                   <div className="border border-gray-300 dark:border-gray-600">
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr 1fr 0.8fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr 1fr 0.7fr', gap: '0' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr 1fr 0.8fr 1fr 0.8fr 0.8fr 1fr 0.7fr', gap: '0' }}>
                       {/* Table Header */}
                       <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Item Code</div>
                       <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Item Name</div>
                       <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Unit Price</div>
                       <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Qty</div>
                       <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Total</div>
-                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Status</div>
-                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Step</div>
+                      {/* <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Status</div>
+                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Step</div> */}
                       <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">PO #</div>
                       <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Vendor ID</div>
                       <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Vendor</div>
@@ -404,15 +531,15 @@ function AddPOModalContent({ isOpen, onClose, onSuccess }: AddPOModalProps) {
                   </div>
                 ) : (
                   <div className="border border-gray-300 dark:border-gray-600">
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr 1fr 0.8fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr 1fr 0.7fr', gap: '0' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr 1fr 0.8fr 1fr 0.8fr 0.8fr 1fr 0.7fr', gap: '0' }}>
                       {/* Table Header */}
                       <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Item Code</div>
                       <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Item Name</div>
                       <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Unit Price</div>
                       <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Qty</div>
                       <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Total</div>
-                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Status</div>
-                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Step</div>
+                      {/* <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Status</div>
+                      <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Step</div> */}
                       <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">PO #</div>
                       <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Vendor ID</div>
                       <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 col-span-1 border-r border-blue-800 dark:border-blue-800">Vendor</div>
@@ -437,12 +564,12 @@ function AddPOModalContent({ isOpen, onClose, onSuccess }: AddPOModalProps) {
                           <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
                             <p className="text-sm text-gray-900 dark:text-white font-medium">${item.total ? parseFloat(String(item.total)).toFixed(2) : '0.00'}</p>
                           </div>
-                          <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
+                          {/* <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
                             <p className="text-sm text-gray-700 dark:text-gray-300">{item.status || '-'}</p>
                           </div>
                           <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
                             <p className="text-sm text-gray-700 dark:text-gray-300">{item.step_name || '-'}</p>
-                          </div>
+                          </div> */}
                           <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
                             <p className="text-sm text-gray-700 dark:text-gray-300">{item.po_number || '-'}</p>
                           </div>
@@ -493,17 +620,17 @@ function AddPOModalContent({ isOpen, onClose, onSuccess }: AddPOModalProps) {
           </button>
           {isSaved ? (
             <button
-              onClick={handleClose}
+              onClick={handleSaveItems}
               className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
             >
-              Submit
+              {isEditMode ? 'Done' : 'Submit'}
             </button>
           ) : (
             <button
               onClick={handleSavePO}
               className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
             >
-              Create Purchase Order
+              {isEditMode ? 'Update Purchase Order' : 'Create Purchase Order'}
             </button>
           )}
         </div>
@@ -516,7 +643,6 @@ function AddPOModalContent({ isOpen, onClose, onSuccess }: AddPOModalProps) {
           onClose={() => setShowItemModal(false)}
           onSave={(item) => {
             handleSaveItem(item);
-            onSuccess?.();
           }}
           poData={poData}
         />

@@ -2,7 +2,7 @@
 
 import { useStore } from '@/store/store-context';
 import { KeyValueRecord, POItem, RowData } from '@/types/nguage-rowdata';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { observer } from 'mobx-react-lite';
 import * as React from 'react';
 import { useState } from 'react';
@@ -42,6 +42,7 @@ function AddPOItemModalContent({
     onSave,
     poData,
 }: AddPOItemModalProps) {
+    const queryClient = useQueryClient();
     const { nguageStore, poStore } = useStore();
 
     // Get editing item from store
@@ -220,6 +221,7 @@ function AddPOItemModalContent({
 
                 onSave(formData as POItem);
                 toast.success('Item updated successfully!');
+                queryClient.invalidateQueries({ queryKey: ["poItems"] });
                 handleClose();
             };
 

@@ -9,7 +9,7 @@ import axios from "axios";
 import { observer } from "mobx-react-lite";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { AiOutlineCheck, AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
-import { MdArrowDropDown, MdClose } from "react-icons/md";
+import { MdArrowDropDown, MdClose, MdEdit } from "react-icons/md";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { toast } from "react-toastify";
 import { useTranslation } from "@/i18n";
@@ -75,6 +75,7 @@ export default observer(function PurchaseOrderPage() {
   const [expandedPOs, setExpandedPOs] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [isAddPOModalOpen, setIsAddPOModalOpen] = useState(false);
+  const [editingPO, setEditingPO] = useState<PurchaseOrder | null>(null);
   const [loadingItemROWID, setLoadingItemROWID] = useState<number | null>(null);
   const [loadingPONumber, setLoadingPONumber] = useState<string | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
@@ -287,6 +288,16 @@ export default observer(function PurchaseOrderPage() {
       newExpandedPOs.add(poNumber);
     }
     setExpandedPOs(newExpandedPOs);
+  };
+
+  const handleEditPO = (po: PurchaseOrder) => {
+    setEditingPO(po);
+    setIsAddPOModalOpen(true);
+  };
+
+  const handleCloseAddPOModal = () => {
+    setIsAddPOModalOpen(false);
+    setEditingPO(null);
   };
 
   const handleCreateWorkOrder = async (item: PurchaseOrderItem) => {
@@ -563,6 +574,11 @@ export default observer(function PurchaseOrderPage() {
                       <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide">
                         Remarks
                       </th>
+                      {user?.roleId === 5 && (
+                        <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide" style={{ width: '100px' }}>
+                          Actions
+                        </th>
+                      )}
                       {user?.roleId !== 5 && (
                         <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide" style={{ width: '175px' }}>
                           WO Created
@@ -613,6 +629,20 @@ export default observer(function PurchaseOrderPage() {
                           <td className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm truncate" title={po.remarks || "No remarks"}>
                             {po.remarks || <span className="text-gray-400 dark:text-gray-500">-</span>}
                           </td>
+                          {user?.roleId === 5 && (
+                            <td className="px-5 py-4">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditPO(po);
+                                }}
+                                className="flex items-center justify-center w-full text-blue-600"
+                                title="Edit Purchase Order"
+                              >
+                                <MdEdit className="w-5 h-5" />
+                              </button>
+                            </td>
+                          )}
                           {user?.roleId !== 5 && (
                             <td className="px-5 py-4">
                               {itemsByPO[po.po_number]?.some((item) => item.work_order_created !== "Yes") ? (
@@ -644,7 +674,7 @@ export default observer(function PurchaseOrderPage() {
                         {expandedPOs.has(po.po_number) && itemsByPO[po.po_number] && itemsByPO[po.po_number].length > 0 && (
                           <>
                             <tr className="border-b border-gray-100 dark:border-white/5 bg-blue-100 dark:bg-blue-900/40">
-                              <td colSpan={user?.roleId !== 5 ? 7 : 6} className="px-5 py-3">
+                              <td colSpan={user?.roleId !== 5 ? 8 : 7} className="px-5 py-3">
                                 <div className="grid gap-6" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 1.2fr 1.2fr 1.4fr' }}>
                                   <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Item Code</div>
                                   <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Item Name</div>
@@ -662,7 +692,7 @@ export default observer(function PurchaseOrderPage() {
                                 key={item.ROWID}
                                 className="border-b border-gray-100 dark:border-white/5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
                               >
-                                <td colSpan={user?.roleId !== 5 ? 7 : 6} className="px-5 py-4">
+                                <td colSpan={user?.roleId !== 5 ? 8 : 7} className="px-5 py-4">
                                   <div className="grid gap-6 text-sm" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 1.2fr 1.2fr 1.4fr' }}>
                                     <div className="text-gray-700 dark:text-gray-300">{item.item_code}</div>
                                     <div className="text-gray-700 dark:text-gray-300">
@@ -789,11 +819,13 @@ export default observer(function PurchaseOrderPage() {
         </div>
       )}
 
-      {/* Add PO Modal */}
+      {/* Add/Edit PO Modal */}
       <AddPOModal
         isOpen={isAddPOModalOpen}
-        onClose={() => setIsAddPOModalOpen(false)}
+        onClose={handleCloseAddPOModal}
+        initialData={editingPO}
         onSuccess={() => {
+          handleCloseAddPOModal();
           queryClient.invalidateQueries({ queryKey: ["purchaseOrders"] });
           queryClient.invalidateQueries({ queryKey: ["poItems"] });
         }}
