@@ -34,6 +34,13 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      <iframe 
+          src="/mobile.html" 
+          className="w-full border-0 h-136"
+          title="Mobile Dashboard"
+          sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+          style={{ marginTop: "20px" }}
+        />
     </div>
   );
 }
