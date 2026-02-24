@@ -11,6 +11,7 @@ import { QueryProvider } from '@/providers/QueryProvider';
 import { ToastProvider } from '@/providers/ToastProvider';
 import PageTransitionOverlay from '@/components/common/PageTransitionOverlay';
 import RouteTransitionManager from '@/components/common/RouteTransitionManager';
+import { Suspense } from 'react';
 
 export const metadata: Metadata = {
   title: "Infoveave - Supplier and Distributor Portal",
@@ -31,7 +32,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${outfit.className} dark:bg-gray-900`} suppressHydrationWarning>
         <PageTransitionProvider>
-          <RouteTransitionManager />
+          <Suspense fallback={null}>
+            <RouteTransitionManager />
+          </Suspense>
           <I18nProvider>
             <ThemeProvider>
               <StoreProvider>
