@@ -500,16 +500,12 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Status
                   </label>
-                  <select
+                  <input
+                    type="text"
+                    value={String(formData.po_status ?? 'Pending')}
                     disabled
-                    value={String(formData.po_status ?? '')}
-                    onChange={(e) => handleInputChange('po_status', e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="Pending">Pending</option>
-                    <option value="Partial">Partial</option>
-                    <option value="Complete">Complete</option>
-                  </select>
+                    className="w-full px-4 py-1.75 border border-gray-300 dark:border-gray-600 rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 cursor-not-allowed"
+                  />
                 </div>
               </div>
             </div>

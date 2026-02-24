@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { useStore } from "@/store/store-context";
+import { usePageTransition } from "@/context/PageTransitionContext";
 
 export default function LogInForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -15,6 +16,7 @@ export default function LogInForm() {
   const [error, setError] = useState("");
   const router = useRouter();
   const { nguageStore } = useStore();
+  const { startTransition, endTransition } = usePageTransition();
 
   const [data, setData] = useState({
     username: "noomsuser",
@@ -72,8 +74,17 @@ export default function LogInForm() {
       // Fetch and cache current user details
       await nguageStore.GetCurrentUser();
 
-      // Redirect to dashboard
-      router.push("/");
+      // Start transition animation
+      startTransition();
+
+      // Wait for transition animation to complete then redirect
+      setTimeout(() => {
+        router.push("/");
+        // End transition after navigation
+        setTimeout(() => {
+          endTransition();
+        }, 300);
+      }, 300);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Login failed";
       setError(errorMessage);

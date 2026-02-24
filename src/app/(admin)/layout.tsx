@@ -2,10 +2,11 @@
 
 import { useSidebar } from "@/context/SidebarContext";
 import { useProtectedRoute } from "@/hooks/useAuth";
+import { usePageTransition } from "@/context/PageTransitionContext";
 import AppHeader from "@/layout/AppHeader";
 import AppSidebar from "@/layout/AppSidebar";
 import Backdrop from "@/layout/Backdrop";
-import React from "react";
+import React, { useEffect } from "react";
 
 export default function AdminLayout({
   children,
@@ -14,6 +15,17 @@ export default function AdminLayout({
 }) {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
   const { isLoading } = useProtectedRoute();
+  const { isTransitioning, endTransition } = usePageTransition();
+
+  // End transition once page is loaded
+  useEffect(() => {
+    if (!isLoading && isTransitioning) {
+      const timer = setTimeout(() => {
+        endTransition();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, isTransitioning, endTransition]);
 
   // Dynamic class for main content margin based on sidebar state
   const mainContentMargin = isMobileOpen
