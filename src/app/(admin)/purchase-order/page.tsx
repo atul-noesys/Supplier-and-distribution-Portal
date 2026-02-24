@@ -159,24 +159,15 @@ export default observer(function PurchaseOrderPage() {
   const { data: purchaseOrders = [], isLoading, error } = useQuery({
     queryKey: ["purchaseOrders", authToken],
     queryFn: async (): Promise<PurchaseOrder[]> => {
-      const response = await axios.post(
-        "/api/GetAllData",
-        {
-          table: "PurchaseOrder",
-          skip: 0,
-          take: null,
-          NGaugeId: undefined,
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-            ...(authToken && { Authorization: `Bearer ${authToken}` }),
-          },
-        },
-      );
-      return response.data.data || [];
+      const purchaseOrderList = await nguageStore.GetPaginationData({
+        table: "purchase_orders",
+        skip: 0,
+        take: 200,
+        NGaugeId: "41",
+      });
+      return (purchaseOrderList || []) as PurchaseOrder[];
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     enabled: !!authToken,
   });
 
@@ -205,7 +196,7 @@ export default observer(function PurchaseOrderPage() {
           (key) => key.includes("@unit_price * @quantity") || key.includes("expression")
         );
         const total = totalKey ? (item[totalKey] as number) : (Number(item.unit_price) || 0) * (Number(item.quantity) || 0);
-        
+
         return {
           po_number: item.po_number as string,
           item_code: item.item_code as string,
@@ -232,10 +223,10 @@ export default observer(function PurchaseOrderPage() {
   const highlightText = (text: string | null | undefined, highlight: string) => {
     if (!text) return text;
     if (!highlight.trim()) return text;
-    
+
     const regex = new RegExp(`(${highlight})`, "gi");
     const parts = text.split(regex);
-    
+
     return parts.map((part, index) =>
       regex.test(part) ? (
         <span key={index} className="bg-yellow-300 dark:bg-yellow-400 dark:text-gray-900 font-semibold">
@@ -255,10 +246,10 @@ export default observer(function PurchaseOrderPage() {
   const filteredPoItems = searchTerm.trim() === ""
     ? poItems
     : poItems.filter((item) =>
-        (item.item && item.item.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (item.vendor_name && item.vendor_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (item.po_number && item.po_number.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
+      (item.item && item.item.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (item.vendor_name && item.vendor_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (item.po_number && item.po_number.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
 
   const itemsByPO = filteredPoItems.reduce(
     (acc, item) => {
@@ -281,7 +272,7 @@ export default observer(function PurchaseOrderPage() {
       // Collapse all when search is cleared
       setExpandedPOs(new Set());
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm]);
 
   const togglePO = (poNumber: string) => {
@@ -539,204 +530,204 @@ export default observer(function PurchaseOrderPage() {
               </div>
             </div>
           ) : error ? (
-          <div className="flex items-center justify-center py-8">
-            <p className="text-error-600 dark:text-error-400">
-              Failed to fetch purchase orders
-            </p>
-          </div>
-        ) : purchaseOrders.length === 0 ? (
-          <div className="flex items-center justify-center py-8">
-            <p className="text-gray-600 dark:text-gray-400">No purchase orders found</p>
-          </div>
+            <div className="flex items-center justify-center py-8">
+              <p className="text-error-600 dark:text-error-400">
+                Failed to fetch purchase orders
+              </p>
+            </div>
+          ) : purchaseOrders.length === 0 ? (
+            <div className="flex items-center justify-center py-8">
+              <p className="text-gray-600 dark:text-gray-400">No purchase orders found</p>
+            </div>
           ) : (
             <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-white/5 bg-white dark:bg-white/3">
               <div className="w-full">
                 <table className="w-full table-fixed">
-                <thead>
-                  <tr className="border-b border-blue-900 bg-blue-800 dark:bg-blue-700">
-                    <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide">
-                      PO Number
-                    </th>
-                    <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide">
-                      Issue Date
-                    </th>
-                    <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide">
-                      Status
-                    </th>
-                    <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide">
-                      Vendor Name
-                    </th>
-                    <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide">
-                      Document
-                    </th>
-                    <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide">
-                      Remarks
-                    </th>
-                    {user?.roleId !== 5 && (
-                      <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide" style={{ width: '175px' }}>
-                        WO Created
+                  <thead>
+                    <tr className="border-b border-blue-900 bg-blue-800 dark:bg-blue-700">
+                      <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide">
+                        PO Number
                       </th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {purchaseOrders.map((po: PurchaseOrder) => (
-                    <Fragment key={po.po_number}>
-                      <tr
-                        key={po.po_number}
-                        className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/2 transition-colors cursor-pointer group"
-                        onClick={() => togglePO(po.po_number)}
-                      >
-                        <td className="pl-1 text-gray-700 dark:text-gray-300 font-semibold text-sm">
-                          <div className="flex items-center gap-1">
-                            <MdArrowDropDown 
-                              className={`w-8 h-8 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-400 transition-transform duration-200 ${expandedPOs.has(po.po_number) ? '' : '-rotate-90'}`}
-                            />
-                            {searchTerm ? highlightText(po.po_number, searchTerm) : po.po_number}
-                          </div>
-                        </td>
-                        <td className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">
-                          {po.po_issue_date ? new Date(po.po_issue_date).toLocaleDateString() : ""}
-                        </td>
-                        <td className="px-5 py-4">
-                          <Badge color={getStatusColor(po.po_status)} variant="solid">
-                            {po.po_status.charAt(0).toUpperCase() + po.po_status.slice(1)}
-                          </Badge>
-                        </td>
-                        <td className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">
-                          {searchTerm ? highlightText(po.vendor_name || po.vendor_id, searchTerm) : (po.vendor_name || po.vendor_id)}
-                        </td>
-                        <td className="pl-11 px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">
-                          {po.document ? (
-                            <button
-                              onClick={() => handleViewDocument(po.document!)}
-                              className="cursor-pointer hover:opacity-75 transition-opacity"
-                              title="View document"
-                            >
-                              <AiOutlineEye className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                            </button>
-                          ) : (
-                            <AiOutlineEyeInvisible className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                          )}
-                        </td>
-                        <td className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm truncate" title={po.remarks || "No remarks"}>
-                          {po.remarks || <span className="text-gray-400 dark:text-gray-500">-</span>}
-                        </td>
-                        {user?.roleId !== 5 && (
+                      <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide">
+                        Issue Date
+                      </th>
+                      <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide">
+                        Status
+                      </th>
+                      <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide">
+                        Vendor Name
+                      </th>
+                      <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide">
+                        Document
+                      </th>
+                      <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide">
+                        Remarks
+                      </th>
+                      {user?.roleId !== 5 && (
+                        <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide" style={{ width: '175px' }}>
+                          WO Created
+                        </th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {purchaseOrders.map((po: PurchaseOrder) => (
+                      <Fragment key={po.po_number}>
+                        <tr
+                          key={po.po_number}
+                          className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/2 transition-colors cursor-pointer group"
+                          onClick={() => togglePO(po.po_number)}
+                        >
+                          <td className="pl-1 text-gray-700 dark:text-gray-300 font-semibold text-sm">
+                            <div className="flex items-center gap-1">
+                              <MdArrowDropDown
+                                className={`w-8 h-8 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-400 transition-transform duration-200 ${expandedPOs.has(po.po_number) ? '' : '-rotate-90'}`}
+                              />
+                              {searchTerm ? highlightText(po.po_number, searchTerm) : po.po_number}
+                            </div>
+                          </td>
+                          <td className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">
+                            {po.po_issue_date ? new Date(po.po_issue_date).toLocaleDateString() : ""}
+                          </td>
                           <td className="px-5 py-4">
-                            {itemsByPO[po.po_number]?.some((item) => item.work_order_created !== "Yes") ? (
+                            <Badge color={getStatusColor(po.po_status)} variant="solid">
+                              {po.po_status.charAt(0).toUpperCase() + po.po_status.slice(1)}
+                            </Badge>
+                          </td>
+                          <td className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">
+                            {searchTerm ? highlightText(po.vendor_name || po.vendor_id, searchTerm) : (po.vendor_name || po.vendor_id)}
+                          </td>
+                          <td className="pl-11 px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">
+                            {po.document ? (
                               <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCreateMultipleWorkOrders(po.po_number);
-                                }}
-                                disabled={loadingPONumber === po.po_number}
-                                className="flex items-center gap-1 px-3 py-1.5 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors"
-                                title="Create Work Orders for all items"
+                                onClick={() => handleViewDocument(po.document!)}
+                                className="cursor-pointer hover:opacity-75 transition-opacity"
+                                title="View document"
                               >
-                                {loadingPONumber === po.po_number ? (
-                                  <AiOutlineLoading3Quarters className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <AiOutlineCheck className="w-4 h-4" />
-                                )}
-                                Create All WO
+                                <AiOutlineEye className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                               </button>
                             ) : (
-                              <Badge color="success" variant="solid" size="sm">
-                                All Created
-                              </Badge>
+                              <AiOutlineEyeInvisible className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                             )}
                           </td>
-                        )}
-                      </tr>
-
-                      {expandedPOs.has(po.po_number) && itemsByPO[po.po_number] && itemsByPO[po.po_number].length > 0 && (
-                        <>
-                          <tr className="border-b border-gray-100 dark:border-white/5 bg-blue-100 dark:bg-blue-900/40">
-                            <td colSpan={user?.roleId !== 5 ? 7 : 6} className="px-5 py-3">
-                              <div className="grid gap-6" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 1.2fr 1.2fr 1.4fr' }}>
-                                <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Item Code</div>
-                                <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Item Name</div>
-                                <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Unit Price</div>
-                                <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Qty</div>
-                                <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Total</div>
-                                <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Document</div>
-                                <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Remarks</div>
-                                <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">WO Created</div>
-                              </div>
+                          <td className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm truncate" title={po.remarks || "No remarks"}>
+                            {po.remarks || <span className="text-gray-400 dark:text-gray-500">-</span>}
+                          </td>
+                          {user?.roleId !== 5 && (
+                            <td className="px-5 py-4">
+                              {itemsByPO[po.po_number]?.some((item) => item.work_order_created !== "Yes") ? (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCreateMultipleWorkOrders(po.po_number);
+                                  }}
+                                  disabled={loadingPONumber === po.po_number}
+                                  className="flex items-center gap-1 px-3 py-1.5 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors"
+                                  title="Create Work Orders for all items"
+                                >
+                                  {loadingPONumber === po.po_number ? (
+                                    <AiOutlineLoading3Quarters className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <AiOutlineCheck className="w-4 h-4" />
+                                  )}
+                                  Create All WO
+                                </button>
+                              ) : (
+                                <Badge color="success" variant="solid" size="sm">
+                                  All Created
+                                </Badge>
+                              )}
                             </td>
-                          </tr>
-                          {itemsByPO[po.po_number].map((item: PurchaseOrderItem) => (
-                            <tr
-                              key={item.ROWID}
-                              className="border-b border-gray-100 dark:border-white/5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
-                            >
-                              <td colSpan={user?.roleId !== 5 ? 7 : 6} className="px-5 py-4">
-                                <div className="grid gap-6 text-sm" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 1.2fr 1.2fr 1.4fr' }}>
-                                  <div className="text-gray-700 dark:text-gray-300">{item.item_code}</div>
-                                  <div className="text-gray-700 dark:text-gray-300">
-                                    {searchTerm ? highlightText(item.item, searchTerm) : item.item}
-                                  </div>
-                                  <div className="text-gray-700 dark:text-gray-300">$ {formatNumber(item.unit_price)}</div>
-                                  <div className="text-gray-700 dark:text-gray-300">{item.quantity}</div>
-                                  <div className="text-gray-700 dark:text-gray-300 font-semibold">$ {formatNumber(item.total || 0)}</div>
-                                  <div className="pl-6 text-gray-700 dark:text-gray-300 truncate" title={item.document || "No document"}>
-                                    {item.document ? (
-                                      <button
-                                        onClick={() => handleViewDocument(item.document!)}
-                                        className="cursor-pointer hover:opacity-75 transition-opacity"
-                                        title="View document"
-                                      >
-                                        <AiOutlineEye className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                                      </button>
-                                    ) : (
-                                      <AiOutlineEyeInvisible className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                                    )}
-                                  </div>
-                                  <div className="text-gray-700 dark:text-gray-300 truncate" title={item.remarks || "No remarks"}>
-                                    {item.remarks || <span className="text-gray-400 dark:text-gray-500">-</span>}
-                                  </div>
-                                  <div>
-                                    {item.work_order_created === "Yes" ? (
-                                      <Badge color="success" variant="solid" size="sm">
-                                        Yes
-                                      </Badge>
-                                    ) : (
-                                      <>
-                                        {user?.roleId !== 5 ? (
-                                          <button
-                                            onClick={() => handleCreateWorkOrder(item)}
-                                            disabled={loadingItemROWID === item.ROWID}
-                                            className="flex items-center gap-1 px-3 py-1.5 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors"
-                                            title="Create Work Order"
-                                          >
-                                            {loadingItemROWID === item.ROWID ? (
-                                              <AiOutlineLoading3Quarters className="w-4 h-4 animate-spin" />
-                                            ) : (
-                                              <AiOutlineCheck className="w-4 h-4" />
-                                            )}
-                                            Create WO
-                                          </button>
-                                        ) : (
-                                          <Badge color="error" variant="solid" size="sm">
-                                            No
-                                          </Badge>
-                                        )}
-                                      </>
-                                    )}
-                                  </div>
+                          )}
+                        </tr>
+
+                        {expandedPOs.has(po.po_number) && itemsByPO[po.po_number] && itemsByPO[po.po_number].length > 0 && (
+                          <>
+                            <tr className="border-b border-gray-100 dark:border-white/5 bg-blue-100 dark:bg-blue-900/40">
+                              <td colSpan={user?.roleId !== 5 ? 7 : 6} className="px-5 py-3">
+                                <div className="grid gap-6" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 1.2fr 1.2fr 1.4fr' }}>
+                                  <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Item Code</div>
+                                  <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Item Name</div>
+                                  <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Unit Price</div>
+                                  <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Qty</div>
+                                  <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Total</div>
+                                  <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Document</div>
+                                  <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Remarks</div>
+                                  <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">WO Created</div>
                                 </div>
                               </td>
                             </tr>
-                          ))}
-                        </>
-                      )}
-                    </Fragment>
-                  ))}
-                </tbody>
-              </table>
+                            {itemsByPO[po.po_number].map((item: PurchaseOrderItem) => (
+                              <tr
+                                key={item.ROWID}
+                                className="border-b border-gray-100 dark:border-white/5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                              >
+                                <td colSpan={user?.roleId !== 5 ? 7 : 6} className="px-5 py-4">
+                                  <div className="grid gap-6 text-sm" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 1.2fr 1.2fr 1.4fr' }}>
+                                    <div className="text-gray-700 dark:text-gray-300">{item.item_code}</div>
+                                    <div className="text-gray-700 dark:text-gray-300">
+                                      {searchTerm ? highlightText(item.item, searchTerm) : item.item}
+                                    </div>
+                                    <div className="text-gray-700 dark:text-gray-300">$ {formatNumber(item.unit_price)}</div>
+                                    <div className="text-gray-700 dark:text-gray-300">{item.quantity}</div>
+                                    <div className="text-gray-700 dark:text-gray-300 font-semibold">$ {formatNumber(item.total || 0)}</div>
+                                    <div className="pl-6 text-gray-700 dark:text-gray-300 truncate" title={item.document || "No document"}>
+                                      {item.document ? (
+                                        <button
+                                          onClick={() => handleViewDocument(item.document!)}
+                                          className="cursor-pointer hover:opacity-75 transition-opacity"
+                                          title="View document"
+                                        >
+                                          <AiOutlineEye className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                        </button>
+                                      ) : (
+                                        <AiOutlineEyeInvisible className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                                      )}
+                                    </div>
+                                    <div className="text-gray-700 dark:text-gray-300 truncate" title={item.remarks || "No remarks"}>
+                                      {item.remarks || <span className="text-gray-400 dark:text-gray-500">-</span>}
+                                    </div>
+                                    <div>
+                                      {item.work_order_created === "Yes" ? (
+                                        <Badge color="success" variant="solid" size="sm">
+                                          Yes
+                                        </Badge>
+                                      ) : (
+                                        <>
+                                          {user?.roleId !== 5 ? (
+                                            <button
+                                              onClick={() => handleCreateWorkOrder(item)}
+                                              disabled={loadingItemROWID === item.ROWID}
+                                              className="flex items-center gap-1 px-3 py-1.5 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors"
+                                              title="Create Work Order"
+                                            >
+                                              {loadingItemROWID === item.ROWID ? (
+                                                <AiOutlineLoading3Quarters className="w-4 h-4 animate-spin" />
+                                              ) : (
+                                                <AiOutlineCheck className="w-4 h-4" />
+                                              )}
+                                              Create WO
+                                            </button>
+                                          ) : (
+                                            <Badge color="error" variant="solid" size="sm">
+                                              No
+                                            </Badge>
+                                          )}
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </>
+                        )}
+                      </Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
           )}
         </div>
       </div>
