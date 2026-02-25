@@ -8,7 +8,7 @@
   <script type="text/ecmascript">
     window.InfoveaveBaseURL = "https://infoveave.app";
   </script>
-  <script src="/v8/assets/vendor.js"></script>
+  <script src="/v8/vendor.js"></script>
   <script type="text/ecmascript">
     document.addEventListener("DOMContentLoaded", () => {
       const params = new URLSearchParams(window.location.search);
@@ -21,7 +21,7 @@
         token: token,
         applicationUrl: "infoveave.app",
         infoboardId: infoboardId,
-        dateRange: {"mode": 0, "beginDate": "2026-01-01", "endDate": "2026-01-31", "progression": 201},
+        dateRange: null,
         view: "Desktop",
         fitMode: "Height",
       });
