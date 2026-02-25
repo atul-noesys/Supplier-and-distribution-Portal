@@ -3,7 +3,7 @@
 import { useStore } from "@/store/store-context";
 import { useQuery } from "@tanstack/react-query";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Tabs from "@/components/ui/Tabs";
 
 export default function Dashboard() {
@@ -33,6 +33,13 @@ export default function Dashboard() {
 
   // Tab state: 0 for id 3, 1 for id 4
   const [tab, setTab] = useState(0);
+  // Iframe loading indicator
+  const [iframeLoading, setIframeLoading] = useState(true);
+
+  // Reset iframe loading state when active tab changes
+  useEffect(() => {
+    setIframeLoading(true);
+  }, [tab]);
 
   // Fetch infoboards using TanStack Query
   const { data: infoboards, isLoading: isInfoboardsLoading, error: infoboardsError } = useQuery({
@@ -63,13 +70,24 @@ export default function Dashboard() {
         activeIndex={tab}
         onChange={setTab}
         renderPanel={(item) => (
-          <iframe
-            key={item.id}
-            src={`/mobile.html?infoboardId=${item.id}`}
-            className="w-full border-0 h-136"
-            title={`Mobile Dashboard ${item.id}`}
-            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-          />
+          <div className="relative">
+            {iframeLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-white/60 dark:bg-gray-900/60 z-10">
+                <div className="animate-spin">
+                  <div className="h-8 w-8 border-3 border-brand-500 border-t-transparent rounded-full"></div>
+                </div>
+              </div>
+            )}
+
+            <iframe
+              key={item.id}
+              src={`/mobile.html?infoboardId=${item.id}`}
+              className="w-full border-0 h-136"
+              title={`Mobile Dashboard ${item.id}`}
+              sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+              onLoad={() => setIframeLoading(false)}
+            />
+          </div>
         )}
       />
     </div>
