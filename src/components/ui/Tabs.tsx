@@ -47,7 +47,7 @@ export default function Tabs({
             onClick={() => handleClick(i)}
             className={`px-4 py-2 rounded-t-md font-medium border-b-2 transition-colors duration-150 ${
               i === index
-                ? "border-blue-600 text-blue-700 bg-blue-50 dark:bg-gray-800"
+                ? "border-blue-600 text-blue-800 bg-blue-100 dark:bg-gray-800"
                 : "border-transparent text-gray-500 bg-gray-100 dark:bg-gray-900 hover:text-blue-600"
             } ${tabClassName}`}
           >
