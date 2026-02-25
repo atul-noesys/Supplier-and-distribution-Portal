@@ -1,13 +1,23 @@
 "use client";
 
 import { useStore } from "@/store/store-context";
-import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+
+import { useState, useMemo } from "react";
+import Tabs from "@/components/ui/Tabs";
 
 export default function Dashboard() {
-  const store = useStore();
+  const { nguageStore } = useStore();
+    // Fetch auth token
+  const { data: authToken = null } = useQuery({
+    queryKey: ["authToken"],
+    queryFn: () => localStorage.getItem("access_token"),
+    staleTime: 0,
+    gcTime: 0,
+  });
 
   // Get user from cached store data
-  const user = useMemo(() => store.nguageStore.GetCurrentUserDetails(), [store.nguageStore]);
+  const user = useMemo(() => nguageStore.GetCurrentUserDetails(), [nguageStore]);
 
   // Get time-based greeting
   const timeGreeting = useMemo(() => {
@@ -20,6 +30,20 @@ export default function Dashboard() {
       return "Good evening";
     }
   }, []);
+
+  // Tab state: 0 for id 3, 1 for id 4
+  const [tab, setTab] = useState(0);
+
+  // Fetch infoboards using TanStack Query
+  const { data: infoboards, isLoading: isInfoboardsLoading, error: infoboardsError } = useQuery({
+    queryKey: ['infoboards'],
+    queryFn: () => nguageStore.GetInfoboards(),
+    staleTime: 0,
+    enabled: !!authToken,
+  });
+
+  // Tabs from infoboards API
+  const tabs = (infoboards ?? []).map((b) => ({ label: b.name, id: b.id }));
 
   return (
     <div className="w-full">
@@ -34,13 +58,20 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-      <iframe 
-          src="/mobile.html" 
-          className="w-full border-0 h-136"
-          title="Mobile Dashboard"
-          sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-          style={{ marginTop: "20px" }}
-        />
+      <Tabs
+        items={tabs}
+        activeIndex={tab}
+        onChange={setTab}
+        renderPanel={(item) => (
+          <iframe
+            key={item.id}
+            src={`/mobile.html?infoboardId=${item.id}`}
+            className="w-full border-0 h-136"
+            title={`Mobile Dashboard ${item.id}`}
+            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+          />
+        )}
+      />
     </div>
   );
 }

@@ -3,6 +3,11 @@ import { makeAutoObservable } from "mobx";
 import Uppy from "@uppy/core";
 import Tus from "@uppy/tus";
 
+interface InfoboardFromAPI {
+  id: number;
+  name: string;
+}
+
 export type PaginationData = {
   DeletedColumns: string[];
   filterData: (string | number | null)[][];
@@ -215,7 +220,7 @@ export class NguageStore {
     rowId: string,
     formId: number,
   ): Promise<{ result: boolean; error: string }> {
-   try {
+    try {
       // Get token from localStorage (client-side only)
       let token = null;
       if (typeof window !== "undefined") {
@@ -257,7 +262,7 @@ export class NguageStore {
         authConfig({}),
       );
 
-      return { ...response.data.data, "ROWID" : rowId};
+      return { ...response.data.data, "ROWID": rowId };
     } catch (error) {
       console.error("Error fetching row data:", error);
       return null;
@@ -289,7 +294,7 @@ export class NguageStore {
       };
 
       this.currentUser = userData;
-      
+
       // Store user data in localStorage for persistence across page refreshes
       if (typeof window !== "undefined") {
         localStorage.setItem("current_user", JSON.stringify(userData));
@@ -329,6 +334,27 @@ export class NguageStore {
     this.currentUser = null;
     if (typeof window !== "undefined") {
       localStorage.removeItem("current_user");
+    }
+  }
+
+  async GetInfoboards(): Promise<InfoboardFromAPI[] | null> {
+    try {
+      let token = null;
+      if (typeof window !== "undefined") {
+        token = localStorage.getItem("access_token");
+      }
+      const result: AxiosResponse<InfoboardFromAPI[]> = await axios.get(
+        `https://nooms.infoveave.app/api/v10/Infoboards`,
+        {
+          headers: {
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+        },
+      );
+      return result.data;
+    } catch (error) {
+      console.error("Error fetching infoboards:", error);
+      return null;
     }
   }
 }

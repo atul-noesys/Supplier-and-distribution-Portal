@@ -11,11 +11,16 @@
   <script src="/v8/assets/vendor.js"></script>
   <script type="text/ecmascript">
     document.addEventListener("DOMContentLoaded", () => {
+      const params = new URLSearchParams(window.location.search);
+      const idParam = params.get("infoboardId");
+      const infoboardId = idParam !== null ? Number(idParam) || 5 : 5;
+      const token = localStorage.getItem("access_token");
+
       window.RenderInfoboard({
         tenant: "nooms",
-        token: "eyJhbGciOiJSUzI1NiIsInR5cCI6ImF0K2p3dCJ9.eyJuYmYiOjE3NzE5Mzg2NTksImV4cCI6MTc3MjAyNTA1OSwiaXNzIjoiaHR0cHM6Ly9pbmZvdmVhdmUuYXBwIiwiYXVkIjpbInY1LWFwaSIsImFwaSJdLCJjbGllbnRfaWQiOiJJbmZvdmVhdmUuV2ViQXBwIiwic3ViIjoibm9vbXN8MiIsImF1dGhfdGltZSI6MTc3MTkzODY1OSwiaWRwIjoibG9jYWwiLCJuYW1lIjoibm9vbXN1c2VyIiwiZ2l2ZW5fbmFtZSI6Ik5vb21zIiwiZmFtaWx5X25hbWUiOiJVc2VyIiwiZW1haWwiOiJzYW5qYXlAbm9lc3lzc29mdHdhcmUuY29tIiwiVGVuYW50Ijoibm9vbXMiLCJVc2VySWQiOiIyIiwiUm9sZUlkIjoiNSIsIkNvbnRleHQiOiJbXSIsInJvbGVzIjoiQ29yZSxTdHVkaW8iLCJuZ3VhZ2UiOiJbSW5mb2JvYXJkLFJlcG9ydCxEYXRhc291cmNlLEpvYixXb3JrZmxvdyxUYXJnZXRBbmRUaHJlc2hvbGQsSU9ULFdpZGdldEFubm90YXRpb25dIiwibmd1YWdlbm90aWZpY2F0aW9uIjoiW1NoYXJlTm90aWZpY2F0aW9ucyxJbmZvYm9hcmQsUmVwb3J0LERhdGFzb3VyY2UsSm9iLFdvcmtmbG93LFRhcmdldEFuZFRocmVzaG9sZCxJT1QsV2lkZ2V0QW5ub3RhdGlvbl0iLCJzY29wZSI6WyJlbWFpbCIsImluZm92ZWF2ZUlkIiwib3BlbmlkIiwicHJvZmlsZSIsInJvbGVzIiwiYW5hbHlzaXMuZXhlY3V0ZSIsImFuYWx5c2lzLm1hbmFnZSIsImFuYWx5c2lzLnJlYWQiLCJkYXRhbWFuYWdlLm1hbmFnZSIsImRhdGFtYW5hZ2UucmVhZCIsImpvYi5leGVjdXRlIiwiam9iLm1hbmFnZSIsImpvYi5yZWFkIiwibWwuYWNjZXNzIiwicmVwb3J0Lm1hbmFnZSIsInJlcG9ydC5yZWFkIiwic2NpcHlyLmFjY2VzcyIsInRhc2subWFuYWdlIiwidGFzay5yZWFkIiwidXNlci5tYW5hZ2UiLCJ2aXN1YWxpemUuYWNjZXNzIiwidjMiXSwiYW1yIjpbImluZm92ZWF2ZSJdfQ.JBDfW17SR7bWIx4Qa1P0_qKhfa1rGKrspcbgjRYv3EO82rWdIZGx_1XYNnxkSAWFSS8-6DSSRCG4OP2q8jHiPMeH0fyoc-ugiXtQDimKU7L9RMiYtnEoPBdhdQZeEUVluAOjB24hhdDaSHKM4jdniVP7mjBoHAv5GRUuKaufEOJDv0BHigwHh0jnbpM_w341YjPvsSw05wiosUi5lz8J-A8ngaHgpH7iRknxAxek58MFTb07YmlzxWHbtWKDavLQ3-2r78jC3tn5ef5GDtsn0Qn9ehUp5RYDGGMmNixSx_ISBpyVfn0u0Ro5rX4ig-M_FXyoDkJKS00ADSUKrqsN5w",
+        token: token,
         applicationUrl: "infoveave.app",
-        infoboardId: 5,
+        infoboardId: infoboardId,
         dateRange: {"mode": 0, "beginDate": "2026-01-01", "endDate": "2026-01-31", "progression": 201},
         view: "Desktop",
         fitMode: "Height",
