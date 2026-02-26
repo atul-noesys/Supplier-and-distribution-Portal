@@ -29,6 +29,19 @@ const toRowData = (record: KeyValueRecord): RowData => {
   return rowData;
 };
 
+/**
+ * Safely parse a JSON string expected to be an array. Returns an empty array on failure.
+ */
+const safeParseArray = (input?: string | null): any[] => {
+  if (!input) return [];
+  try {
+    const parsed = JSON.parse(input as string);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
+};
+
 interface AddShipmentModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -309,7 +322,20 @@ function AddShipmentModalContent({
         console.log("Upload result:", uploadResult);
 
         if (uploadResult) {
-          handleInputChange("document", JSON.stringify(uploadResult));
+          // Merge with any previously stored documents instead of overwriting
+          let existing: any[] = [];
+          try {
+            const raw = String(formData.document || "[]");
+            const parsed = JSON.parse(raw);
+            existing = Array.isArray(parsed) ? parsed : [parsed];
+          } catch (err) {
+            existing = [];
+          }
+
+          const newFiles = Array.isArray(uploadResult) ? uploadResult : [uploadResult];
+          const merged = [...existing, ...newFiles];
+
+          handleInputChange("document", JSON.stringify(merged));
           toast.success("File uploaded successfully!");
         } else {
           toast.error("File upload failed");
@@ -925,6 +951,24 @@ function AddShipmentModalContent({
                       className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-sm file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
                       accept=".pdf,.doc,.docx,.jpg,.png"
                     />
+                    {formData.document && (
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                        <span className="text-blue-600">Current:</span> {(() => {
+                          try {
+                            const parsed = JSON.parse(formData.document as string);
+                            if (Array.isArray(parsed)) {
+                              return parsed
+                                .map((f: string) => (f ? f.split("/").pop() : ""))
+                                .filter(Boolean)
+                                .join(", ");
+                            }
+                            return String(parsed).split("/").pop() || String(parsed);
+                          } catch {
+                            return String(formData.document);
+                          }
+                        })()}
+                      </p>
+                    )}
                   </div>
 
                   {/* Carrier Name */}
@@ -1153,7 +1197,8 @@ function AddShipmentModalContent({
                               <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{item.shipment_quantity}</td>
                               <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">${item.total ? parseFloat(String(item.total)).toFixed(2) : '0.00'}</td>
                               <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{item.po_number || '-'}</td>
-                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{JSON.parse((item.document as string))?.map((f: string) => (f ? f.split("/").pop() : ""))
+                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{safeParseArray(item.document as string)
+                                .map((f: string) => (f ? f.split("/").pop() : ""))
                                 .filter(Boolean)
                                 .join(", ") || '-'}</td>
                               <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 max-w-xs truncate">{item.remarks || '-'}</td>

@@ -46,7 +46,20 @@ export function EditShipmentItemModal({
         console.log("Upload result:", uploadResult);
 
         if (uploadResult) {
-          setDocument(JSON.stringify(uploadResult));
+          // Merge with any previously stored documents instead of overwriting
+          let existing: any[] = [];
+          try {
+            const raw = String(document || "[]");
+            const parsed = JSON.parse(raw);
+            existing = Array.isArray(parsed) ? parsed : [parsed];
+          } catch (err) {
+            existing = [];
+          }
+
+          const newFiles = Array.isArray(uploadResult) ? uploadResult : [uploadResult];
+          const merged = [...existing, ...newFiles];
+
+          setDocument(JSON.stringify(merged));
           toast.success("File uploaded successfully!");
         } else {
           toast.error("File upload failed");

@@ -373,17 +373,40 @@ export default observer(function WorkOrderPage() {
       setIsUploadingDocument(true);
       setUploadMessage(null);
 
-      try {
+        try {
         const uploadResult = await nguageStore.UploadMultipleMedia(files);
         console.log("Upload result:", uploadResult);
 
         if (uploadResult) {
-          // Store the raw stringified result; parsing/select will be handled by the modal
           setEditFormData((prev) => {
             if (!prev) return null;
+
+            // Normalize new upload result to an array of strings
+            const newDocs: string[] = Array.isArray(uploadResult)
+              ? uploadResult.map((d: any) => String(d))
+              : [String(uploadResult)];
+
+            let existingDocs: string[] = [];
+            try {
+              if (prev.document) {
+                const parsed = JSON.parse(String(prev.document));
+                if (Array.isArray(parsed)) {
+                  existingDocs = parsed.map((d: any) => String(d));
+                } else if (parsed) {
+                  existingDocs = [String(parsed)];
+                }
+              }
+            } catch {
+              if (prev.document) {
+                existingDocs = [String(prev.document)];
+              }
+            }
+
+            const merged = [...existingDocs, ...newDocs];
+
             return {
               ...prev,
-              document: JSON.stringify(uploadResult),
+              document: JSON.stringify(merged),
             };
           });
           setUploadMessage({ type: "success", text: "File uploaded successfully!" });
