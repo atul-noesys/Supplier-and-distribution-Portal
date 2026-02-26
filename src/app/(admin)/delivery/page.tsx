@@ -766,7 +766,20 @@ export default observer(function DeliveryPage() {
                                                         />
                                                         {acceptModalData.document && (
                                                             <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                                                                Current: {acceptModalData.document}
+                                                                <span className="text-blue-600">Current:</span> {(() => {
+                                                                    try {
+                                                                        const parsed = JSON.parse(acceptModalData.document as string);
+                                                                        if (Array.isArray(parsed)) {
+                                                                            return parsed
+                                                                                .map((f: string) => (f ? f.split("/").pop() : ""))
+                                                                                .filter(Boolean)
+                                                                                .join(", ");
+                                                                        }
+                                                                        return String(parsed).split("/").pop() || String(parsed);
+                                                                    } catch {
+                                                                        return String(acceptModalData.document);
+                                                                    }
+                                                                })()}
                                                             </p>
                                                         )}
                                                         {uploadMessage && (

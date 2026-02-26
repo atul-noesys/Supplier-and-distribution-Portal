@@ -418,12 +418,12 @@ function AddShipmentModalContent({
     // Validate required fields
     const errors: Record<string, string> = {};
     const requiredFields = ["invoice_id"];
-    
+
     // If carrier_name is provided, make shipment_date, estimated_delivery_date, and tracking_number mandatory
     if (formData.carrier_name) {
       requiredFields.push("shipment_date", "estimated_delivery_date", "tracking_number");
     }
-    
+
     requiredFields.forEach((field) => {
       if (!formData[field]) {
         const fieldLabel = field
@@ -456,7 +456,7 @@ function AddShipmentModalContent({
 
         shipmentToSave = {
           ...shipmentToSave,
-          shipment_status: formData.carrier_name !== ""  ? "In transit" : "Ready to ship",
+          shipment_status: formData.carrier_name !== "" ? "In transit" : "Ready to ship",
           vendor_id: currentLoggedInVendor?.vendor_id || "",
           vendor_name: currentLoggedInVendor?.company_name || "",
         }
@@ -476,7 +476,7 @@ function AddShipmentModalContent({
         // Update work order statuses to "Ready to ship"
         for (const item of shipmentStore.shipmentItems) {
           if (item.work_order_id) {
-            await updateWorkOrderStatus(String(item.work_order_id), formData.carrier_name !== ""  ? "In transit" : "Ready to ship");
+            await updateWorkOrderStatus(String(item.work_order_id), formData.carrier_name !== "" ? "In transit" : "Ready to ship");
           }
         }
 
@@ -490,7 +490,7 @@ function AddShipmentModalContent({
 
         shipmentToSave = {
           ...shipmentToSave,
-          shipment_status: formData.carrier_name !== ""  ? "In transit" : "Ready to ship",
+          shipment_status: formData.carrier_name !== "" ? "In transit" : "Ready to ship",
           vendor_id: currentLoggedInVendor?.vendor_id || "",
           vendor_name: currentLoggedInVendor?.company_name || "",
         }
@@ -535,7 +535,7 @@ function AddShipmentModalContent({
         // Update work order statuses based on carrier field
         for (const item of shipmentStore.shipmentItems) {
           if (item.work_order_id) {
-            await updateWorkOrderStatus(String(item.work_order_id), formData.carrier_name !== ""  ? "In transit" : "Ready to ship");
+            await updateWorkOrderStatus(String(item.work_order_id), formData.carrier_name !== "" ? "In transit" : "Ready to ship");
           }
         }
 
@@ -896,15 +896,13 @@ function AddShipmentModalContent({
                           });
                         }
                       }}
-                      className={`w-full px-3 py-2 border ${
-                        fieldErrors.invoice_id
-                          ? "border-red-500 dark:border-red-500"
-                          : "border-gray-300 dark:border-gray-600"
-                      } rounded-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 ${
-                        fieldErrors.invoice_id
+                      className={`w-full px-3 py-2 border ${fieldErrors.invoice_id
+                        ? "border-red-500 dark:border-red-500"
+                        : "border-gray-300 dark:border-gray-600"
+                        } rounded-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 ${fieldErrors.invoice_id
                           ? "focus:ring-red-500"
                           : "focus:ring-blue-500"
-                      } text-sm`}
+                        } text-sm`}
                       placeholder="e.g., AR-IPX-5454"
                     />
                     {fieldErrors.invoice_id && (
@@ -912,7 +910,7 @@ function AddShipmentModalContent({
                         {fieldErrors.invoice_id}
                       </p>
                     )}
-                  </div> 
+                  </div>
 
                   {/* Document */}
                   <div>
@@ -1044,15 +1042,13 @@ function AddShipmentModalContent({
                           });
                         }
                       }}
-                      className={`w-full px-3 py-2.5 border ${
-                        fieldErrors.tracking_number
-                          ? "border-red-500 dark:border-red-500"
-                          : "border-gray-300 dark:border-gray-600"
-                      } rounded-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 ${
-                        fieldErrors.tracking_number
+                      className={`w-full px-3 py-2.5 border ${fieldErrors.tracking_number
+                        ? "border-red-500 dark:border-red-500"
+                        : "border-gray-300 dark:border-gray-600"
+                        } rounded-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 ${fieldErrors.tracking_number
                           ? "focus:ring-red-500"
                           : "focus:ring-blue-500"
-                      } text-sm`}
+                        } text-sm`}
                       placeholder="e.g., TK-ENG-123456789"
                     />
                     {fieldErrors.tracking_number && (
@@ -1157,7 +1153,9 @@ function AddShipmentModalContent({
                               <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{item.shipment_quantity}</td>
                               <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">${item.total ? parseFloat(String(item.total)).toFixed(2) : '0.00'}</td>
                               <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{item.po_number || '-'}</td>
-                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{item.document || '-'}</td>
+                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{JSON.parse((item.document as string))?.map((f: string) => (f ? f.split("/").pop() : ""))
+                                .filter(Boolean)
+                                .join(", ") || '-'}</td>
                               <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 max-w-xs truncate">{item.remarks || '-'}</td>
                               <td className="px-4 py-3 text-center">
                                 <div className="flex items-center justify-center gap-2">

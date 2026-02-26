@@ -129,10 +129,10 @@ export default observer(function WorkOrderPage() {
         take: 500,
         NGaugeId: "44",
       });
-      
+
       // Handle response - GetPaginationData returns PaginationData object with data property
       const items = response?.data || response || [];
-      
+
       if (!Array.isArray(items) || items.length === 0) {
         return [];
       }
@@ -147,7 +147,7 @@ export default observer(function WorkOrderPage() {
   // Filter items based on search term
   const filteredItems = useMemo(() => {
     if (!paginationData) return [];
-    
+
     return paginationData.filter((item) =>
       Object.values(item).some((value) =>
         String(value).toLowerCase().includes(searchTerm.toLowerCase())
@@ -188,7 +188,7 @@ export default observer(function WorkOrderPage() {
   // Transform work order data to KanbanItem format for the kanban view
   const kanbanItems = useMemo(() => {
     if (!filteredItems || filteredItems.length === 0) return [];
-    
+
     // Create a map of PO items for quick lookup
     const poItemsMap = new Map<string, any>();
     poItemsData.forEach((item: any) => {
@@ -410,11 +410,11 @@ export default observer(function WorkOrderPage() {
 
     try {
       const rowId = String(selectedWorkOrder.ROWID);
-      
+
       // Get current date in YYYY-MM-DD format
       const today = new Date();
       const currentDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-      
+
       // Add end_date as current system date
       const dataToSave = {
         ...editFormData,
@@ -423,7 +423,7 @@ export default observer(function WorkOrderPage() {
       };
 
       console.log("Saving work order with data:", dataToSave);
-      
+
       const result = await nguageStore.UpdateRowDataDynamic(
         dataToSave,
         rowId,
@@ -510,10 +510,10 @@ export default observer(function WorkOrderPage() {
   const highlightText = (text: string | null | undefined, highlight: string) => {
     if (!text) return text;
     if (!highlight.trim()) return text;
-    
+
     const regex = new RegExp(`(${highlight})`, "gi");
     const parts = text.split(regex);
-    
+
     return parts.map((part, index) =>
       regex.test(part) ? (
         <span key={index} className="bg-yellow-300 dark:bg-yellow-400 dark:text-gray-900 font-semibold">
@@ -546,13 +546,13 @@ export default observer(function WorkOrderPage() {
     if (dynamicColumns.length === 0) {
       return DISPLAY_COLUMNS.map((key) => ({
         key,
-        label: key === "workOrderId" 
+        label: key === "workOrderId"
           ? "Work Order ID"
           : key
-              .replace(/_/g, " ")
-              .split(" ")
-              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-              .join(" "),
+            .replace(/_/g, " ")
+            .split(" ")
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" "),
       }));
     }
     return dynamicColumns;
@@ -608,22 +608,20 @@ export default observer(function WorkOrderPage() {
               <div className="flex items-center gap-2 bg-gray-200 dark:bg-gray-700 rounded-full p-0.5">
                 <button
                   onClick={() => setViewMode("kanban")}
-                  className={`p-1.5 rounded-full transition-all ${
-                    viewMode === "kanban"
+                  className={`p-1.5 rounded-full transition-all ${viewMode === "kanban"
                       ? "bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm"
                       : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
-                  }`}
+                    }`}
                   title="Kanban view"
                 >
                   <MdViewAgenda className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setViewMode("table")}
-                  className={`p-1.5 rounded-full transition-all ${
-                    viewMode === "table"
+                  className={`p-1.5 rounded-full transition-all ${viewMode === "table"
                       ? "bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm"
                       : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
-                  }`}
+                    }`}
                   title="Table view"
                 >
                   <MdViewWeek className="w-4 h-4" />
@@ -633,152 +631,152 @@ export default observer(function WorkOrderPage() {
           </div>
         </div>
 
-      {isLoading ? (
-        <div className="flex justify-center py-10">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
-        </div>
-      ) : viewMode === "kanban" ? (
-        <div className="pt-4 px-0">
-          <KanbanBoard initialData={kanbanItems} searchTerm={searchTerm} onEditClick={user?.roleId !== 5 ? handleEditRow : undefined} onDragDropSave={user?.roleId !== 5 ? handleDragDropSave : undefined} disabled={user?.roleId === 5} />
-        </div>
-      ) : (
-        <div className="border-t border-gray-200 dark:border-white/5">
-          <div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.65fr 1.15fr 0.9fr 0.6fr 70px 80px', gap: '0', minWidth: '100%' }}>
-              {/* Table Header */}
-              {tableColumns.map((column) => (
-                <div
-                  key={column.key}
-                  className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 border-r border-blue-800 dark:border-blue-800"
-                >
-                  {column.label}
+        {isLoading ? (
+          <div className="flex justify-center py-10">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+          </div>
+        ) : viewMode === "kanban" ? (
+          <div className="pt-4 px-0">
+            <KanbanBoard initialData={kanbanItems} searchTerm={searchTerm} onEditClick={user?.roleId !== 5 ? handleEditRow : undefined} onDragDropSave={user?.roleId !== 5 ? handleDragDropSave : undefined} disabled={user?.roleId === 5} />
+          </div>
+        ) : (
+          <div className="border-t border-gray-200 dark:border-white/5">
+            <div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.65fr 1.15fr 0.9fr 0.6fr 70px 80px', gap: '0', minWidth: '100%' }}>
+                {/* Table Header */}
+                {tableColumns.map((column) => (
+                  <div
+                    key={column.key}
+                    className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 border-r border-blue-800 dark:border-blue-800"
+                  >
+                    {column.label}
+                  </div>
+                ))}
+                {/* Details Header */}
+                <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 border-r border-blue-800 dark:border-blue-800">
+                  Details
                 </div>
-              ))}
-              {/* Details Header */}
-              <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 border-r border-blue-800 dark:border-blue-800">
-                Details
-              </div>
-              {/* Actions Header */}
-              <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 border-r border-blue-800 dark:border-blue-800">
-                Actions
-              </div>
-            </div>
-
-            {/* Table Body */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.65fr 1.15fr 0.9fr 0.6fr 70px 80px', gap: '0', minWidth: '100%' }}>
-              {paginatedItems.length === 0 ? (
-                <div style={{ gridColumn: '1 / -1' }} className="py-8 text-center bg-white dark:bg-gray-800">
-                  <p className="text-gray-500 dark:text-gray-400">No work orders found</p>
+                {/* Actions Header */}
+                <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 border-r border-blue-800 dark:border-blue-800">
+                  Actions
                 </div>
-              ) : (
-                paginatedItems.map((item) => (
-                  <Fragment key={item.ROWID}>
-                    {tableColumns.map((column) => {
-                      const value = item[column.key];
-                      let cellContent: React.ReactNode = "-";
+              </div>
 
-                      // Format date fields
-                      if (column.key === "start_date" || column.key === "end_date") {
-                        cellContent = formatDate(String(value || ""));
-                      }
-                      // Render Badge for step field with color mapping
-                      else if (column.key === "step") {
-                        const stepValue = String(value || "");
-                        const stepColors: Record<string, "blue" | "purple" | "pink" | "orange" | "green"> = {
-                          "Step 1": "blue",
-                          "Step 2": "purple",
-                          "Step 3": "pink",
-                          "Step 4": "orange",
-                          "Step 5": "green",
-                        };
-                        const stepColor = stepColors[stepValue] || "blue";
-                        cellContent = (
-                          <Badge color={stepColor} variant="light">
-                            {value || "-"}
-                          </Badge>
-                        );
-                      }
-                      // Render Badge for wo_status field
-                      else if (column.key === "wo_status") {
-                        const statusValue = String(value).toLowerCase();
-                        let statusColor: "blue" | "orange" | "green" | "warning" | "purple"  = "orange";
-                        
-                        if (statusValue.includes("work in progress")) {
-                          statusColor = "warning";
-                        } else if (statusValue.includes("in warehouse")) {
-                          statusColor = "blue";
-                        } else if (statusValue.includes("ready to ship")) {
-                          statusColor = "purple";
-                        } else if (statusValue.includes("delivered")) {
-                          statusColor = "green";
-                        } else if (statusValue.includes("in transit")) {
-                          statusColor = "orange";
+              {/* Table Body */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.65fr 1.15fr 0.9fr 0.6fr 70px 80px', gap: '0', minWidth: '100%' }}>
+                {paginatedItems.length === 0 ? (
+                  <div style={{ gridColumn: '1 / -1' }} className="py-8 text-center bg-white dark:bg-gray-800">
+                    <p className="text-gray-500 dark:text-gray-400">No work orders found</p>
+                  </div>
+                ) : (
+                  paginatedItems.map((item) => (
+                    <Fragment key={item.ROWID}>
+                      {tableColumns.map((column) => {
+                        const value = item[column.key];
+                        let cellContent: React.ReactNode = "-";
+
+                        // Format date fields
+                        if (column.key === "start_date" || column.key === "end_date") {
+                          cellContent = formatDate(String(value || ""));
                         }
-                        
-                        cellContent = (
-                          <Badge color={statusColor} variant="solid">
-                            {value || "-"}
-                          </Badge>
-                        );
-                      }
-                      // Render document icon
-                      else if (column.key === "document") {
-                        cellContent = value ? (
-                          <button
-                            onClick={() => handleViewDocument(value as string)}
-                            className="cursor-pointer hover:opacity-75 transition-opacity"
-                            title="View document"
-                          >
-                            <AiOutlineEye className="ml-5 w-5 h-5 text-blue-600 dark:text-blue-400" />
-                          </button>
-                        ) : (
-                          <AiOutlineEyeInvisible className="ml-5 w-5 h-5 text-gray-400 dark:text-gray-500" />
-                        );
-                      } else if (value !== null && value !== undefined && value !== "") {
-                        // Render with highlight if search term exists
-                        cellContent = searchTerm ? highlightText(String(value), searchTerm) : String(value);
-                      }
+                        // Render Badge for step field with color mapping
+                        else if (column.key === "step") {
+                          const stepValue = String(value || "");
+                          const stepColors: Record<string, "blue" | "purple" | "pink" | "orange" | "green"> = {
+                            "Step 1": "blue",
+                            "Step 2": "purple",
+                            "Step 3": "pink",
+                            "Step 4": "orange",
+                            "Step 5": "green",
+                          };
+                          const stepColor = stepColors[stepValue] || "blue";
+                          cellContent = (
+                            <Badge color={stepColor} variant="light">
+                              {value || "-"}
+                            </Badge>
+                          );
+                        }
+                        // Render Badge for wo_status field
+                        else if (column.key === "wo_status") {
+                          const statusValue = String(value).toLowerCase();
+                          let statusColor: "blue" | "orange" | "green" | "warning" | "purple" = "orange";
 
-                      return (
-                        <div
-                          key={column.key}
-                          className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r"
-                        >
-                          <p className="text-sm text-gray-700 dark:text-gray-300">
-                            {cellContent}
-                          </p>
-                        </div>
-                      );
-                    })}
-                    {/* Details Cell */}
-                    <div className="px-2.5 py-3 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
-                      <button
-                        onClick={() => handleViewDetails(item)}
-                        className="flex justify-center items-center ml-2 w-8 h-4 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
-                        title="View Details"
-                      >
-                        <MdOpenInNew className="w-4 h-4" />
-                      </button>
-                    </div>
-                    {/* Actions Cell */}
-                    <div className="px-2.5 py-3 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
-                      {user?.roleId !== 5 && (
+                          if (statusValue.includes("work in progress")) {
+                            statusColor = "warning";
+                          } else if (statusValue.includes("in warehouse")) {
+                            statusColor = "blue";
+                          } else if (statusValue.includes("ready to ship")) {
+                            statusColor = "purple";
+                          } else if (statusValue.includes("delivered")) {
+                            statusColor = "green";
+                          } else if (statusValue.includes("in transit")) {
+                            statusColor = "orange";
+                          }
+
+                          cellContent = (
+                            <Badge color={statusColor} variant="solid">
+                              {value || "-"}
+                            </Badge>
+                          );
+                        }
+                        // Render document icon
+                        else if (column.key === "document") {
+                          cellContent = value ? (
+                            <button
+                              onClick={() => handleViewDocument(value as string)}
+                              className="cursor-pointer hover:opacity-75 transition-opacity"
+                              title="View document"
+                            >
+                              <AiOutlineEye className="ml-5 w-5 h-5 text-blue-600 dark:text-blue-400" />
+                            </button>
+                          ) : (
+                            <AiOutlineEyeInvisible className="ml-5 w-5 h-5 text-gray-400 dark:text-gray-500" />
+                          );
+                        } else if (value !== null && value !== undefined && value !== "") {
+                          // Render with highlight if search term exists
+                          cellContent = searchTerm ? highlightText(String(value), searchTerm) : String(value);
+                        }
+
+                        return (
+                          <div
+                            key={column.key}
+                            className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r"
+                          >
+                            <p className="text-sm text-gray-700 dark:text-gray-300">
+                              {cellContent}
+                            </p>
+                          </div>
+                        );
+                      })}
+                      {/* Details Cell */}
+                      <div className="px-2.5 py-3 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
                         <button
-                          onClick={() => handleEditRow(item)}
-                          className="flex justify-center items-center ml-3 w-8 h-4 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
-                          title="Edit"
+                          onClick={() => handleViewDetails(item)}
+                          className="flex justify-center items-center ml-2 w-8 h-4 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
+                          title="View Details"
                         >
-                          <MdEdit className="w-4 h-4" />
+                          <MdOpenInNew className="w-4 h-4" />
                         </button>
-                      )}
-                    </div>
-                  </Fragment>
-                ))
-              )}
+                      </div>
+                      {/* Actions Cell */}
+                      <div className="px-2.5 py-3 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
+                        {user?.roleId !== 5 && (
+                          <button
+                            onClick={() => handleEditRow(item)}
+                            className="flex justify-center items-center ml-3 w-8 h-4 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
+                            title="Edit"
+                          >
+                            <MdEdit className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </Fragment>
+                  ))
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
 
       {/* PDF Viewer Modal */}
@@ -830,10 +828,10 @@ export default observer(function WorkOrderPage() {
                   const label = key === "workOrderId"
                     ? "Work Order ID"
                     : key
-                        .replace(/_/g, " ")
-                        .split(" ")
-                        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                        .join(" ");
+                      .replace(/_/g, " ")
+                      .split(" ")
+                      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                      .join(" ");
 
                   return (
                     <div key={key}>
@@ -1039,7 +1037,20 @@ export default observer(function WorkOrderPage() {
                   />
                   {editFormData.document && (
                     <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                      Current: {String(editFormData.document)}
+                      <span className="text-blue-600">Current:</span> {(() => {
+                        try {
+                          const parsed = JSON.parse(editFormData.document as string);
+                          if (Array.isArray(parsed)) {
+                            return parsed
+                              .map((f: string) => (f ? f.split("/").pop() : ""))
+                              .filter(Boolean)
+                              .join(", ");
+                          }
+                          return String(parsed).split("/").pop() || String(parsed);
+                        } catch {
+                          return String(editFormData.document);
+                        }
+                      })()}
                     </p>
                   )}
                 </div>

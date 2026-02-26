@@ -37,21 +37,16 @@ export function EditShipmentItemModal({
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      const fileNameToUpload = "Ngauge" + uuidv4() + file.name;
+      const files = Array.from(e.target.files);
 
       setIsUploadingDocument(true);
 
       try {
-        console.log("Uploading file:", file.name);
-        const uploadResult = await nguageStore.UploadAttachFile(
-          file,
-          fileNameToUpload
-        );
+        const uploadResult = await nguageStore.UploadMultipleMedia(files);
         console.log("Upload result:", uploadResult);
 
         if (uploadResult) {
-          setDocument(fileNameToUpload);
+          setDocument(JSON.stringify(uploadResult));
           toast.success("File uploaded successfully!");
         } else {
           toast.error("File upload failed");
@@ -243,7 +238,20 @@ export function EditShipmentItemModal({
                   />
                   {document && (
                     <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                      Current: {document}
+                      <span className="text-blue-600">Current:</span> {(() => {
+                        try {
+                          const parsed = JSON.parse(document as string);
+                          if (Array.isArray(parsed)) {
+                            return parsed
+                              .map((f: string) => (f ? f.split("/").pop() : ""))
+                              .filter(Boolean)
+                              .join(", ");
+                          }
+                          return String(parsed).split("/").pop() || String(parsed);
+                        } catch {
+                          return String(document);
+                        }
+                      })()}
                     </p>
                   )}
                 </div>
