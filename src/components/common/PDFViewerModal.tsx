@@ -141,12 +141,8 @@ export default function PDFViewerModal({
                           }`}>
                             {doc.split('/').pop()}
                           </p>
-                          <p className={`text-xs mt-1 truncate ${
-                            currentDocument === doc
-                              ? "text-gray-400"
-                              : "text-gray-500 dark:text-gray-400"
-                          }`}>
-                            Document
+                          <p className={"text-xs mt-1 truncate text-red-800 font-normal"}>
+                            Pdf
                           </p>
                         </div>
                       </div>
