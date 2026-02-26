@@ -57,7 +57,7 @@ const checkAuthStatus = async (): Promise<UseAuthReturn> => {
 
 export function useAuth(): UseAuthReturn {
   const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ["auth"],
     queryFn: checkAuthStatus,
     staleTime: 0, // Immediately stale - always validate token
@@ -78,7 +78,8 @@ export function useAuth(): UseAuthReturn {
 
   return {
     isAuthenticated: data?.isAuthenticated ?? false,
-    isLoading,
+    // Treat background refetching as loading so route guards wait
+    isLoading: isLoading || isFetching,
     token: data?.token ?? null,
   };
 }
