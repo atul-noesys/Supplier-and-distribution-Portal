@@ -12,9 +12,10 @@ export default async function handler(request: NextRequest) {
       const authHeader = request.headers.get("Authorization");
 
       const response = await fetch(
-        `https://nooms.infoveave.app/E/N/nooms/${attachment}`,
+        `https://nooms.infoveave.app/api/v10/Media/Download`,
         {
-          method: "GET",
+          method: "POST",
+          body: JSON.stringify({ link: attachment }),
           headers: {
             "Content-Type": "application/json",
             ...(authHeader && { Authorization: authHeader }),

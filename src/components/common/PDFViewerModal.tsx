@@ -6,8 +6,8 @@ import { PDFPreview } from "@/components/pdf-preview";
 import { useState, useEffect } from "react";
 
 interface PDFViewerModalProps {
-  selectedDocument: string | null;
-  documents?: string[];
+  // documents can be passed as a string (JSON string or comma-separated) or as an array
+  documents?: string | string[];
   pdfUrl: string | null;
   loadingPdf: boolean;
   pdfError: string | null;
@@ -17,7 +17,6 @@ interface PDFViewerModalProps {
 }
 
 export default function PDFViewerModal({
-  selectedDocument,
   documents = [],
   pdfUrl,
   loadingPdf,
@@ -26,19 +25,57 @@ export default function PDFViewerModal({
   onRetry,
   onDocumentSelect,
 }: PDFViewerModalProps) {
-  const [internalSelectedDocument, setInternalSelectedDocument] = useState<string | null>(selectedDocument);
+  const allDocuments: string[] = (() => {
+    if (!documents) return [];
+    if (Array.isArray(documents)) return documents;
+    try {
+      const parsed = JSON.parse(documents);
+      if (Array.isArray(parsed)) return parsed.map((v) => String(v));
+      if (typeof parsed === "string") return [parsed];
+    } catch (e) {
+      // not JSON, fall back to comma-separated or single string
+    }
+    if (typeof documents === "string" && documents.includes(",")) {
+      return documents.split(",").map((s) => s.trim()).filter(Boolean);
+    }
+    if (typeof documents === "string") return [documents];
+    return [];
+  })();
 
-  // Update internal state when selectedDocument changes from parent
+  const [internalSelectedDocument, setInternalSelectedDocument] = useState<string | null>(null);
+  const currentDocument = internalSelectedDocument ?? (allDocuments.length > 0 ? allDocuments[0] : null);
+
   useEffect(() => {
-    setInternalSelectedDocument(selectedDocument);
-  }, [selectedDocument]);
+    // Defer state changes to avoid synchronous setState inside the effect
+    // which can cause cascading renders and the React warning.
+    let timer: ReturnType<typeof setTimeout> | null = null;
 
-  if (!selectedDocument && (!documents || documents.length === 0)) {
+    if (allDocuments.length === 0) {
+      if (internalSelectedDocument !== null) {
+        timer = setTimeout(() => setInternalSelectedDocument(null), 0);
+      }
+      return () => {
+        if (timer) clearTimeout(timer);
+      };
+    }
+
+    if (!internalSelectedDocument || !allDocuments.includes(internalSelectedDocument)) {
+      timer = setTimeout(() => {
+        setInternalSelectedDocument(allDocuments[0]);
+        if (onDocumentSelect) {
+          onDocumentSelect(allDocuments[0]);
+        }
+      }, 0);
+    }
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [allDocuments, internalSelectedDocument, onDocumentSelect]);
+
+  if (allDocuments.length === 0) {
     return null;
   }
-
-  const currentDocument = internalSelectedDocument || selectedDocument;
-  const allDocuments = documents && documents.length > 0 ? documents : (selectedDocument ? [selectedDocument] : []);
 
   const handleDocumentClick = (doc: string) => {
     setInternalSelectedDocument(doc);
@@ -49,11 +86,11 @@ export default function PDFViewerModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-5/6 h-5/6 flex flex-col">
+      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-5/6 h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 p-4">
+        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-4 py-3">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {currentDocument ? currentDocument.slice(42) : "Document Viewer"}
+            {currentDocument ? currentDocument.split('/').pop() : "Document Viewer"}
           </h2>
           <button
             onClick={onClose}
@@ -68,18 +105,18 @@ export default function PDFViewerModal({
           {/* Left Sidebar - Document List */}
           {allDocuments.length > 0 && (
             <div className="w-68 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 overflow-y-auto">
-              <div className="p-2">
+              <div className="p-1">
                 <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
                   Documents ({allDocuments.length})
                 </h3>
-                <div>
+                <div className="space-y-1">
                   {allDocuments.map((doc, index) => (
                     <button
                       key={index}
                       onClick={() => handleDocumentClick(doc)}
                       className={`w-full group relative overflow-hidden rounded-lg transition-all duration-200 ${
                         currentDocument === doc
-                          ? "bg-linear-to-r from-blue-100 to-blue-100 scale-105"
+                          ? "bg-linear-to-r from-blue-100 to-blue-100"
                           : "bg-white dark:bg-gray-700 shadow-sm hover:shadow-md dark:shadow-gray-900/50"
                       }`}
                     >
@@ -102,7 +139,7 @@ export default function PDFViewerModal({
                               ? "text-blue-800"
                               : "text-gray-700 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400"
                           }`}>
-                            {doc.slice(42)}
+                            {doc.split('/').pop()}
                           </p>
                           <p className={`text-xs mt-1 truncate ${
                             currentDocument === doc

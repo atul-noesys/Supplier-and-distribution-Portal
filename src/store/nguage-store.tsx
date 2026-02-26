@@ -145,6 +145,30 @@ export class NguageStore {
     }
   }
 
+  async UploadMultipleMedia(files: File[]) {
+    try {
+      // Get token from localStorage (client-side only)
+      let token = null;
+      if (typeof window !== "undefined") {
+        token = localStorage.getItem("access_token");
+      }
+      
+      const formData = new FormData();
+      files.forEach((file) => {
+        formData.append("files", file);
+      });
+      formData.append("UseFor", "NGaugeForm");
+      const { data }: AxiosResponse<string[]> = await axios.post("https://nooms.infoveave.app/api/v10/Media/multiple", formData, {
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+      },);
+      return data;
+    } catch (e) {
+      return [];
+    }
+  }
+
   async UploadAttachFile(file: File, fileName: string) {
     try {
       const formData = new FormData();

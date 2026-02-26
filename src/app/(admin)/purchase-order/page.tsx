@@ -79,6 +79,7 @@ export default observer(function PurchaseOrderPage() {
   const [loadingPONumber, setLoadingPONumber] = useState<string | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
   const [relatedDocuments, setRelatedDocuments] = useState<string[]>([]);
+  const [openDocumentsString, setOpenDocumentsString] = useState<string | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
@@ -138,19 +139,27 @@ export default observer(function PurchaseOrderPage() {
     fetchPdf(selectedDocument);
   }, [selectedDocument, fetchPdf]);
 
-  // Handle viewing document
-  const handleViewDocument = (docName: string, docs?: string[]) => {
-    setSelectedDocument(docName);
-    if (docs && docs.length > 0) {
-      setRelatedDocuments(docs);
-    } else {
-      setRelatedDocuments([docName]);
+  // Handle viewing document (normalize like work-order page)
+  const handleViewDocument = (docName: string | null, docs?: string[]) => {
+    if (!docName) {
+      setOpenDocumentsString(null);
+      setSelectedDocument(null);
+      return;
     }
+    if (docs && docs.length > 0) {
+      // pass the docs array as a JSON string so modal will normalize
+      setOpenDocumentsString(JSON.stringify(docs));
+    } else {
+      setOpenDocumentsString(docName);
+    }
+    // modal will call back with single filename when selected
+    setSelectedDocument(null);
   };
 
   // Close PDF viewer
   const closePdfViewer = () => {
     setSelectedDocument(null);
+    setOpenDocumentsString(null);
     setRelatedDocuments([]);
     if (previousUrlRef.current) {
       URL.revokeObjectURL(previousUrlRef.current);
@@ -158,6 +167,13 @@ export default observer(function PurchaseOrderPage() {
     }
     setPdfUrl(null);
   };
+
+  // Normalize documents prop for PDFViewerModal to a string or undefined
+  const documentsProp: string | string[] | undefined = (() => {
+    if (openDocumentsString) return openDocumentsString;
+    if (relatedDocuments && relatedDocuments.length > 0) return relatedDocuments;
+    return undefined;
+  })();
 
   // Get the current user from the store
   const user = nguageStore.currentUser;
@@ -680,7 +696,7 @@ export default observer(function PurchaseOrderPage() {
                         {expandedPOs.has(po.po_number) && itemsByPO[po.po_number] && itemsByPO[po.po_number].length > 0 && (
                           <>
                             <tr className="border-b border-gray-100 dark:border-white/5 bg-blue-100 dark:bg-blue-900/40">
-                              <td colSpan={user?.roleId !== 5 ? 8 : 7} className="px-5 py-3">
+                              <td colSpan={7} className="px-5 py-3">
                                 <div className="grid gap-6" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 1.2fr 1.2fr 1.4fr' }}>
                                   <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Item Code</div>
                                   <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Item Name</div>
@@ -698,7 +714,7 @@ export default observer(function PurchaseOrderPage() {
                                 key={item.ROWID}
                                 className="border-b border-gray-100 dark:border-white/5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
                               >
-                                <td colSpan={user?.roleId !== 5 ? 8 : 7} className="px-5 py-4">
+                                <td colSpan={7} className="px-5 py-4">
                                   <div className="grid gap-6 text-sm" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 1.2fr 1.2fr 1.4fr' }}>
                                     <div className="text-gray-700 dark:text-gray-300">{item.item_code}</div>
                                     <div className="text-gray-700 dark:text-gray-300">
@@ -770,14 +786,13 @@ export default observer(function PurchaseOrderPage() {
 
       {/* PDF Viewer Modal */}
       <PDFViewerModal
-        selectedDocument={selectedDocument}
-        documents={relatedDocuments}
+        documents={documentsProp}
         pdfUrl={pdfUrl}
         loadingPdf={loadingPdf}
         pdfError={pdfError}
         onClose={closePdfViewer}
-        onRetry={handleViewDocument}
-        onDocumentSelect={handleViewDocument}
+        onRetry={(doc: string) => setSelectedDocument(doc)}
+        onDocumentSelect={(doc: string) => setSelectedDocument(doc)}
       />
 
       {/* Add/Edit PO Modal */}

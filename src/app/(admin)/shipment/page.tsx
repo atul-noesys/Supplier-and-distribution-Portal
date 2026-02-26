@@ -46,6 +46,7 @@ export default observer(function ShipmentPage() {
   const [selectedItemForDetails, setSelectedItemForDetails] = useState<RowData | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
   const [relatedDocuments, setRelatedDocuments] = useState<string[]>([]);
+  const [openDocumentsString, setOpenDocumentsString] = useState<string | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
@@ -184,19 +185,25 @@ export default observer(function ShipmentPage() {
     fetchPdf(selectedDocument);
   }, [selectedDocument, fetchPdf]);
 
-  // Handle viewing document
-  const handleViewDocument = (docName: string, docs?: string[]) => {
-    setSelectedDocument(docName);
-    if (docs && docs.length > 0) {
-      setRelatedDocuments(docs);
-    } else {
-      setRelatedDocuments([docName]);
+  // Handle viewing document (normalize like work-order page)
+  const handleViewDocument = (docName: string | null, docs?: string[]) => {
+    if (!docName) {
+      setOpenDocumentsString(null);
+      setSelectedDocument(null);
+      return;
     }
+    if (docs && docs.length > 0) {
+      setOpenDocumentsString(JSON.stringify(docs));
+    } else {
+      setOpenDocumentsString(docName);
+    }
+    setSelectedDocument(null);
   };
 
   // Close PDF viewer
   const closePdfViewer = () => {
     setSelectedDocument(null);
+    setOpenDocumentsString(null);
     setRelatedDocuments([]);
     if (previousUrlRef.current) {
       URL.revokeObjectURL(previousUrlRef.current);
@@ -204,6 +211,13 @@ export default observer(function ShipmentPage() {
     }
     setPdfUrl(null);
   };
+
+  // Normalize documents prop for PDFViewerModal to a string or undefined
+  const documentsProp: string | string[] | undefined = (() => {
+    if (openDocumentsString) return openDocumentsString;
+    if (relatedDocuments && relatedDocuments.length > 0) return relatedDocuments;
+    return undefined;
+  })();
 
   // Handle edit shipment
   const handleEditShipment = async (row: RowData) => {
@@ -859,14 +873,13 @@ export default observer(function ShipmentPage() {
 
       {/* PDF Viewer Modal */}
       <PDFViewerModal
-        selectedDocument={selectedDocument}
-        documents={relatedDocuments}
+        documents={documentsProp}
         pdfUrl={pdfUrl}
         loadingPdf={loadingPdf}
         pdfError={pdfError}
         onClose={closePdfViewer}
-        onRetry={handleViewDocument}
-        onDocumentSelect={handleViewDocument}
+        onRetry={(doc: string) => setSelectedDocument(doc)}
+        onDocumentSelect={(doc: string) => setSelectedDocument(doc)}
       />
     </div>
   );

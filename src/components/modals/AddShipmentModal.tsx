@@ -300,18 +300,16 @@ function AddShipmentModalContent({
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      const fileNameToUpload = "Ngauge" + uuidv4() + file.name;
+      const files = Array.from(e.target.files);
 
       setIsUploadingDocument(true);
 
       try {
-        console.log("Uploading file:", file.name);
-        const uploadResult = await nguageStore.UploadAttachFile(file, fileNameToUpload);
+        const uploadResult = await nguageStore.UploadMultipleMedia(files);
         console.log("Upload result:", uploadResult);
 
         if (uploadResult) {
-          handleInputChange("document", fileNameToUpload);
+          handleInputChange("document", JSON.stringify(uploadResult));
           toast.success("File uploaded successfully!");
         } else {
           toast.error("File upload failed");
@@ -923,6 +921,7 @@ function AddShipmentModalContent({
                     </label>
                     <input
                       type="file"
+                      multiple
                       onChange={handleFileChange}
                       disabled={isUploadingDocument}
                       className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-sm file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"

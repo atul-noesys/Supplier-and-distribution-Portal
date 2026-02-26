@@ -3,11 +3,10 @@ import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import Select from "@/components/form/Select";
-import Link from "next/link";
-import { useState } from "react";
 import { useStore } from "@/store/store-context";
 import { observer } from "mobx-react-lite";
-import { v4 as uuidv4 } from "uuid";
+import Link from "next/link";
+import { useState } from "react";
 
 export default observer(function RegisterForm() {
   const { nguageStore } = useStore();
@@ -20,7 +19,6 @@ export default observer(function RegisterForm() {
     businessAddress: "",
     industry: "",
     gstNumber: "",
-    documents: null as FileList | null,
     uploadedFileName: "" as string,
     contactFirstName: "",
     contactLastName: "",
@@ -58,12 +56,11 @@ export default observer(function RegisterForm() {
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      const fileNameToUpload = "Ngauge" + uuidv4() + file.name;
+      const files = Array.from(e.target.files);
 
       setFormData((prev) => ({
         ...prev,
-        documents: e.target.files,
+        documents: files,
       }));
 
       // Call API to upload file immediately
@@ -71,14 +68,13 @@ export default observer(function RegisterForm() {
       setSubmitMessage(null);
 
       try {
-        console.log("Uploading file:", file.name);
-        const uploadResult = await nguageStore.UploadAttachFile(file, fileNameToUpload);
+        const uploadResult = await nguageStore.UploadMultipleMedia(files);
         console.log("Upload result:", uploadResult);
 
         if (uploadResult) {
           setFormData((prev) => ({
             ...prev,
-            uploadedFileName: fileNameToUpload,
+            uploadedFileName: JSON.stringify(uploadResult),
           }));
         } else {
           setSubmitMessage({ type: "error", text: "File upload failed" });
@@ -128,7 +124,6 @@ export default observer(function RegisterForm() {
           businessAddress: "",
           industry: "",
           gstNumber: "",
-          documents: null,
           uploadedFileName: "",
           contactFirstName: "",
           contactLastName: "",
@@ -156,7 +151,6 @@ export default observer(function RegisterForm() {
       businessAddress: "",
       industry: "",
       gstNumber: "",
-      documents: null,
       uploadedFileName: "",
       contactFirstName: "",
       contactLastName: "",

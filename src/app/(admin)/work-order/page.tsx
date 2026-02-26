@@ -11,7 +11,6 @@ import { Fragment, useCallback, useEffect, useMemo, useState, useRef } from "rea
 import { AiOutlineEye, AiOutlineEyeInvisible, AiOutlineLoading3Quarters } from "react-icons/ai";
 import { MdClose, MdEdit, MdOpenInNew } from "react-icons/md";
 import { MdViewAgenda, MdViewWeek } from "react-icons/md";
-import { v4 as uuidv4 } from "uuid";
 import { toast } from "react-toastify";
 import axios from "axios";
 
@@ -96,12 +95,11 @@ export default observer(function WorkOrderPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<RowData | null>(null);
-  const [isLoadingWorkOrder, setIsLoadingWorkOrder] = useState(false);
   const [editFormData, setEditFormData] = useState<RowData | null>(null);
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
   const [uploadMessage, setUploadMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
-  const [relatedDocuments, setRelatedDocuments] = useState<string[]>([]);
+  const [openDocumentsString, setOpenDocumentsString] = useState<string | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
@@ -231,7 +229,6 @@ export default observer(function WorkOrderPage() {
       return;
     }
 
-    setIsLoadingWorkOrder(true);
     try {
       const latestData = await nguageStore.GetRowData(
         44,
@@ -254,7 +251,6 @@ export default observer(function WorkOrderPage() {
     } catch (error) {
       console.error("Error fetching work order data:", error);
     } finally {
-      setIsLoadingWorkOrder(false);
     }
   };
 
@@ -265,7 +261,6 @@ export default observer(function WorkOrderPage() {
       return;
     }
 
-    setIsLoadingWorkOrder(true);
     try {
       const latestData = await nguageStore.GetRowData(
         44,
@@ -287,7 +282,6 @@ export default observer(function WorkOrderPage() {
     } catch (error) {
       console.error("Error fetching work order data:", error);
     } finally {
-      setIsLoadingWorkOrder(false);
     }
   };
 
@@ -340,18 +334,21 @@ export default observer(function WorkOrderPage() {
     fetchPdf(selectedDocument);
   }, [selectedDocument, fetchPdf]);
 
-  const handleViewDocument = (docName: string, docs?: string[]) => {
-    setSelectedDocument(docName);
-    if (docs && docs.length > 0) {
-      setRelatedDocuments(docs);
-    } else {
-      setRelatedDocuments([docName]);
+  const handleViewDocument = (docName: string | null) => {
+    // Open the PDF viewer with the raw (possibly stringified) documents value
+    if (!docName) {
+      setOpenDocumentsString(null);
+      setSelectedDocument(null);
+      return;
     }
+    setOpenDocumentsString(docName);
+    // Do not parse here; modal will normalize and call back with a single filename when selected
+    setSelectedDocument(null);
   };
 
   const closePdfViewer = () => {
     setSelectedDocument(null);
-    setRelatedDocuments([]);
+    setOpenDocumentsString(null);
     if (previousUrlRef.current) {
       URL.revokeObjectURL(previousUrlRef.current);
       previousUrlRef.current = null;
@@ -371,23 +368,22 @@ export default observer(function WorkOrderPage() {
 
   const handleEditDocumentChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      const fileNameToUpload = "Ngauge" + uuidv4() + file.name;
+      const files = Array.from(e.target.files);
 
       setIsUploadingDocument(true);
       setUploadMessage(null);
 
       try {
-        console.log("Uploading file:", file.name);
-        const uploadResult = await nguageStore.UploadAttachFile(file, fileNameToUpload);
+        const uploadResult = await nguageStore.UploadMultipleMedia(files);
         console.log("Upload result:", uploadResult);
 
         if (uploadResult) {
+          // Store the raw stringified result; parsing/select will be handled by the modal
           setEditFormData((prev) => {
             if (!prev) return null;
             return {
               ...prev,
-              document: fileNameToUpload,
+              document: JSON.stringify(uploadResult),
             };
           });
           setUploadMessage({ type: "success", text: "File uploaded successfully!" });
@@ -561,6 +557,14 @@ export default observer(function WorkOrderPage() {
     }
     return dynamicColumns;
   }, [paginatedItems]);
+
+  // Normalize documents prop for PDFViewerModal to a string or undefined
+  const documentsProp: string | string[] | undefined = (() => {
+    if (openDocumentsString) return openDocumentsString;
+    if (editFormData?.document != null) return String(editFormData.document);
+    if (selectedWorkOrder?.document != null) return String(selectedWorkOrder.document);
+    return undefined;
+  })();
 
   if (error) {
     return (
@@ -779,14 +783,13 @@ export default observer(function WorkOrderPage() {
 
       {/* PDF Viewer Modal */}
       <PDFViewerModal
-        selectedDocument={selectedDocument}
-        documents={relatedDocuments}
+        documents={documentsProp}
         pdfUrl={pdfUrl}
         loadingPdf={loadingPdf}
         pdfError={pdfError}
         onClose={closePdfViewer}
-        onRetry={handleViewDocument}
-        onDocumentSelect={handleViewDocument}
+        onRetry={(doc: string) => setSelectedDocument(doc)}
+        onDocumentSelect={(doc: string) => setSelectedDocument(doc)}
       />
 
       {/* Work Order Detail Modal */}
@@ -1029,13 +1032,14 @@ export default observer(function WorkOrderPage() {
                   </label>
                   <input
                     type="file"
+                    multiple
                     onChange={handleEditDocumentChange}
                     disabled={isUploadingDocument}
                     className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50"
                   />
                   {editFormData.document && (
                     <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                      Current: {editFormData.document}
+                      Current: {String(editFormData.document)}
                     </p>
                   )}
                 </div>
