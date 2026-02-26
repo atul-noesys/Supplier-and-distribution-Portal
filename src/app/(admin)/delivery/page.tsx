@@ -9,7 +9,6 @@ import { observer } from "mobx-react-lite";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { MdClose, MdDone } from "react-icons/md";
-import { v4 as uuidv4 } from "uuid";
 import { toast } from "react-toastify";
 
 const tableStyles = `
@@ -59,7 +58,7 @@ export default observer(function DeliveryPage() {
     const [loadingPdf, setLoadingPdf] = useState(false);
     const [pdfError, setPdfError] = useState<string | null>(null);
     const previousUrlRef = useRef<string | null>(null);
-    
+
     // Modal states
     const [showAcceptModal, setShowAcceptModal] = useState(false);
     const [acceptModalData, setAcceptModalData] = useState<RowData | null>(null);
@@ -217,10 +216,10 @@ export default observer(function DeliveryPage() {
     };
 
     // Close PDF viewer
-            const closePdfViewer = () => {
-                setSelectedDocument(null);
-                setOpenDocumentsString(null);
-                setRelatedDocuments([]);
+    const closePdfViewer = () => {
+        setSelectedDocument(null);
+        setOpenDocumentsString(null);
+        setRelatedDocuments([]);
         if (previousUrlRef.current) {
             URL.revokeObjectURL(previousUrlRef.current);
             previousUrlRef.current = null;
@@ -228,12 +227,12 @@ export default observer(function DeliveryPage() {
         setPdfUrl(null);
     };
 
-            // Normalize documents prop for PDFViewerModal to a string or undefined
-            const documentsProp: string | string[] | undefined = (() => {
-                if (openDocumentsString) return openDocumentsString;
-                if (relatedDocuments && relatedDocuments.length > 0) return relatedDocuments;
-                return undefined;
-            })();
+    // Normalize documents prop for PDFViewerModal to a string or undefined
+    const documentsProp: string | string[] | undefined = (() => {
+        if (openDocumentsString) return openDocumentsString;
+        if (relatedDocuments && relatedDocuments.length > 0) return relatedDocuments;
+        return undefined;
+    })();
 
     // Handle Accept button click - fetch row data and open modal
     const handleAcceptDelivery = useCallback(async (rowId: string) => {
@@ -277,17 +276,17 @@ export default observer(function DeliveryPage() {
             console.log(`Work Order ID: ${workOrderId}`);
             console.log(`New Status: ${newStatus}`);
             console.log(`Total work orders available: ${allWorkOrders.length}`);
-            
+
             // Find the work order by matching the expression field value
             const workOrder = allWorkOrders.find((wo) => {
                 // Find the expression column (dynamic JSON key)
                 const expressionKey = Object.keys(wo).find(
                     (key) => key.includes("expression") && key.includes("@po_number") && key.includes("@item_code")
                 );
-                
+
                 // Get the expression value which is the concatenated po_number + item_code
                 const woId = expressionKey ? String(wo[expressionKey] || "") : "";
-                
+
                 console.log(`Checking WO: ${woId} against ${workOrderId}`);
                 return woId === workOrderId;
             });
@@ -360,7 +359,7 @@ export default observer(function DeliveryPage() {
         if (!acceptModalData) return;
 
         setAcceptModalLoading(true);
-        
+
         try {
             // Get current user from store
             const currentUser = nguageStore.currentUser;
@@ -415,7 +414,7 @@ export default observer(function DeliveryPage() {
                 // Update work order statuses to "Delivered"
                 let successCount = 0;
                 let failureCount = 0;
-                
+
                 for (const item of itemsForShipment) {
                     console.log(`Processing item:`, item);
                     if (item.work_order_id) {
@@ -431,7 +430,7 @@ export default observer(function DeliveryPage() {
                         console.warn(`Item has no work_order_id:`, item);
                     }
                 }
-                
+
                 if (successCount > 0) {
                     toast.success(`${successCount} work order(s) updated to "Delivered"`);
                 }
@@ -439,15 +438,15 @@ export default observer(function DeliveryPage() {
                     toast.error(`Failed to update ${failureCount} work order(s)`);
                 }
             }
-            
+
             // Invalidate the queries to refresh the data
-            await queryClient.invalidateQueries({ 
-                queryKey: ["deliveryShipmentList"] 
+            await queryClient.invalidateQueries({
+                queryKey: ["deliveryShipmentList"]
             });
-            await queryClient.invalidateQueries({ 
-                queryKey: ["allWorkOrdersDelivery"] 
+            await queryClient.invalidateQueries({
+                queryKey: ["allWorkOrdersDelivery"]
             });
-            
+
             closeAcceptModal();
         } catch (error) {
             console.error("Error accepting delivery:", error);
@@ -462,15 +461,13 @@ export default observer(function DeliveryPage() {
     // Handle document upload
     const handleEditDocumentChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
-            const file = e.target.files[0];
-            const fileNameToUpload = "Ngauge" + uuidv4() + file.name;
+            const files = Array.from(e.target.files);
 
             setIsUploadingDocument(true);
             setUploadMessage(null);
 
             try {
-                console.log("Uploading file:", file.name);
-                const uploadResult = await nguageStore.UploadAttachFile(file, fileNameToUpload);
+                const uploadResult = await nguageStore.UploadMultipleMedia(files);
                 console.log("Upload result:", uploadResult);
 
                 if (uploadResult) {
@@ -478,7 +475,7 @@ export default observer(function DeliveryPage() {
                         if (!prev) return null;
                         return {
                             ...prev,
-                            document: fileNameToUpload,
+                            document: JSON.stringify(uploadResult),
                         };
                     });
                     setUploadMessage({ type: "success", text: "File uploaded successfully!" });
@@ -760,6 +757,7 @@ export default observer(function DeliveryPage() {
                                                     <div>
                                                         <input
                                                             type="file"
+                                                            multiple
                                                             onChange={handleEditDocumentChange}
                                                             disabled={isUploadingDocument}
                                                             className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50"
@@ -807,11 +805,10 @@ export default observer(function DeliveryPage() {
                                                         type="text"
                                                         value={String(value || "-")}
                                                         disabled={isDisabled}
-                                                        className={`w-full px-3 py-2 border rounded-lg text-sm ${
-                                                            isDisabled
+                                                        className={`w-full px-3 py-2 border rounded-lg text-sm ${isDisabled
                                                                 ? "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-500 cursor-not-allowed"
                                                                 : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:border-blue-500"
-                                                        }`}
+                                                            }`}
                                                         readOnly={isDisabled}
                                                     />
                                                 )}

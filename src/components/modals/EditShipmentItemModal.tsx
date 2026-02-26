@@ -231,6 +231,7 @@ export function EditShipmentItemModal({
                 <div className="space-y-2">
                   <input
                     type="file"
+                    multiple
                     onChange={handleFileChange}
                     disabled={isUploadingDocument}
                     className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"

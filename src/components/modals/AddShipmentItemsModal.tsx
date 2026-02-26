@@ -15,14 +15,14 @@ import { v4 as uuidv4 } from 'uuid';
  * Removes undefined values and ensures type compatibility
  */
 const toRowData = (record: KeyValueRecord): RowData => {
-  const rowData: RowData = {};
-  Object.keys(record).forEach((key) => {
-    const value = record[key];
-    if (value !== null && value !== undefined && value !== '') {
-      rowData[key] = typeof value === 'boolean' ? (value ? 1 : 0) : value;
-    }
-  });
-  return rowData;
+    const rowData: RowData = {};
+    Object.keys(record).forEach((key) => {
+        const value = record[key];
+        if (value !== null && value !== undefined && value !== '') {
+            rowData[key] = typeof value === 'boolean' ? (value ? 1 : 0) : value;
+        }
+    });
+    return rowData;
 };
 
 interface AddShipmentItemsModalProps {
@@ -47,7 +47,7 @@ function AddShipmentItemsModalContent({
     // Get editing item from store - make it reactive to editingItemIndex changes
     const editingItemIndex = shipmentStore.editingItemIndex;
     const editingItem = editingItemIndex !== null ? shipmentStore.shipmentItems[editingItemIndex] : null;
-    
+
     console.log('=== MODAL COMPONENT RENDER ===');
     console.log('isOpen:', isOpen);
     console.log('editingItemIndex:', editingItemIndex);
@@ -64,7 +64,7 @@ function AddShipmentItemsModalContent({
                 take: 500,
                 NGaugeId: "44",
             });
-            
+
             // Handle response - GetPaginationData returns array or object with data property
             const items = response?.data || response || [];
             return Array.isArray(items) ? items : [];
@@ -82,7 +82,7 @@ function AddShipmentItemsModalContent({
                 take: 500,
                 NGaugeId: "42",
             });
-            
+
             // Handle response - GetPaginationData returns array or object with data property
             const items = response?.data || response || [];
             return Array.isArray(items) ? items : [];
@@ -131,7 +131,7 @@ function AddShipmentItemsModalContent({
         console.log('isOpen:', isOpen);
         console.log('editingItem:', editingItem);
         console.log('editingItemIndex:', editingItemIndex);
-        
+
         if (isOpen) {
             if (editingItem) {
                 // Populate with editing item data
@@ -149,18 +149,16 @@ function AddShipmentItemsModalContent({
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
-            const file = e.target.files[0];
-            const fileNameToUpload = "Ngauge" + uuidv4() + file.name;
+            const files = Array.from(e.target.files);
 
             setIsUploadingDocument(true);
 
             try {
-                console.log("Uploading file:", file.name);
-                const uploadResult = await nguageStore.UploadAttachFile(file, fileNameToUpload);
+                const uploadResult = await nguageStore.UploadMultipleMedia(files);
                 console.log("Upload result:", uploadResult);
 
                 if (uploadResult) {
-                    handleInputChange("document", fileNameToUpload);
+                    handleInputChange("document", JSON.stringify(uploadResult));
                     toast.success("File uploaded successfully!");
                 } else {
                     toast.error("File upload failed");
@@ -185,18 +183,18 @@ function AddShipmentItemsModalContent({
             if (field === 'work_order_id' && Array.isArray(workOrderData)) {
                 const woRowId = value;
                 const selectedWorkOrder = workOrderData.find((wo: any) => String(wo.ROWID) === woRowId);
-                
+
                 if (selectedWorkOrder) {
                     const { po_number, item_code } = selectedWorkOrder;
-                    
+
                     // Keep work_order_id as ROWID for select UI to work properly
                     updated.work_order_id = woRowId;
-                    
+
                     // Find matching PO item
-                    const matchingPOItem = Array.isArray(poItemsData) && poItemsData.find((poi: any) => 
+                    const matchingPOItem = Array.isArray(poItemsData) && poItemsData.find((poi: any) =>
                         poi.po_number === po_number && poi.item_code === item_code
                     );
-                    
+
                     if (matchingPOItem) {
                         // Auto-populate fields from work order and PO item
                         updated.item_code = item_code;
@@ -204,7 +202,7 @@ function AddShipmentItemsModalContent({
                         updated.unit_price = String(matchingPOItem.unit_price || 0);
                         updated.shipment_quantity = String(matchingPOItem.quantity || 0);
                         updated.po_number = po_number;
-                        
+
                         // Auto-calculate total
                         const unitPrice = parseFloat(String(matchingPOItem.unit_price || 0)) || 0;
                         const quantity = parseFloat(String(matchingPOItem.quantity || 0)) || 0;
@@ -248,7 +246,7 @@ function AddShipmentItemsModalContent({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         console.log('=== handleSubmit CALLED ===');
         console.log('formData:', formData);
 
@@ -287,9 +285,9 @@ function AddShipmentItemsModalContent({
 
                 // Store the rowId from response
                 // API returns { data: rowId, message: "..." }
-                const rowId = typeof result.result === 'object' && result.result !== null 
-                  ? (result.result as any).data 
-                  : result.result;
+                const rowId = typeof result.result === 'object' && result.result !== null
+                    ? (result.result as any).data
+                    : result.result;
 
                 const itemWithRowId: ShipmentItem = {
                     ...formData,
@@ -312,7 +310,7 @@ function AddShipmentItemsModalContent({
 
     const handleUpdateItem = (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         console.log('=== handleUpdateItem CALLED ===');
         console.log('editingItemIndex:', shipmentStore.editingItemIndex);
         console.log('formData:', formData);
@@ -336,7 +334,7 @@ function AddShipmentItemsModalContent({
                 ...formData,
                 work_order_id: workOrderIdToSend,
             } as ShipmentItem;
-            
+
             console.log('Updating item in store at index:', shipmentStore.editingItemIndex, 'with data:', updatedItem);
             onSave(updatedItem);
             toast.success('Item updated successfully!');
@@ -500,6 +498,7 @@ function AddShipmentItemsModalContent({
                                     </label>
                                     <input
                                         type="file"
+                                        multiple
                                         onChange={handleFileChange}
                                         disabled={isUploadingDocument}
                                         className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
