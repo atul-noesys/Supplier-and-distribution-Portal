@@ -67,6 +67,9 @@ export default observer(function DeliveryPage() {
     const [acceptModalRemarks, setAcceptModalRemarks] = useState<string>("");
     const [isUploadingDocument, setIsUploadingDocument] = useState(false);
     const [uploadMessage, setUploadMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+    const [isFetchingAcceptRow, setIsFetchingAcceptRow] = useState(false);
+    const [acceptModalEdited, setAcceptModalEdited] = useState(false);
+    const acceptModalEditedRef = useRef(false);
 
 
 
@@ -236,28 +239,39 @@ export default observer(function DeliveryPage() {
 
     // Handle Accept button click - fetch row data and open modal
     const handleAcceptDelivery = useCallback(async (rowId: string) => {
-        setAcceptModalLoading(true);
+        // Reset modal error/remarks and edit-tracking
         setAcceptModalError(null);
-        setAcceptModalData(null);
         setAcceptModalRemarks("");
+        setAcceptModalEdited(false);
+        acceptModalEditedRef.current = false;
 
+        // Try to find existing row locally to open modal immediately
+        const existingRow = shipmentData.find((r) => String(r.ROWID || "") === String(rowId)) || null;
+        setAcceptModalData(existingRow);
+        setShowAcceptModal(true);
+
+        // Fetch latest in background and update modal if user hasn't edited
+        setIsFetchingAcceptRow(true);
         try {
             const rowData = await nguageStore.GetRowData(52, rowId, "shipment_list");
             if (rowData) {
-                setAcceptModalData(rowData);
-                setShowAcceptModal(true);
+                if (!acceptModalEditedRef.current) {
+                    setAcceptModalData(rowData);
+                }
             } else {
-                setAcceptModalError("Failed to load shipment data");
-                setShowAcceptModal(true);
+                if (!existingRow) {
+                    setAcceptModalError("Failed to load shipment data");
+                }
             }
         } catch (err) {
             console.error("Error fetching row data:", err);
-            setAcceptModalError(err instanceof Error ? err.message : "Failed to load shipment data");
-            setShowAcceptModal(true);
+            if (!existingRow) {
+                setAcceptModalError(err instanceof Error ? err.message : "Failed to load shipment data");
+            }
         } finally {
-            setAcceptModalLoading(false);
+            setIsFetchingAcceptRow(false);
         }
-    }, [nguageStore]);
+    }, [nguageStore, shipmentData]);
 
     // Close accept modal
     const closeAcceptModal = () => {
@@ -267,6 +281,9 @@ export default observer(function DeliveryPage() {
         setAcceptModalRemarks("");
         setUploadMessage(null);
         setIsUploadingDocument(false);
+        setIsFetchingAcceptRow(false);
+        setAcceptModalEdited(false);
+        acceptModalEditedRef.current = false;
     };
 
     // Helper function to update work order status
@@ -471,6 +488,8 @@ export default observer(function DeliveryPage() {
                 console.log("Upload result:", uploadResult);
 
                 if (uploadResult) {
+                    setAcceptModalEdited(true);
+                    acceptModalEditedRef.current = true;
                     setAcceptModalData((prev) => {
                         if (!prev) return null;
 

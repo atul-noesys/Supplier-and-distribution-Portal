@@ -34,6 +34,7 @@ interface AddPOItemModalProps {
         vendor_id?: string;
         vendor_name?: string;
     };
+    onUserEdit?: () => void;
 }
 
 function AddPOItemModalContent({
@@ -41,6 +42,7 @@ function AddPOItemModalContent({
     onClose,
     onSave,
     poData,
+    onUserEdit,
 }: AddPOItemModalProps) {
     const queryClient = useQueryClient();
     const { nguageStore, poStore } = useStore();
@@ -118,6 +120,8 @@ function AddPOItemModalContent({
             }
             return updated;
         });
+        // Notify parent modal that the user has edited the form
+        onUserEdit?.();
     };
 
     const handleClose = () => {

@@ -36,6 +36,9 @@ interface AddPOModalProps {
 
 function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOModalProps) {
   const { nguageStore, poStore } = useStore();
+  const [isFetchingItems, setIsFetchingItems] = useState(false);
+  const [itemEdited, setItemEdited] = useState(false);
+  const itemEditedRef = useRef(false);
   const [isSaved, setIsSaved] = useState(false);
   const [poData, setPoData] = useState<KeyValueRecord | null>(null);
   const [showItemModal, setShowItemModal] = useState(false);
@@ -362,8 +365,16 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
       return;
     }
 
-    // Fetch the latest data before opening the edit modal
-    const fetchLatestData = async () => {
+    // Open the edit modal immediately with the cached item to avoid delay
+    poStore.setEditingItemIndex(index);
+    setItemEdited(false);
+    itemEditedRef.current = false;
+    setShowItemModal(true);
+
+    // Fetch the latest data in background and update the store only if the user
+    // hasn't started editing the item in the modal.
+    (async () => {
+      setIsFetchingItems(true);
       try {
         const latestData = await nguageStore.GetRowData(
           42,
@@ -372,27 +383,29 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
         );
 
         if (latestData) {
-          // Update the store with the latest data
-          const updatedItem: POItem = {
-            ...item,
-            ...latestData,
-            rowId: item.rowId, // Preserve the rowId
-          };
-          poStore.updateItem(index, updatedItem);
+          if (!itemEditedRef.current) {
+            const updatedItem: POItem = {
+              ...item,
+              ...latestData,
+              rowId: item.rowId,
+            };
+            poStore.updateItem(index, updatedItem);
+          }
         } else {
-          toast.warning('Could not fetch latest data, using cached version');
+          // Keep cached version, notify if user hasn't edited
+          if (!itemEditedRef.current) {
+            toast.warning('Could not fetch latest data, using cached version');
+          }
         }
-
-        // Set editing index and open modal
-        poStore.setEditingItemIndex(index);
-        setShowItemModal(true);
       } catch (error) {
         console.error('Error fetching latest data:', error);
-        toast.error('Failed to fetch latest item data');
+        if (!itemEditedRef.current) {
+          toast.error('Failed to fetch latest item data');
+        }
+      } finally {
+        setIsFetchingItems(false);
       }
-    };
-
-    fetchLatestData();
+    })();
   };
 
   const handleDeleteItem = (index: number) => {
@@ -680,6 +693,10 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
             handleSaveItem(item);
           }}
           poData={poData}
+          onUserEdit={() => {
+            setItemEdited(true);
+            itemEditedRef.current = true;
+          }}
         />
       )}
     </div>
