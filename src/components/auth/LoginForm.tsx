@@ -71,20 +71,10 @@ export default function LogInForm() {
         localStorage.setItem("token_expiry", expiryTimestamp.toString());
       }
 
-      // Fetch and cache current user details
       await nguageStore.GetCurrentUser();
 
-      // Start transition animation
       startTransition();
-
-      // Wait for transition animation to complete then redirect
-      setTimeout(() => {
-        router.push("/");
-        // End transition after navigation
-        setTimeout(() => {
-          endTransition();
-        }, 300);
-      }, 300);
+      router.push("/");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Login failed";
       setError(errorMessage);

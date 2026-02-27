@@ -17,17 +17,13 @@ export default function AdminLayout({
   const { isLoading } = useProtectedRoute();
   const { isTransitioning, endTransition } = usePageTransition();
 
-  // End transition once page is loaded
   useEffect(() => {
     if (!isLoading && isTransitioning) {
-      const timer = setTimeout(() => {
-        endTransition();
-      }, 100);
-      return () => clearTimeout(timer);
+      endTransition();
+      return;
     }
   }, [isLoading, isTransitioning, endTransition]);
 
-  // Dynamic class for main content margin based on sidebar state
   const mainContentMargin = isMobileOpen
     ? "ml-0"
     : isExpanded || isHovered

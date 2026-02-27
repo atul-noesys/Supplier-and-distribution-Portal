@@ -6,7 +6,6 @@ import { PDFPreview } from "@/components/pdf-preview";
 import { useState, useEffect } from "react";
 
 interface PDFViewerModalProps {
-  // documents can be passed as a string (JSON string or comma-separated) or as an array
   documents?: string | string[];
   pdfUrl: string | null;
   loadingPdf: boolean;
@@ -46,30 +45,31 @@ export default function PDFViewerModal({
   const currentDocument = internalSelectedDocument ?? (allDocuments.length > 0 ? allDocuments[0] : null);
 
   useEffect(() => {
-    // Defer state changes to avoid synchronous setState inside the effect
-    // which can cause cascading renders and the React warning.
-    let timer: ReturnType<typeof setTimeout> | null = null;
+    let cancelled = false;
 
     if (allDocuments.length === 0) {
       if (internalSelectedDocument !== null) {
-        timer = setTimeout(() => setInternalSelectedDocument(null), 0);
+        Promise.resolve().then(() => {
+          if (!cancelled) setInternalSelectedDocument(null);
+        });
       }
       return () => {
-        if (timer) clearTimeout(timer);
+        cancelled = true;
       };
     }
 
     if (!internalSelectedDocument || !allDocuments.includes(internalSelectedDocument)) {
-      timer = setTimeout(() => {
+      Promise.resolve().then(() => {
+        if (cancelled) return;
         setInternalSelectedDocument(allDocuments[0]);
         if (onDocumentSelect) {
           onDocumentSelect(allDocuments[0]);
         }
-      }, 0);
+      });
     }
 
     return () => {
-      if (timer) clearTimeout(timer);
+      cancelled = true;
     };
   }, [allDocuments, internalSelectedDocument, onDocumentSelect]);
 
