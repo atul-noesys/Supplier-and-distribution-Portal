@@ -69,12 +69,20 @@ export default function Dashboard() {
         </h1>
       </header>
 
-      <Tabs
-        items={tabs}
-        activeIndex={tab}
-        onChange={setTab}
-        renderPanel={renderPanel}
-      />
+      {infoboards ? (
+        <Tabs
+          items={tabs}
+          activeIndex={tab}
+          onChange={setTab}
+          renderPanel={renderPanel}
+        />
+      ) : (
+        <div className="w-full h-150 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin h-8 w-8 border-3 border-brand-500 border-t-transparent rounded-full mx-auto mb-4" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

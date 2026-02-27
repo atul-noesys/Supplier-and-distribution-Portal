@@ -103,6 +103,7 @@ export default observer(function WorkOrderPage() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [isPdfViewerOpen, setIsPdfViewerOpen] = useState(false);
   const previousUrlRef = useRef<string | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "kanban">("kanban");
   const [isSavingWorkOrder, setIsSavingWorkOrder] = useState(false);
@@ -339,9 +340,11 @@ export default observer(function WorkOrderPage() {
     if (!docName) {
       setOpenDocumentsString(null);
       setSelectedDocument(null);
+      setIsPdfViewerOpen(false);
       return;
     }
     setOpenDocumentsString(docName);
+    setIsPdfViewerOpen(true);
     // Do not parse here; modal will normalize and call back with a single filename when selected
     setSelectedDocument(null);
   };
@@ -349,6 +352,7 @@ export default observer(function WorkOrderPage() {
   const closePdfViewer = () => {
     setSelectedDocument(null);
     setOpenDocumentsString(null);
+    setIsPdfViewerOpen(false);
     if (previousUrlRef.current) {
       URL.revokeObjectURL(previousUrlRef.current);
       previousUrlRef.current = null;
@@ -803,15 +807,17 @@ export default observer(function WorkOrderPage() {
       </div>
 
       {/* PDF Viewer Modal */}
-      <PDFViewerModal
-        documents={documentsProp}
-        pdfUrl={pdfUrl}
-        loadingPdf={loadingPdf}
-        pdfError={pdfError}
-        onClose={closePdfViewer}
-        onRetry={(doc: string) => setSelectedDocument(doc)}
-        onDocumentSelect={(doc: string) => setSelectedDocument(doc)}
-      />
+      {isPdfViewerOpen && (
+        <PDFViewerModal
+          documents={documentsProp}
+          pdfUrl={pdfUrl}
+          loadingPdf={loadingPdf}
+          pdfError={pdfError}
+          onClose={closePdfViewer}
+          onRetry={(doc: string) => setSelectedDocument(doc)}
+          onDocumentSelect={(doc: string) => setSelectedDocument(doc)}
+        />
+      )}
 
       {/* Work Order Detail Modal */}
       {isDetailModalOpen && selectedWorkOrder && (
@@ -844,6 +850,35 @@ export default observer(function WorkOrderPage() {
                     displayValue = computedKey ? String(selectedWorkOrder[computedKey] || "-") : "-";
                   } else if (key === "start_date" || key === "end_date") {
                     displayValue = formatDate(String(value || ""));
+                  } else if (key === "document") {
+                    if (!value) {
+                      displayValue = "-";
+                    } else {
+                      try {
+                        const parsed = JSON.parse(String(value));
+                        if (Array.isArray(parsed)) {
+                          displayValue = parsed
+                            .map((f: string) => (f ? f.split("/").pop() : ""))
+                            .filter(Boolean)
+                            .join(", ");
+                        } else {
+                          const s = String(parsed);
+                          displayValue = s.split("/").pop() || s;
+                        }
+                      } catch {
+                        const s = String(value);
+                        if (s.includes(",")) {
+                          displayValue = s
+                            .split(",")
+                            .map((p) => p.trim())
+                            .map((f) => (f ? f.split("/").pop() : ""))
+                            .filter(Boolean)
+                            .join(", ");
+                        } else {
+                          displayValue = s.split("/").pop() || s;
+                        }
+                      }
+                    }
                   } else if (value !== null && value !== undefined && value !== "") {
                     displayValue = String(value);
                   }
