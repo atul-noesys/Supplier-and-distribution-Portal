@@ -13,14 +13,15 @@ import { MdArrowDropDown, MdClose, MdEdit, MdOpenInNew } from "react-icons/md";
 
 const getStatusColor = (
   status: string,
-): "primary" | "success" | "error" | "warning" | "info" | "light" | "dark" | "orange" => {
+): "primary" | "success" | "error" | "warning" | "info" | "light" | "dark" | "orange" | "purple" => {
   const lowerStatus = status?.toLowerCase() || "";
   switch (lowerStatus) {
     case "delivered":
     case "completed":
     case "approved":
-    case "ready to ship":
       return "success";
+    case "ready to ship":
+      return "purple";
     case "pending":
     case "in transit":
       return "orange";
@@ -51,6 +52,7 @@ export default observer(function ShipmentPage() {
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const previousUrlRef = useRef<string | null>(null);
+  const [isFetchingShipmentData, setIsFetchingShipmentData] = useState(false);
 
   // Get the current user from the store
   const user = nguageStore.currentUser;
@@ -223,42 +225,39 @@ export default observer(function ShipmentPage() {
   const handleEditShipment = async (row: RowData) => {
     const shipmentId = String(row.shipment_id || "");
     const rowId = String(row.ROWID || "");
-    
+    // Open modal immediately with existing data to avoid delay
+    const itemsForShipment = itemsByShipment[shipmentId] || [];
+    shipmentStore.setCurrentShipment(row, itemsForShipment);
+    setIsAddShipmentModalOpen(true);
+
+    // Fetch fresh data in background and update store when it arrives
+    setIsFetchingShipmentData(true);
     try {
-      // Fetch fresh shipment data using GetRowData
       const freshShipmentData = await nguageStore.GetRowData(52, rowId, "shipment_list");
-      
-      // Get items for this shipment
-      const itemsForShipment = itemsByShipment[shipmentId] || [];
-      
+
       // Fetch fresh data for each item using GetRowData
       const freshItemsData = await Promise.all(
         itemsForShipment.map((item) => 
           nguageStore.GetRowData(47, String(item.ROWID || ""), "shipment_list_items")
         )
       );
-      
+
       // Filter out null values
       const validFreshItems = freshItemsData.filter((item) => item !== null) as RowData[];
-      
-      // Store in the store with fresh API data
+
       if (freshShipmentData) {
-        // Ensure ROWID is preserved in the fetched data
         const shipmentWithROWID = {
           ...freshShipmentData,
           ROWID: rowId,
         };
+        // Update the store with fresh API data
         shipmentStore.setCurrentShipment(shipmentWithROWID, validFreshItems.length > 0 ? validFreshItems : itemsForShipment);
       }
-      
-      // Open the modal
-      setIsAddShipmentModalOpen(true);
     } catch (error) {
       console.error("Error fetching shipment data:", error);
-      // Fallback to existing data if API call fails
-      const itemsForShipment = itemsByShipment[shipmentId] || [];
-      shipmentStore.setCurrentShipment(row, itemsForShipment);
-      setIsAddShipmentModalOpen(true);
+      // Do nothing; modal already opened with existing data
+    } finally {
+      setIsFetchingShipmentData(false);
     }
   };
 
@@ -554,7 +553,7 @@ export default observer(function ShipmentPage() {
                             <td className="px-5 py-4 text-center">
                               {user?.roleId !== 5 && String(row.shipment_status || "").toLowerCase() !== "in transit" && String(row.shipment_status || "").toLowerCase() !== "delivered" && (
                                 <button
-                                  onClick={() => handleEditShipment(row)}
+                                  onClick={(e) => { e.stopPropagation(); handleEditShipment(row); }}
                                   className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
                                   title="Edit"
                                 >
@@ -711,6 +710,7 @@ export default observer(function ShipmentPage() {
         onClose={() => {
           setIsAddShipmentModalOpen(false);
           shipmentStore.clearCurrentShipment();
+          setIsFetchingShipmentData(false);
         }}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ["shipmentList"] });

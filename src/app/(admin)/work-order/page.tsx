@@ -107,6 +107,10 @@ export default observer(function WorkOrderPage() {
   const previousUrlRef = useRef<string | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "kanban">("kanban");
   const [isSavingWorkOrder, setIsSavingWorkOrder] = useState(false);
+  const [isFetchingLatestRow, setIsFetchingLatestRow] = useState(false);
+  const [hasEditFormChanged, setHasEditFormChanged] = useState(false);
+  const hasEditFormChangedRef = useRef(false);
+  const [isFetchingDetailRow, setIsFetchingDetailRow] = useState(false);
   const itemsPerPage = 50;
 
   // Fetch auth token
@@ -230,28 +234,41 @@ export default observer(function WorkOrderPage() {
       return;
     }
 
+    // Open modal immediately with existing item to avoid UI delay
+    const dataWithRowId = {
+      ...item,
+      ROWID: rowId,
+    };
+    setSelectedWorkOrder(dataWithRowId as RowData);
+    setEditFormData(dataWithRowId as RowData);
+    setHasEditFormChanged(false);
+    hasEditFormChangedRef.current = false;
+    setIsModalOpen(true);
+
+    // Fetch latest in background and update if user hasn't started editing
+    setIsFetchingLatestRow(true);
     try {
-      const latestData = await nguageStore.GetRowData(
-        44,
-        rowId,
-        'work_order'
-      );
+      const latestData = await nguageStore.GetRowData(44, rowId, 'work_order');
 
       if (latestData) {
-        // Add ROWID to the fetched data since GetRowData response doesn't include it
-        const dataWithRowId = {
+        const latestWithRowId = {
           ...latestData,
           ROWID: rowId,
         };
-        setSelectedWorkOrder(dataWithRowId as RowData);
-        setEditFormData(dataWithRowId as RowData);
-        setIsModalOpen(true);
+        // Always update displayed selectedWorkOrder (for readonly/disabled fields)
+        setSelectedWorkOrder(latestWithRowId as RowData);
+
+        // Only replace the edit form data if the user hasn't modified the form yet
+        if (!hasEditFormChangedRef.current) {
+          setEditFormData(latestWithRowId as RowData);
+        }
       } else {
         console.warn("Could not fetch work order data");
       }
     } catch (error) {
       console.error("Error fetching work order data:", error);
     } finally {
+      setIsFetchingLatestRow(false);
     }
   };
 
@@ -262,33 +279,38 @@ export default observer(function WorkOrderPage() {
       return;
     }
 
-    try {
-      const latestData = await nguageStore.GetRowData(
-        44,
-        rowId,
-        'work_order'
-      );
+    // Open details modal immediately with available item
+    const dataWithRowId = {
+      ...item,
+      ROWID: rowId,
+    };
+    setSelectedWorkOrder(dataWithRowId as RowData);
+    setIsDetailModalOpen(true);
 
+    // Fetch latest in background and update the displayed details
+    setIsFetchingDetailRow(true);
+    try {
+      const latestData = await nguageStore.GetRowData(44, rowId, 'work_order');
       if (latestData) {
-        // Add ROWID to the fetched data since GetRowData response doesn't include it
-        const dataWithRowId = {
+        const latestWithRowId = {
           ...latestData,
           ROWID: rowId,
         };
-        setSelectedWorkOrder(dataWithRowId as RowData);
-        setIsDetailModalOpen(true);
+        setSelectedWorkOrder(latestWithRowId as RowData);
       } else {
         console.warn("Could not fetch work order data");
       }
     } catch (error) {
       console.error("Error fetching work order data:", error);
     } finally {
+      setIsFetchingDetailRow(false);
     }
   };
 
   const handleCloseDetailModal = () => {
     setIsDetailModalOpen(false);
     setSelectedWorkOrder(null);
+    setIsFetchingDetailRow(false);
   };
 
   const fetchPdf = useCallback(async (docName: string | null) => {
@@ -361,6 +383,8 @@ export default observer(function WorkOrderPage() {
   };
 
   const handleEditFormChange = (field: string, value: string) => {
+    setHasEditFormChanged(true);
+    hasEditFormChangedRef.current = true;
     setEditFormData((prev) => {
       if (!prev) return null;
       return {
@@ -376,6 +400,8 @@ export default observer(function WorkOrderPage() {
 
       setIsUploadingDocument(true);
       setUploadMessage(null);
+      setHasEditFormChanged(true);
+      hasEditFormChangedRef.current = true;
 
         try {
         const uploadResult = await nguageStore.UploadMultipleMedia(files);
@@ -531,6 +557,9 @@ export default observer(function WorkOrderPage() {
     setSelectedWorkOrder(null);
     setEditFormData(null);
     setUploadMessage(null);
+    setIsFetchingLatestRow(false);
+    setHasEditFormChanged(false);
+    hasEditFormChangedRef.current = false;
   };
 
   // Function to highlight search term in text
