@@ -222,7 +222,7 @@ export default function PDFViewerModal({
                           All documents
                         </p>
                         <p className={"text-xs mt-1 truncate text-gray-600 dark:text-gray-400 font-normal"}>
-                          Current
+                          PDFs
                         </p>
                       </div>
                     </div>
@@ -268,8 +268,9 @@ export default function PDFViewerModal({
                           }`}>
                             Version {index + 1}
                           </p>
-                          <p className={"text-xs mt-1 truncate text-gray-600 dark:text-gray-400 font-normal"}>
-                            {new Date(version.updatedOn).toLocaleDateString()} {new Date(version.updatedOn).toLocaleTimeString()}
+                          <p className={"flex justify-between text-xs mt-1 truncate text-gray-600 dark:text-gray-400 font-normal"}>
+                            <span>{new Date(version.updatedOn).toLocaleDateString()}</span> 
+                            <span>{new Date(version.updatedOn).toLocaleTimeString()}</span>
                           </p>
                         </div>
                       </div>
