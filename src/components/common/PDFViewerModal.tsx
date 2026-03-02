@@ -1,6 +1,6 @@
 "use client";
 
-import { MdClose, MdHistory } from "react-icons/md";
+import { MdClose, MdHistory, MdExpandLess, MdExpandMore } from "react-icons/md";
 import { FaFilePdf  } from "react-icons/fa";
 import { PDFPreview } from "@/components/pdf-preview";
 import { useState, useEffect } from "react";
@@ -40,6 +40,7 @@ export default function PDFViewerModal({
 }: PDFViewerModalProps) {
   const [internalSelectedDocument, setInternalSelectedDocument] = useState<string | null>(null);
   const [selectedVersionIndex, setSelectedVersionIndex] = useState<number>(-1); // -1 represents "All documents"
+  const [isVersionCollapsed, setIsVersionCollapsed] = useState(false);
   
   // Parse step history versions
   const stepHistoryVersions: StepHistoryVersion[] = (() => {
@@ -294,139 +295,203 @@ export default function PDFViewerModal({
             </div>
           )}
 
-          {/* Main Content Area */}
-          {documentsForDisplay.length > 0 && (
-            <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Document Tabs (on PDF viewer area) */}
-              {documentsForDisplay.length >= 1 && (
-                <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-0 py-0 overflow-x-auto items-center">
-                  {documentsForDisplay.map((doc, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleDocumentClick(doc)}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-t transition-colors whitespace-nowrap ${
-                        currentDocument === doc
-                          ? "bg-blue-50 dark:bg-gray-800 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
-                          : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
-                      }`}
-                    >
-                      {doc.split('/').pop()}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Content Area */}
-              <div className="flex-1 overflow-hidden w-full">
-                {pdfError ? (
-                  <div className="flex w-full h-full items-center justify-center">
-                    <div className="text-center">
-                      <div className="mb-2 text-lg font-medium text-red-500">
-                        Error
-                      </div>
-                      <div className="text-gray-600 dark:text-gray-400">{pdfError}</div>
+          {/* Right Section: PDF on top, Version details below */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Main Content Area - PDF Section */}
+            {documentsForDisplay.length > 0 && (
+              <div className={`${stepHistoryVersions.length > 0 && selectedVersionIndex >= 0 && !isVersionCollapsed ? 'flex-[0.65]' : 'flex-1'} flex flex-col overflow-hidden ${stepHistoryVersions.length > 0 && selectedVersionIndex >= 0 && !isVersionCollapsed ? 'border-b border-gray-200 dark:border-gray-700' : ''}`}>
+                {/* Document Tabs (on PDF viewer area) */}
+                {documentsForDisplay.length >= 1 && (
+                  <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-0 py-0 overflow-x-auto items-center">
+                    {documentsForDisplay.map((doc, index) => (
                       <button
-                        className="mt-4 rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-                        onClick={() => {
-                          if (currentDocument) {
-                            onRetry(currentDocument);
-                          }
-                        }}
+                        key={index}
+                        onClick={() => handleDocumentClick(doc)}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-t transition-colors whitespace-nowrap ${
+                          currentDocument === doc
+                            ? "bg-blue-50 dark:bg-gray-800 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
+                            : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
+                        }`}
                       >
-                        Retry
+                        {doc.split('/').pop()}
                       </button>
-                    </div>
-                  </div>
-                ) : loadingPdf ? (
-                  <div className="flex w-full h-full items-center justify-center">
-                    <div className="animate-spin">
-                      <div className="h-8 w-8 border-4 border-brand-500 border-t-transparent rounded-full"></div>
-                    </div>
-                  </div>
-                ) : pdfUrl ? (
-                  <div className="w-full h-full">
-                    <PDFPreview
-                      pdfUrl={pdfUrl}
-                      docName={currentDocument || ""}
-                    />
-                  </div>
-                ) : (
-                  <div className="flex w-full h-full items-center justify-center">
-                    <div className="text-center text-gray-600 dark:text-gray-400">
-                      No PDF loaded
-                    </div>
+                    ))}
                   </div>
                 )}
-              </div>
-            </div>
-          )}
 
-          {/* Right Sidebar - Step History Details */}
-          {stepHistoryVersions.length > 0 && selectedVersionIndex >= 0 && stepHistoryVersions[selectedVersionIndex] && (
-            <div className={`${documentsForDisplay.length > 0 ? 'w-72' : 'flex-1'} border-l border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 overflow-y-auto flex flex-col rounded-b-lg`}>
-              <div className="flex justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                <h3 className="text-md font-semibold text-blue-800 dark:text-gray-300">
-                  Version {selectedVersionIndex + 1}
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {new Date(stepHistoryVersions[selectedVersionIndex].updatedOn).toLocaleDateString()} {new Date(stepHistoryVersions[selectedVersionIndex].updatedOn).toLocaleTimeString()}
-                </p>
-              </div>
-              <div className="flex-1 overflow-auto p-4">
-                {stepHistoryVersions[selectedVersionIndex].values.map((value, idx) => {
-                  // Special handling for document field
-                  let displayNewValue = value.newValue;
-                  let displayOldValue = value.oldValue;
-                  
-                  if (value.key === 'document') {
-                    try {
-                      // Parse only if not empty
-                      const newDocs = value.newValue && value.newValue.trim() !== '' ? JSON.parse(value.newValue) : null;
-                      const oldDocs = value.oldValue && value.oldValue.trim() !== '' ? JSON.parse(value.oldValue) : null;
-                      
-                      // Process newValue
-                      if (newDocs !== null) {
-                        displayNewValue = Array.isArray(newDocs)
-                          ? newDocs.map(doc => (typeof doc === 'string' ? (doc.split('/').pop() ?? doc) : JSON.stringify(doc))).join('\n')
-                          : (typeof newDocs === 'string' ? (newDocs.split('/').pop() ?? newDocs) : JSON.stringify(newDocs));
-                      }
-                      
-                      // Process oldValue
-                      if (oldDocs !== null) {
-                        displayOldValue = Array.isArray(oldDocs)
-                          ? oldDocs.map(doc => (typeof doc === 'string' ? (doc.split('/').pop() ?? doc) : JSON.stringify(doc))).join('\n')
-                          : (typeof oldDocs === 'string' ? (oldDocs.split('/').pop() ?? oldDocs) : JSON.stringify(oldDocs));
-                      }
-                    } catch (e) {
-                      // If parsing fails, use original values
-                    }
-                  }
-                  
-                  return (
-                    <div key={idx} className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700 last:border-b-0">
-                      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">
-                        {value.key}
-                      </p>
-                      <div className="space-y-2">
-                        <div>
-                          <p className="text-xs text-blue-700 dark:text-gray-400">Old Value:</p>
-                          <pre className="text-xs text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-700 p-2 rounded overflow-x-auto whitespace-pre-wrap">
-                            {displayOldValue}
-                          </pre>
+                {/* Content Area */}
+                <div className="flex-1 overflow-hidden w-full">
+                  {pdfError ? (
+                    <div className="flex w-full h-full items-center justify-center">
+                      <div className="text-center">
+                        <div className="mb-2 text-lg font-medium text-red-500">
+                          Error
                         </div>
-                        <div>
-                          <p className="text-xs text-blue-700 dark:text-gray-400">New Value:</p>
-                          <pre className="text-xs text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-700 p-2 rounded overflow-x-auto whitespace-pre-wrap">
-                            {displayNewValue}
-                          </pre>
-                        </div>
+                        <div className="text-gray-600 dark:text-gray-400">{pdfError}</div>
+                        <button
+                          className="mt-4 rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+                          onClick={() => {
+                            if (currentDocument) {
+                              onRetry(currentDocument);
+                            }
+                          }}
+                        >
+                          Retry
+                        </button>
                       </div>
                     </div>
-                  );
-                })}
+                  ) : loadingPdf ? (
+                    <div className="flex w-full h-full items-center justify-center">
+                      <div className="animate-spin">
+                        <div className="h-8 w-8 border-4 border-brand-500 border-t-transparent rounded-full"></div>
+                      </div>
+                    </div>
+                  ) : pdfUrl ? (
+                    <div className="w-full h-full">
+                      <PDFPreview
+                        pdfUrl={pdfUrl}
+                        docName={currentDocument || ""}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex w-full h-full items-center justify-center">
+                      <div className="text-center text-gray-600 dark:text-gray-400">
+                        No PDF loaded
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+
+            {/* Version Details Section - Below PDF */}
+            {stepHistoryVersions.length > 0 && selectedVersionIndex >= 0 && stepHistoryVersions[selectedVersionIndex] && (
+              <div className={`border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 overflow-hidden flex flex-col rounded-b-lg transition-all duration-300 ease-in-out ${
+                isVersionCollapsed ? 'h-8' : (documentsForDisplay.length > 0 ? 'flex-[0.35]' : 'flex-1')
+              }`}>
+                <div className={`flex justify-between items-center px-4 ${documentsForDisplay.length > 0 ? 'py-1' : 'py-3'} border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors flex-shrink-0`} onClick={() => setIsVersionCollapsed(!isVersionCollapsed)}>
+                  <h3 className="text-md font-semibold text-blue-800 dark:text-gray-300">
+                    Version {selectedVersionIndex + 1}
+                  </h3>
+                  {documentsForDisplay.length > 0 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsVersionCollapsed(!isVersionCollapsed);
+                      }}
+                      className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+                      title={isVersionCollapsed ? "Expand version details" : "Collapse version details"}
+                    >
+                      {isVersionCollapsed ? <MdExpandMore className="w-5 h-5" /> : <MdExpandLess className="w-5 h-5" />}
+                    </button>
+                  )}
+                </div>
+                <div className={`flex-1 flex flex-col min-h-0 ${!isVersionCollapsed ? 'overflow-y-auto' : 'overflow-hidden'} p-4 transition-opacity ${
+                  isVersionCollapsed ? 'opacity-0 duration-0' : 'opacity-100 duration-300 delay-300'
+                }`}>
+                  <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+                    <table className="w-full border-collapse">
+                      <thead className="sticky top-0 bg-linear-to-r from-blue-700 to-blue-800 dark:from-blue-800 dark:to-blue-900 z-10">
+                        <tr>
+                          <th className="px-2 py-2.5 text-left text-xs font-semibold text-white uppercase tracking-wide border border-blue-500 w-40">Field</th>
+                          <th className="px-4 py-2.5 text-left text-xs font-semibold text-white uppercase tracking-wide border border-blue-500">Previous</th>
+                          <th className="px-4 py-2.5 text-left text-xs font-semibold text-white uppercase tracking-wide border border-blue-500">Current</th>
+                        </tr>
+                      </thead>
+                    <tbody>
+                      {stepHistoryVersions[selectedVersionIndex].values.map((value, idx) => {
+                        // Special handling for document field
+                        let displayNewValue = value.newValue;
+                        let displayOldValue = value.oldValue;
+                        
+                        if (value.key === 'document') {
+                          try {
+                            // Parse only if not empty
+                            const newDocs = value.newValue && value.newValue.trim() !== '' ? JSON.parse(value.newValue) : null;
+                            const oldDocs = value.oldValue && value.oldValue.trim() !== '' ? JSON.parse(value.oldValue) : null;
+                            
+                            // Process newValue
+                            if (newDocs !== null) {
+                              displayNewValue = Array.isArray(newDocs)
+                                ? newDocs.map(doc => (typeof doc === 'string' ? (doc.split('/').pop() ?? doc) : JSON.stringify(doc))).join(', ')
+                                : (typeof newDocs === 'string' ? (newDocs.split('/').pop() ?? newDocs) : JSON.stringify(newDocs));
+                            }
+                            
+                            // Process oldValue
+                            if (oldDocs !== null) {
+                              displayOldValue = Array.isArray(oldDocs)
+                                ? oldDocs.map(doc => (typeof doc === 'string' ? (doc.split('/').pop() ?? doc) : JSON.stringify(doc))).join(', ')
+                                : (typeof oldDocs === 'string' ? (oldDocs.split('/').pop() ?? oldDocs) : JSON.stringify(oldDocs));
+                            }
+                          } catch (e) {
+                            // If parsing fails, use original values
+                          }
+                        }
+                        
+                        const isOldEmpty = !displayOldValue || displayOldValue === '' || displayOldValue === 'null';
+                        
+                        // Parse documents for clickable rendering
+                        let newDocArray: string[] = [];
+                        if (value.key === 'document') {
+                          try {
+                            const newDocs = value.newValue && value.newValue.trim() !== '' ? JSON.parse(value.newValue) : null;
+                            if (newDocs !== null) {
+                              newDocArray = Array.isArray(newDocs) 
+                                ? newDocs.map(doc => typeof doc === 'string' ? doc : String(doc))
+                                : [String(newDocs)];
+                            }
+                          } catch (e) {
+                            // If parsing fails, use empty array
+                          }
+                        }
+                        
+                        return (
+                          <tr key={idx} className={`${idx % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700/50'} hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors`}>
+                            <td className="px-2 py-3 text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide w-20 wrap-break-word border border-gray-300 dark:border-gray-600">
+                              {value.key}
+                            </td>
+                            <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 max-w-37.5 border border-gray-300 dark:border-gray-600">
+                              <div className="wrap-break-word whitespace-normal">
+                                {isOldEmpty ? (
+                                  <span className="italic text-gray-400 dark:text-gray-500">—</span>
+                                ) : (
+                                  displayOldValue
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-xs font-medium text-gray-700 dark:text-gray-400 max-w-37.5 border border-gray-300 dark:border-gray-600">
+                              <div className="wrap-break-word whitespace-normal">
+                                {value.key === 'document' && newDocArray.length > 0 ? (
+                                  <div className="flex flex-wrap gap-2">
+                                    {newDocArray.map((doc, docIdx) => (
+                                      <button
+                                        key={docIdx}
+                                        onClick={() => handleDocumentClick(doc)}
+                                        className={`px-2 py-1 rounded text-xs transition-colors font-medium ${
+                                          currentDocument === doc
+                                            ? "bg-blue-500 text-white"
+                                            : "bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-400 dark:hover:bg-blue-500"
+                                        }`}
+                                      >
+                                        {doc.split('/').pop()}
+                                      </button>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  displayNewValue
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
