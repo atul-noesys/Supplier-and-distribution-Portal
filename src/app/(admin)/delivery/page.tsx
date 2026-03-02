@@ -57,6 +57,8 @@ export default observer(function DeliveryPage() {
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
     const [loadingPdf, setLoadingPdf] = useState(false);
     const [pdfError, setPdfError] = useState<string | null>(null);
+    const [stepHistory, setStepHistory] = useState<string | null>(null);
+    const [headerName, setHeaderName] = useState<string>("");
     const previousUrlRef = useRef<string | null>(null);
 
     // Modal states
@@ -204,10 +206,12 @@ export default observer(function DeliveryPage() {
     }, [selectedDocument, fetchPdf]);
 
     // Handle viewing document
-    const handleViewDocument = (docName: string | null, docs?: string[]) => {
+    const handleViewDocument = (docName: string | null, docs?: string[], stepHist?: string | null, header?: string) => {
         if (!docName) {
             setOpenDocumentsString(null);
             setSelectedDocument(null);
+            setStepHistory(null);
+            setHeaderName("");
             return;
         }
         if (docs && docs.length > 0) {
@@ -215,6 +219,8 @@ export default observer(function DeliveryPage() {
         } else {
             setOpenDocumentsString(docName);
         }
+        setStepHistory(stepHist || null);
+        setHeaderName(header || "");
         setSelectedDocument(null);
     };
 
@@ -223,6 +229,8 @@ export default observer(function DeliveryPage() {
         setSelectedDocument(null);
         setOpenDocumentsString(null);
         setRelatedDocuments([]);
+        setStepHistory(null);
+        setHeaderName("");
         if (previousUrlRef.current) {
             URL.revokeObjectURL(previousUrlRef.current);
             previousUrlRef.current = null;
@@ -698,7 +706,7 @@ export default observer(function DeliveryPage() {
                                                                     <td key={col} className="px-2 py-2">
                                                                         {value ? (
                                                                             <button
-                                                                                onClick={() => handleViewDocument(value as string)}
+                                                                                onClick={() => handleViewDocument(value as string, undefined, row.step_history as string | null, String(row.shipment_id || ""))}
                                                                                 className="cursor-pointer hover:opacity-75 transition-opacity"
                                                                                 title="View document"
                                                                             >
@@ -753,6 +761,8 @@ export default observer(function DeliveryPage() {
                 onClose={closePdfViewer}
                 onRetry={(doc: string) => setSelectedDocument(doc)}
                 onDocumentSelect={(doc: string) => setSelectedDocument(doc)}
+                stepHistory={stepHistory}
+                headerName={headerName}
             />
 
             {/* Accept Delivery Modal */}

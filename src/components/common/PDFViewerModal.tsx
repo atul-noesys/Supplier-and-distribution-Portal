@@ -1,9 +1,19 @@
 "use client";
 
-import { MdClose } from "react-icons/md";
+import { MdClose, MdHistory } from "react-icons/md";
 import { FaFilePdf  } from "react-icons/fa";
 import { PDFPreview } from "@/components/pdf-preview";
 import { useState, useEffect } from "react";
+
+interface StepHistoryVersion {
+  values: Array<{
+    key: string;
+    oldValue: string;
+    newValue: string;
+  }>;
+  updatedBy: string;
+  updatedOn: string;
+}
 
 interface PDFViewerModalProps {
   documents?: string | string[];
@@ -13,6 +23,8 @@ interface PDFViewerModalProps {
   onClose: () => void;
   onRetry: (docName: string) => void;
   onDocumentSelect?: (docName: string) => void;
+  stepHistory?: string | null;
+  headerName?: string;
 }
 
 export default function PDFViewerModal({
@@ -23,8 +35,45 @@ export default function PDFViewerModal({
   onClose,
   onRetry,
   onDocumentSelect,
+  stepHistory,
+  headerName,
 }: PDFViewerModalProps) {
+  const [internalSelectedDocument, setInternalSelectedDocument] = useState<string | null>(null);
+  const [selectedVersionIndex, setSelectedVersionIndex] = useState<number>(-1); // -1 represents "All documents"
+  
+  // Parse step history versions
+  const stepHistoryVersions: StepHistoryVersion[] = (() => {
+    if (!stepHistory) return [];
+    try {
+      const parsed = JSON.parse(stepHistory);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  })();
+
+  // Get documents from current selection (either from documents prop or from selected version)
   const allDocuments: string[] = (() => {
+    if (selectedVersionIndex >= 0 && stepHistoryVersions[selectedVersionIndex]) {
+      // Extract documents from the selected version
+      const version = stepHistoryVersions[selectedVersionIndex];
+      const documentChange = version.values.find(v => v.key === 'document');
+      if (documentChange) {
+        try {
+          const docValue = JSON.parse(documentChange.newValue);
+          if (Array.isArray(docValue)) {
+            return docValue.map(v => String(v));
+          } else if (typeof docValue === 'string') {
+            return [docValue];
+          }
+        } catch (e) {
+          return [];
+        }
+      }
+      return [];
+    }
+
+    // Default: Use original documents prop
     if (!documents) return [];
     if (Array.isArray(documents)) return documents;
     try {
@@ -41,7 +90,6 @@ export default function PDFViewerModal({
     return [];
   })();
 
-  const [internalSelectedDocument, setInternalSelectedDocument] = useState<string | null>(null);
   const currentDocument = internalSelectedDocument ?? (allDocuments.length > 0 ? allDocuments[0] : null);
 
   useEffect(() => {
@@ -73,7 +121,7 @@ export default function PDFViewerModal({
     };
   }, [allDocuments, internalSelectedDocument, onDocumentSelect]);
 
-  if (allDocuments.length === 0) {
+  if (allDocuments.length === 0 && stepHistoryVersions.length === 0) {
     return null;
   }
 
@@ -84,13 +132,18 @@ export default function PDFViewerModal({
     }
   };
 
+  const handleVersionClick = (versionIndex: number) => {
+    setSelectedVersionIndex(versionIndex);
+    setInternalSelectedDocument(null); // Reset document selection for new version
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-5/6 h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-4 py-3">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {currentDocument ? currentDocument.split('/').pop() : "Document Viewer"}
+            {headerName || (currentDocument ? currentDocument.split('/').pop() : "Document Viewer")}
           </h2>
           <button
             onClick={onClose}
@@ -102,53 +155,95 @@ export default function PDFViewerModal({
 
         {/* Content with Sidebar */}
         <div className="flex-1 flex overflow-hidden rounded-bl-lg">
-          {/* Left Sidebar - Document List */}
-          {allDocuments.length > 0 && (
+          {/* Left Sidebar - Version List */}
+          {(stepHistoryVersions.length > 0 || allDocuments.length > 0) && (
             <div className="w-68 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 overflow-y-auto">
               <div className="p-1">
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                  Documents ({allDocuments.length})
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 px-3 pt-3">
+                  Versions ({stepHistoryVersions.length + 1})
                 </h3>
                 <div className="space-y-1">
-                  {allDocuments.map((doc, index) => (
+                  {/* Default "All documents" version */}
+                  <button
+                    onClick={() => handleVersionClick(-1)}
+                    className={`w-full group relative overflow-hidden rounded-lg transition-all duration-200 ${
+                      selectedVersionIndex === -1
+                        ? "bg-linear-to-r from-blue-100 to-blue-100"
+                        : "bg-white dark:bg-gray-700 shadow-sm hover:shadow-md dark:shadow-gray-900/50"
+                    }`}
+                  >
+                    {/* Background accent for active state */}
+                    {selectedVersionIndex === -1 && (
+                      <div className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity" />
+                    )}
+
+                    {/* Card content */}
+                    <div className="relative p-2 flex items-center gap-2">
+                      {/* Icon */}
+                      <div className="transition-colors text-blue-600 dark:text-blue-400">
+                        <MdHistory className="w-6 h-6" />
+                      </div>
+
+                      {/* Text content */}
+                      <div className="flex-1 text-left min-w-0">
+                        <p className={`text-sm font-medium truncate transition-colors ${
+                          selectedVersionIndex === -1
+                            ? "text-blue-800"
+                            : "text-gray-700 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400"
+                        }`}>
+                          All documents
+                        </p>
+                        <p className={"text-xs mt-1 truncate text-gray-600 dark:text-gray-400 font-normal"}>
+                          Current
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Bottom border accent */}
+                    {selectedVersionIndex === -1 && (
+                      <div className="absolute bottom-0 left-0 right-0 h-1 bg-linear-to-r from-blue-300 to-blue-500" />
+                    )}
+                  </button>
+
+                  {stepHistoryVersions.map((version, index) => (
                     <button
                       key={index}
-                      onClick={() => handleDocumentClick(doc)}
+                      onClick={() => handleVersionClick(index)}
                       className={`w-full group relative overflow-hidden rounded-lg transition-all duration-200 ${
-                        currentDocument === doc
+                        selectedVersionIndex === index
                           ? "bg-linear-to-r from-blue-100 to-blue-100"
                           : "bg-white dark:bg-gray-700 shadow-sm hover:shadow-md dark:shadow-gray-900/50"
                       }`}
                     >
                       {/* Background accent for active state */}
-                      {currentDocument === doc && (
+                      {selectedVersionIndex === index && (
                         <div className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity" />
                       )}
 
                       {/* Card content */}
                       <div className="relative p-2 flex items-center gap-2">
                         {/* Icon */}
-                        <div className="transition-colors text-red-800">
-                          <FaFilePdf className="w-7 h-8.5" />
+                        <div className="transition-colors text-blue-600 dark:text-blue-400">
+                          <MdHistory className="w-6 h-6" />
                         </div>
 
                         {/* Text content */}
                         <div className="flex-1 text-left min-w-0">
                           <p className={`text-sm font-medium truncate transition-colors ${
-                            currentDocument === doc
+                            selectedVersionIndex === index
                               ? "text-blue-800"
                               : "text-gray-700 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400"
                           }`}>
-                            {doc.split('/').pop()}
+                            Version {index + 1}
                           </p>
-                          <p className={"text-xs mt-1 truncate text-red-800 font-normal"}>
-                            Pdf
+                          <p className={"text-xs mt-1 truncate text-gray-600 dark:text-gray-400 font-normal"}>
+                            {new Date(version.updatedOn).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
 
                       {/* Bottom border accent */}
-                      {currentDocument === doc && (
+                      {selectedVersionIndex === index && (
                         <div className="absolute bottom-0 left-0 right-0 h-1 bg-linear-to-r from-blue-300 to-blue-500" />
                       )}
                     </button>
@@ -160,44 +255,108 @@ export default function PDFViewerModal({
 
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col overflow-hidden">
-            {pdfError ? (
-              <div className="flex h-full items-center justify-center">
-                <div className="text-center">
-                  <div className="mb-2 text-lg font-medium text-red-500">
-                    Error
-                  </div>
-                  <div className="text-gray-600 dark:text-gray-400">{pdfError}</div>
+            {/* Document Tabs (on PDF viewer area) */}
+            {allDocuments.length > 1 && (
+              <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-0 py-0 overflow-x-auto">
+                {allDocuments.map((doc, index) => (
                   <button
-                    className="mt-4 rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-                    onClick={() => {
-                      if (currentDocument) {
-                        onRetry(currentDocument);
-                      }
-                    }}
+                    key={index}
+                    onClick={() => handleDocumentClick(doc)}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-t transition-colors whitespace-nowrap ${
+                      currentDocument === doc
+                        ? "bg-blue-50 dark:bg-gray-800 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
+                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
+                    }`}
                   >
-                    Retry
+                    {doc.split('/').pop()}
                   </button>
-                </div>
-              </div>
-            ) : loadingPdf ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin">
-                  <div className="h-8 w-8 border-4 border-brand-500 border-t-transparent rounded-full"></div>
-                </div>
-              </div>
-            ) : pdfUrl ? (
-              <PDFPreview
-                pdfUrl={pdfUrl}
-                docName={currentDocument || ""}
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center">
-                <div className="text-center text-gray-600 dark:text-gray-400">
-                  No PDF loaded
-                </div>
+                ))}
               </div>
             )}
+
+            {/* Content Area */}
+            <div className="flex-1 overflow-hidden w-full">
+              {pdfError ? (
+                <div className="flex w-full h-full items-center justify-center">
+                  <div className="text-center">
+                    <div className="mb-2 text-lg font-medium text-red-500">
+                      Error
+                    </div>
+                    <div className="text-gray-600 dark:text-gray-400">{pdfError}</div>
+                    <button
+                      className="mt-4 rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+                      onClick={() => {
+                        if (currentDocument) {
+                          onRetry(currentDocument);
+                        }
+                      }}
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </div>
+              ) : loadingPdf ? (
+                <div className="flex w-full h-full items-center justify-center">
+                  <div className="animate-spin">
+                    <div className="h-8 w-8 border-4 border-brand-500 border-t-transparent rounded-full"></div>
+                  </div>
+                </div>
+              ) : pdfUrl ? (
+                <div className="w-full h-full">
+                  <PDFPreview
+                    pdfUrl={pdfUrl}
+                    docName={currentDocument || ""}
+                  />
+                </div>
+              ) : (
+                <div className="flex w-full h-full items-center justify-center">
+                  <div className="text-center text-gray-600 dark:text-gray-400">
+                    No PDF loaded
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* Right Sidebar - Step History Details */}
+          {stepHistoryVersions.length > 0 && selectedVersionIndex >= 0 && stepHistoryVersions[selectedVersionIndex] && (
+            <div className="w-80 border-l border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 overflow-y-auto flex flex-col">
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  Version {selectedVersionIndex + 1} Details
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Updated by: {stepHistoryVersions[selectedVersionIndex].updatedBy}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {new Date(stepHistoryVersions[selectedVersionIndex].updatedOn).toLocaleDateString()} {new Date(stepHistoryVersions[selectedVersionIndex].updatedOn).toLocaleTimeString()}
+                </p>
+              </div>
+              <div className="flex-1 overflow-auto p-4">
+                {stepHistoryVersions[selectedVersionIndex].values.map((value, idx) => (
+                  <div key={idx} className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700 last:border-b-0">
+                    <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">
+                      {value.key}
+                    </p>
+                    <div className="space-y-2">
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Old Value:</p>
+                        <pre className="text-xs text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-700 p-2 rounded overflow-x-auto whitespace-pre-wrap">
+                          {value.oldValue}
+                        </pre>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">New Value:</p>
+                        <pre className="text-xs text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-700 p-2 rounded overflow-x-auto whitespace-pre-wrap">
+                          {value.newValue}
+                        </pre>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

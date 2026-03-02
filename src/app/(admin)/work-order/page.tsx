@@ -103,6 +103,8 @@ export default observer(function WorkOrderPage() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [stepHistory, setStepHistory] = useState<string | null>(null);
+  const [headerName, setHeaderName] = useState<string>("");
   const [isPdfViewerOpen, setIsPdfViewerOpen] = useState(false);
   const previousUrlRef = useRef<string | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "kanban">("kanban");
@@ -357,15 +359,19 @@ export default observer(function WorkOrderPage() {
     fetchPdf(selectedDocument);
   }, [selectedDocument, fetchPdf]);
 
-  const handleViewDocument = (docName: string | null) => {
+  const handleViewDocument = (docName: string | null, stepHist?: string | null, header?: string) => {
     // Open the PDF viewer with the raw (possibly stringified) documents value
     if (!docName) {
       setOpenDocumentsString(null);
       setSelectedDocument(null);
+      setStepHistory(null);
+      setHeaderName("");
       setIsPdfViewerOpen(false);
       return;
     }
     setOpenDocumentsString(docName);
+    setStepHistory(stepHist || null);
+    setHeaderName(header || "");
     setIsPdfViewerOpen(true);
     // Do not parse here; modal will normalize and call back with a single filename when selected
     setSelectedDocument(null);
@@ -374,6 +380,8 @@ export default observer(function WorkOrderPage() {
   const closePdfViewer = () => {
     setSelectedDocument(null);
     setOpenDocumentsString(null);
+    setStepHistory(null);
+    setHeaderName("");
     setIsPdfViewerOpen(false);
     if (previousUrlRef.current) {
       URL.revokeObjectURL(previousUrlRef.current);
@@ -777,9 +785,10 @@ export default observer(function WorkOrderPage() {
                         }
                         // Render document icon
                         else if (column.key === "document") {
+                          const workOrderId = `${item.po_number}${item.item_code}`;
                           cellContent = value ? (
                             <button
-                              onClick={() => handleViewDocument(value as string)}
+                              onClick={() => handleViewDocument(value as string, item.step_history as string | null, workOrderId)}
                               className="cursor-pointer hover:opacity-75 transition-opacity"
                               title="View document"
                             >
@@ -845,6 +854,8 @@ export default observer(function WorkOrderPage() {
           onClose={closePdfViewer}
           onRetry={(doc: string) => setSelectedDocument(doc)}
           onDocumentSelect={(doc: string) => setSelectedDocument(doc)}
+          stepHistory={stepHistory}
+          headerName={headerName}
         />
       )}
 

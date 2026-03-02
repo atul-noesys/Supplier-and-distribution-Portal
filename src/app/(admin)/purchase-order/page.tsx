@@ -23,6 +23,7 @@ interface PurchaseOrder {
   ROWID: number;
   document?: string | null;
   remarks?: string | null;
+  step_history?: string | null;
 }
 
 interface PurchaseOrderItem {
@@ -42,7 +43,7 @@ interface PurchaseOrderItem {
   vendor_id?: string;
   remarks?: string;
   vendor_name?: string;
-  step_history?: string;
+  step_history?: string | null;
   [key: string]: any;
 }
 
@@ -83,6 +84,8 @@ export default observer(function PurchaseOrderPage() {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
+  const [stepHistory, setStepHistory] = useState<string | null>(null);
+  const [headerName, setHeaderName] = useState<string>("");
   const previousUrlRef = useRef<string | null>(null);
 
   // Fetch auth token - refresh on component mount
@@ -140,10 +143,12 @@ export default observer(function PurchaseOrderPage() {
   }, [selectedDocument, fetchPdf]);
 
   // Handle viewing document (normalize like work-order page)
-  const handleViewDocument = (docName: string | null, docs?: string[]) => {
+  const handleViewDocument = (docName: string | null, docs?: string[], stepHist?: string | null, header?: string) => {
     if (!docName) {
       setOpenDocumentsString(null);
       setSelectedDocument(null);
+      setStepHistory(null);
+      setHeaderName("");
       return;
     }
     if (docs && docs.length > 0) {
@@ -152,6 +157,8 @@ export default observer(function PurchaseOrderPage() {
     } else {
       setOpenDocumentsString(docName);
     }
+    setStepHistory(stepHist || null);
+    setHeaderName(header || "");
     // modal will call back with single filename when selected
     setSelectedDocument(null);
   };
@@ -161,6 +168,8 @@ export default observer(function PurchaseOrderPage() {
     setSelectedDocument(null);
     setOpenDocumentsString(null);
     setRelatedDocuments([]);
+    setStepHistory(null);
+    setHeaderName("");
     if (previousUrlRef.current) {
       URL.revokeObjectURL(previousUrlRef.current);
       previousUrlRef.current = null;
@@ -638,7 +647,7 @@ export default observer(function PurchaseOrderPage() {
                           <td className="pl-11 px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">
                             {po.document ? (
                               <button
-                                onClick={() => handleViewDocument(po.document!)}
+                                onClick={() => handleViewDocument(po.document!, undefined, po.step_history as string | null, po.po_number)}
                                 className="cursor-pointer hover:opacity-75 transition-opacity"
                                 title="View document"
                               >
@@ -726,7 +735,7 @@ export default observer(function PurchaseOrderPage() {
                                     <div className="pl-6 text-gray-700 dark:text-gray-300 truncate" title={item.document || "No document"}>
                                       {item.document ? (
                                         <button
-                                          onClick={() => handleViewDocument(item.document!)}
+                                          onClick={() => handleViewDocument(item.document!, undefined, item.step_history as string | null, item.po_number)}
                                           className="cursor-pointer hover:opacity-75 transition-opacity"
                                           title="View document"
                                         >
@@ -793,6 +802,8 @@ export default observer(function PurchaseOrderPage() {
         onClose={closePdfViewer}
         onRetry={(doc: string) => setSelectedDocument(doc)}
         onDocumentSelect={(doc: string) => setSelectedDocument(doc)}
+        stepHistory={stepHistory}
+        headerName={headerName}
       />
 
       {/* Add/Edit PO Modal */}
