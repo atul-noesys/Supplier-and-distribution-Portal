@@ -240,6 +240,7 @@ export default observer(function PurchaseOrderPage() {
           document: (item.document as string) || null,
           work_order_created: (item.work_order_created as string) || null,
           vendor_name: (item.vendor_name as string) || null,
+          step_history: (item.step_history as string) || null,
           InfoveaveBatchId: item.InfoveaveBatchId as number,
           ROWID: item.ROWID as number,
           total: total,
