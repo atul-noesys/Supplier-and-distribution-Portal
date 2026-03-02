@@ -816,7 +816,7 @@ export default observer(function WorkOrderPage() {
                       </div>
                       {/* Actions Cell */}
                       <div className="px-2.5 py-3 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
-                        {user?.roleId !== 5 && (
+                        {user?.roleId !== 5 && !["delivered", "ready to ship", "in transit"].includes(String(item.wo_status || "").toLowerCase()) && (
                           <button
                             onClick={() => handleEditRow(item)}
                             className="flex justify-center items-center ml-3 w-8 h-4 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
