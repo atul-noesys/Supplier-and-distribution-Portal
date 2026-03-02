@@ -380,17 +380,23 @@ export default function PDFViewerModal({
                   
                   if (value.key === 'document') {
                     try {
-                      const newDocs = JSON.parse(value.newValue);
-                      const oldDocs = JSON.parse(value.oldValue);
+                      // Parse only if not empty
+                      const newDocs = value.newValue && value.newValue.trim() !== '' ? JSON.parse(value.newValue) : null;
+                      const oldDocs = value.oldValue && value.oldValue.trim() !== '' ? JSON.parse(value.oldValue) : null;
                       
-                      // Show full file paths instead of just filenames
-                      displayNewValue = Array.isArray(newDocs)
-                        ? newDocs.map(doc => (typeof doc === 'string' ? doc : JSON.stringify(doc))).join('\n')
-                        : (typeof newDocs === 'string' ? newDocs : JSON.stringify(newDocs));
+                      // Process newValue
+                      if (newDocs !== null) {
+                        displayNewValue = Array.isArray(newDocs)
+                          ? newDocs.map(doc => (typeof doc === 'string' ? (doc.split('/').pop() ?? doc) : JSON.stringify(doc))).join('\n')
+                          : (typeof newDocs === 'string' ? (newDocs.split('/').pop() ?? newDocs) : JSON.stringify(newDocs));
+                      }
                       
-                      displayOldValue = Array.isArray(oldDocs)
-                        ? oldDocs.map(doc => (typeof doc === 'string' ? doc : JSON.stringify(doc))).join('\n')
-                        : (typeof oldDocs === 'string' ? oldDocs : JSON.stringify(oldDocs));
+                      // Process oldValue
+                      if (oldDocs !== null) {
+                        displayOldValue = Array.isArray(oldDocs)
+                          ? oldDocs.map(doc => (typeof doc === 'string' ? (doc.split('/').pop() ?? doc) : JSON.stringify(doc))).join('\n')
+                          : (typeof oldDocs === 'string' ? (oldDocs.split('/').pop() ?? oldDocs) : JSON.stringify(oldDocs));
+                      }
                     } catch (e) {
                       // If parsing fails, use original values
                     }

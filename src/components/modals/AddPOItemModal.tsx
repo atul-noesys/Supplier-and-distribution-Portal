@@ -50,6 +50,8 @@ function AddPOItemModalContent({
     // Get editing item from store
     const editingItem = poStore.getEditingItem();
 
+    const [isUploadingDocument, setIsUploadingDocument] = useState(false);
+
     // Fetch pagination data using TanStack Query
     const { data: paginationData, isLoading, error } = useQuery({
         queryKey: ["paginationData", "item", "33"],
@@ -78,7 +80,9 @@ function AddPOItemModalContent({
         vendor_id: poData?.vendor_id || '',
         vendor_name: poData?.vendor_name || '',
         total: '',
-        work_order_created: "No"
+        work_order_created: "No",
+        document: '',
+        remarks: ''
     }), [poData]);
 
     const [formData, setFormData] = useState<KeyValueRecord>(getDefaultFormData());
@@ -122,6 +126,61 @@ function AddPOItemModalContent({
         });
         // Notify parent modal that the user has edited the form
         onUserEdit?.();
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (files && files.length > 0) {
+            const fileArray = Array.from(files);
+            
+            setIsUploadingDocument(true);
+            
+            try {
+                const uploadFiles = async () => {
+                    const uploadResult = await nguageStore.UploadMultipleMedia(fileArray);
+                    console.log("Upload result:", uploadResult);
+
+                    if (uploadResult) {
+                        setFormData((prev) => {
+                            // Normalize new upload result to an array of strings
+                            const newDocs: string[] = Array.isArray(uploadResult)
+                                ? uploadResult.map((d: any) => String(d))
+                                : [String(uploadResult)];
+
+                            let existingDocs: string[] = [];
+                            try {
+                                if (prev.document) {
+                                    const parsed = JSON.parse(String(prev.document));
+                                    if (Array.isArray(parsed)) {
+                                        existingDocs = parsed.map((d: any) => String(d));
+                                    } else if (parsed) {
+                                        existingDocs = [String(parsed)];
+                                    }
+                                }
+                            } catch {
+                                if (prev.document) {
+                                    existingDocs = [String(prev.document)];
+                                }
+                            }
+
+                            const merged = [...existingDocs, ...newDocs];
+
+                            return {
+                                ...prev,
+                                document: JSON.stringify(merged),
+                            };
+                        });
+                    }
+                };
+
+                uploadFiles();
+            } catch (error) {
+                console.error("Upload error:", error);
+            } finally {
+                setIsUploadingDocument(false);
+                onUserEdit?.();
+            }
+        }
     };
 
     const handleClose = () => {
@@ -270,7 +329,7 @@ function AddPOItemModalContent({
                                         onChange={(e) => handleInputChange('item_code', e.target.value)}
                                         className="w-full px-3 py-2.25 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none disabled:bg-gray-100"
                                         required
-                                        disabled={true}
+                                        disabled={poStore.editingItemIndex !== null}
                                     >
                                         <option value="">Select item code</option>
                                         {isLoading && <option disabled>Loading items...</option>}
@@ -395,6 +454,52 @@ function AddPOItemModalContent({
                                         disabled
                                         value={String(formData.vendor_name ?? '')}
                                         className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                                    />
+                                </div>
+
+                                {/* Document */}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Document
+                                    </label>
+                                    <input
+                                        type="file"
+                                        multiple
+                                        onChange={handleFileChange}
+                                        disabled={isUploadingDocument}
+                                        className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        accept=".pdf,.doc,.docx,.jpg,.png"
+                                    />
+                                    {formData.document && (
+                                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                                            <span className="text-blue-600 dark:text-blue-400">Current:</span> {(() => {
+                                                try {
+                                                    const parsed = JSON.parse(formData.document as string);
+                                                    if (Array.isArray(parsed)) {
+                                                        return parsed
+                                                            .map((f: string) => (f ? f.split("/").pop() : ""))
+                                                            .filter(Boolean)
+                                                            .join(", ");
+                                                    }
+                                                    return String(parsed).split("/").pop() || String(parsed);
+                                                } catch {
+                                                    return String(formData.document);
+                                                }
+                                            })()}
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Remarks
+                                    </label>
+                                    <textarea
+                                        value={String(formData.remarks ?? '')}
+                                        onChange={(e) => handleInputChange('remarks', e.target.value)}
+                                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                        placeholder="Enter remarks"
+                                        rows={1}
                                     />
                                 </div>
                             </div>
