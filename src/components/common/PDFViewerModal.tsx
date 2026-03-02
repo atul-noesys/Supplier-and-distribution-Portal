@@ -100,7 +100,15 @@ export default function PDFViewerModal({
 
     try {
       const newDocs = JSON.parse(documentChange.newValue);
-      const oldDocs = JSON.parse(documentChange.oldValue);
+      
+      // Handle empty or invalid old value
+      let oldDocs;
+      try {
+        oldDocs = JSON.parse(documentChange.oldValue);
+      } catch (e) {
+        // If oldValue is empty or invalid, treat as empty array
+        oldDocs = documentChange.oldValue === '' || documentChange.oldValue === 'null' ? [] : [documentChange.oldValue];
+      }
       
       const newDocsArray = Array.isArray(newDocs) 
         ? newDocs.map(doc => (typeof doc === 'string' ? doc : String(doc)))
@@ -108,7 +116,7 @@ export default function PDFViewerModal({
       
       const oldDocsArray = Array.isArray(oldDocs)
         ? oldDocs.map(doc => (typeof doc === 'string' ? doc : String(doc)))
-        : [oldDocs];
+        : (oldDocs ? [oldDocs] : []);
       
       return newDocsArray.filter(doc => !oldDocsArray.includes(doc));
     } catch (e) {
@@ -375,13 +383,14 @@ export default function PDFViewerModal({
                       const newDocs = JSON.parse(value.newValue);
                       const oldDocs = JSON.parse(value.oldValue);
                       
+                      // Show full file paths instead of just filenames
                       displayNewValue = Array.isArray(newDocs)
-                        ? newDocs.map(doc => (typeof doc === 'string' ? doc.split('/').pop() : doc)).join('\n')
-                        : newDocs.split('/').pop();
+                        ? newDocs.map(doc => (typeof doc === 'string' ? doc : JSON.stringify(doc))).join('\n')
+                        : (typeof newDocs === 'string' ? newDocs : JSON.stringify(newDocs));
                       
                       displayOldValue = Array.isArray(oldDocs)
-                        ? oldDocs.map(doc => (typeof doc === 'string' ? doc.split('/').pop() : doc)).join('\n')
-                        : oldDocs.split('/').pop();
+                        ? oldDocs.map(doc => (typeof doc === 'string' ? doc : JSON.stringify(doc))).join('\n')
+                        : (typeof oldDocs === 'string' ? oldDocs : JSON.stringify(oldDocs));
                     } catch (e) {
                       // If parsing fails, use original values
                     }
