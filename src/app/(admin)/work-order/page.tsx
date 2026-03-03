@@ -3,14 +3,17 @@
 import Badge from "@/components/ui/badge/Badge";
 import PDFViewerModal from "@/components/common/PDFViewerModal";
 import KanbanBoard from "@/components/kanban/KanbanBoard";
+import { TimelineLayout } from "@/components/timeline/timeline-layout";
 import { useStore } from "@/store/store-context";
 import { RowData } from "@/types/nguage-rowdata";
+import { TimelineElement } from "@/types/timeline";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { observer } from "mobx-react-lite";
 import { Fragment, useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible, AiOutlineLoading3Quarters } from "react-icons/ai";
 import { MdClose, MdEdit, MdOpenInNew } from "react-icons/md";
 import { MdViewAgenda, MdViewWeek } from "react-icons/md";
+import { MdDateRange } from "react-icons/md";
 import { toast } from "react-toastify";
 import axios from "axios";
 
@@ -113,6 +116,9 @@ export default observer(function WorkOrderPage() {
   const [hasEditFormChanged, setHasEditFormChanged] = useState(false);
   const hasEditFormChangedRef = useRef(false);
   const [isFetchingDetailRow, setIsFetchingDetailRow] = useState(false);
+  const [isTimelineModalOpen, setIsTimelineModalOpen] = useState(false);
+  const [timelineData, setTimelineData] = useState<TimelineElement[]>([]);
+  const [timelineHeader, setTimelineHeader] = useState<string>("");
   const itemsPerPage = 50;
 
   // Fetch auth token
@@ -375,6 +381,112 @@ export default observer(function WorkOrderPage() {
     setIsPdfViewerOpen(true);
     // Do not parse here; modal will normalize and call back with a single filename when selected
     setSelectedDocument(null);
+  };
+
+  const parseStepHistory = (stepHistoryString: string | null): TimelineElement[] => {
+    if (!stepHistoryString) return [];
+
+    const extractFilenames = (value: string): string => {
+      try {
+        // Try to parse as JSON array (for document fields)
+        const parsed = JSON.parse(value);
+        if (Array.isArray(parsed)) {
+          return parsed
+            .map((item: string) => {
+              // Extract filename from path (e.g., "ivdoc://.../.../file.pdf" -> "file.pdf")
+              const parts = item.split('/');
+              return parts[parts.length - 1];
+            })
+            .filter(Boolean)
+            .join(', ');
+        }
+      } catch {
+        // Not JSON, try to extract filename from path
+        const parts = value.split('/');
+        const filename = parts[parts.length - 1];
+        return filename || value;
+      }
+      return value;
+    };
+
+    try {
+      const parsed = JSON.parse(stepHistoryString);
+      if (Array.isArray(parsed)) {
+        return parsed.map((item: any, index: number) => {
+          // Handle new format with values array containing changes
+          if (item.values && Array.isArray(item.values)) {
+            const changes = item.values
+              .map((v: any) => {
+                const displayKey = v.key.replace(/_/g, ' ').split(' ').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                
+                // Extract filenames if this is a document field
+                let oldVal = v.oldValue === "" ? "(empty)" : String(v.oldValue);
+                let newVal = v.newValue === "" ? "(empty)" : String(v.newValue);
+                
+                if (v.key === 'document') {
+                  oldVal = oldVal === "(empty)" ? "(empty)" : extractFilenames(oldVal);
+                  newVal = newVal === "(empty)" ? "(empty)" : extractFilenames(newVal);
+                } else {
+                  oldVal = oldVal.substring(0, 40) + (oldVal.length > 40 ? "..." : "");
+                  newVal = newVal.substring(0, 40) + (newVal.length > 40 ? "..." : "");
+                }
+                
+                return { key: displayKey, oldValue: v.oldValue, newValue: v.newValue, oldVal, newVal };
+              });
+
+            const date = new Date(item.updatedOn);
+            const dateStr = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' });
+            const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            return {
+              id: index,
+              date: dateStr,
+              title: `${dateStr} at ${timeStr}`,
+              description: `Updated by User ${item.updatedBy}`,
+              icon: item.icon,
+              status: "completed" as const,
+              color: "primary" as const,
+              changes,
+            } as TimelineElement & { changes: any[] };
+          }
+          // Fallback for old format
+          return {
+            id: index,
+            date: item.date || item.timestamp || new Date().toISOString().split('T')[0],
+            title: item.title || item.step_name || "Step",
+            description: item.description || item.remarks || "",
+            icon: item.icon,
+            status: item.status,
+            color: item.color,
+          };
+        });
+      }
+      return [];
+    } catch (error) {
+      console.error("Error parsing step_history:", error);
+      return [];
+    }
+  };
+
+  const handleViewTimeline = (stepHist: string | null, header: string) => {
+    if (!stepHist) {
+      toast.error("No timeline data available");
+      return;
+    }
+    const parsed = parseStepHistory(stepHist);
+    if (parsed.length === 0) {
+      toast.error("Unable to parse timeline data");
+      return;
+    }
+    setTimelineData(parsed);
+    setTimelineHeader(header || "");
+    setIsTimelineModalOpen(true);
+  };
+
+  const closeTimelineModal = () => {
+    setIsTimelineModalOpen(false);
+    setTimelineData([]);
+    setTimelineHeader("");
   };
 
   const closePdfViewer = () => {
@@ -706,7 +818,7 @@ export default observer(function WorkOrderPage() {
         ) : (
           <div className="border-t border-gray-200 dark:border-white/5">
             <div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.65fr 1.15fr 0.9fr 0.6fr 70px 80px', gap: '0', minWidth: '100%' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.65fr 1.15fr 0.9fr 0.6fr 70px 70px 80px', gap: '0', minWidth: '100%' }}>
                 {/* Table Header */}
                 {tableColumns.map((column) => (
                   <div
@@ -720,6 +832,10 @@ export default observer(function WorkOrderPage() {
                 <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 border-r border-blue-800 dark:border-blue-800">
                   Details
                 </div>
+                {/* Timeline Header */}
+                <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 border-r border-blue-800 dark:border-blue-800">
+                  TimeLine
+                </div>
                 {/* Actions Header */}
                 <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 border-r border-blue-800 dark:border-blue-800">
                   Actions
@@ -727,7 +843,7 @@ export default observer(function WorkOrderPage() {
               </div>
 
               {/* Table Body */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.65fr 1.15fr 0.9fr 0.6fr 70px 80px', gap: '0', minWidth: '100%' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.65fr 1.15fr 0.9fr 0.6fr 70px 70px 80px', gap: '0', minWidth: '100%' }}>
                 {paginatedItems.length === 0 ? (
                   <div style={{ gridColumn: '1 / -1' }} className="py-8 text-center bg-white dark:bg-gray-800">
                     <p className="text-gray-500 dark:text-gray-400">No work orders found</p>
@@ -821,6 +937,21 @@ export default observer(function WorkOrderPage() {
                           title="View Details"
                         >
                           <MdOpenInNew className="w-4 h-4" />
+                        </button>
+                      </div>
+                      {/* Timeline Cell */}
+                      <div className="px-2.5 py-3 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
+                        <button
+                          onClick={() => handleViewTimeline(item.step_history as string | null, `${item.po_number}${item.item_code}`)}
+                          disabled={!item.step_history}
+                          className={`flex justify-center items-center ml-2 w-8 h-4 rounded transition-colors ${
+                            item.step_history
+                              ? "hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 cursor-pointer"
+                              : "text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50"
+                          }`}
+                          title={item.step_history ? "View Timeline" : "No timeline data"}
+                        >
+                          <MdDateRange className="w-5 h-5" />
                         </button>
                       </div>
                       {/* Actions Cell */}
@@ -1192,6 +1323,56 @@ export default observer(function WorkOrderPage() {
                   "Save Changes"
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Timeline Modal */}
+      {isTimelineModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden border border-gray-100 dark:border-gray-800">
+            {/* Modal Header with Gradient */}
+            <div className="relative px-6 py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-800/20 backdrop-blur-sm">
+                    <MdDateRange className="w-6 h-6 text-blue-800" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-800">
+                      Step History Timeline
+                    </h2>
+                    <p className="text-sm text-blue-800 mt-0.5">
+                      Work Order: {timelineHeader}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={closeTimelineModal}
+                  className="flex items-center justify-center w-10 h-10 rounded-lg text-gray-800 transition-all duration-200"
+                  title="Close"
+                >
+                  <MdClose className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-gray-800/50">
+              {timelineData.length > 0 ? (
+                <TimelineLayout
+                  items={timelineData}
+                  size="lg"
+                  iconColor="primary"
+                  customIcon={<MdDateRange className="w-5 h-5" />}
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-40 text-gray-500 dark:text-gray-400">
+                  <MdDateRange className="w-12 h-12 mb-2 opacity-50" />
+                  <p>No timeline data available</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
