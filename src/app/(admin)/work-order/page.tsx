@@ -218,7 +218,7 @@ export default observer(function WorkOrderPage() {
         InfoveaveBatchId: Number(item.InfoveaveBatchId) || 0,
         po_status: poItem?.po_status || "Pending",
         vendor_id: String(item.vendor_id || ""),
-        vendor_name: item.vendor_name ? String(item.vendor_name) : undefined,
+        supplier_name: item.supplier_name ? String(item.supplier_name) : undefined,
         step_name: item.step_name ? String(item.step_name) : undefined,
         remarks: item.remarks ? String(item.remarks) : undefined,
         document: item.document ? String(item.document) : undefined,
@@ -1020,12 +1020,12 @@ export default observer(function WorkOrderPage() {
                 {/* Vendor Name - Disabled */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Vendor Name
+                    Supplier Name
                   </label>
                   <input
                     type="text"
                     disabled
-                    value={String(editFormData.vendor_name || "-")}
+                    value={String(editFormData.supplier_name || "-")}
                     className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
                   />
                 </div>

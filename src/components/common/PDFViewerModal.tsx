@@ -386,24 +386,22 @@ export default function PDFViewerModal({
                     </button>
                   )}
                 </div>
-                <div className={`flex-1 flex flex-col min-h-0 ${!isVersionCollapsed ? 'overflow-y-auto' : 'overflow-hidden'} p-4 transition-opacity ${
+                <div className={`flex-1 flex flex-col min-h-0 p-4 transition-opacity ${
                   isVersionCollapsed ? 'opacity-0 duration-0' : 'opacity-100 duration-300 delay-300'
                 }`}>
-                  <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
-                    <table className="w-full border-collapse">
-                      <thead className="sticky top-0 bg-linear-to-r from-blue-700 to-blue-800 dark:from-blue-800 dark:to-blue-900 z-10">
-                        <tr>
-                          <th className="px-2 py-2.5 text-left text-xs font-semibold text-white uppercase tracking-wide border border-blue-500 w-40">Field</th>
-                          <th className="px-4 py-2.5 text-left text-xs font-semibold text-white uppercase tracking-wide border border-blue-500">Previous</th>
-                          <th className="px-4 py-2.5 text-left text-xs font-semibold text-white uppercase tracking-wide border border-blue-500">Current</th>
-                        </tr>
-                      </thead>
-                    <tbody>
+                  <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden flex flex-col min-h-0">
+                    {/* Header */}
+                    <div className="sticky top-0 bg-linear-to-r from-blue-700 to-blue-800 dark:from-blue-800 dark:to-blue-900 z-10 flex flex-shrink-0">
+                      <div className="px-2 py-2.5 text-left text-xs font-semibold text-white uppercase tracking-wide border border-blue-500 w-40 flex-shrink-0">Field</div>
+                      <div className="px-4 py-2.5 text-left text-xs font-semibold text-white uppercase tracking-wide border border-blue-500 flex-1">Previous</div>
+                      <div className="px-4 py-2.5 text-left text-xs font-semibold text-white uppercase tracking-wide border border-blue-500 flex-1">Current</div>
+                    </div>
+                    {/* Scrollable Body */}
+                    <div className="overflow-y-auto flex-1">
                       {stepHistoryVersions[selectedVersionIndex].values.map((value, idx) => {
                         // Special handling for document field
                         let displayNewValue = value.newValue;
                         let displayOldValue = value.oldValue;
-                        
                         if (value.key === 'document') {
                           try {
                             // Parse only if not empty
@@ -446,11 +444,11 @@ export default function PDFViewerModal({
                         }
                         
                         return (
-                          <tr key={idx} className={`${idx % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700/50'} hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors`}>
-                            <td className="px-2 py-3 text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide w-20 wrap-break-word border border-gray-300 dark:border-gray-600">
+                          <div key={idx} className={`flex ${idx % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700/50'} hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-300 dark:border-gray-600`}>
+                            <div className="px-2 py-3 text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide w-40 flex-shrink-0 wrap-break-word border-r border-gray-300 dark:border-gray-600">
                               {value.key}
-                            </td>
-                            <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 max-w-37.5 border border-gray-300 dark:border-gray-600">
+                            </div>
+                            <div className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 flex-1 border-r border-gray-300 dark:border-gray-600">
                               <div className="wrap-break-word whitespace-normal">
                                 {isOldEmpty ? (
                                   <span className="italic text-gray-400 dark:text-gray-500">—</span>
@@ -458,8 +456,8 @@ export default function PDFViewerModal({
                                   displayOldValue
                                 )}
                               </div>
-                            </td>
-                            <td className="px-4 py-3 text-xs font-medium text-gray-700 dark:text-gray-400 max-w-37.5 border border-gray-300 dark:border-gray-600">
+                            </div>
+                            <div className="px-4 py-3 text-xs font-medium text-gray-700 dark:text-gray-400 flex-1 border-gray-300 dark:border-gray-600">
                               <div className="wrap-break-word whitespace-normal">
                                 {value.key === 'document' && newDocArray.length > 0 ? (
                                   <div className="flex flex-wrap gap-2">
@@ -481,12 +479,11 @@ export default function PDFViewerModal({
                                   displayNewValue
                                 )}
                               </div>
-                            </td>
-                          </tr>
+                            </div>
+                          </div>
                         );
                       })}
-                      </tbody>
-                    </table>
+                    </div>
                   </div>
                 </div>
               </div>

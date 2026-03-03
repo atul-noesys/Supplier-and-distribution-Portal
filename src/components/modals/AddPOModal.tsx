@@ -49,7 +49,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
   const [formData, setFormData] = useState<KeyValueRecord>({
     po_issue_date: '',
     vendor_id: '',
-    vendor_name: '',
+    supplier_name: '',
     po_status: 'Pending',
   });
 
@@ -116,7 +116,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
         po_number: String(initialData.po_number || ''),
         po_issue_date: String(initialData.po_issue_date ? initialData.po_issue_date.split('T')[0] : ''),
         vendor_id: String(initialData.vendor_id || ''),
-        vendor_name: String(initialData.vendor_name || ''),
+        supplier_name: String(initialData.supplier_name || ''),
         po_status: String(initialData.po_status || 'Pending'),
         document: String(initialData.document || ''),
         remarks: String(initialData.remarks || ''),
@@ -130,7 +130,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
       setFormData({
         po_issue_date: '',
         vendor_id: '',
-        vendor_name: '',
+        supplier_name: '',
         po_status: 'Pending',
       });
       setIsSaved(false);
@@ -181,7 +181,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
                 work_order_created: item.work_order_created || null,
                 remarks: item.remarks || null,
                 vendor_id: String(item.vendor_id || ''),
-                vendor_name: String(item.vendor_name || ''),
+                supplier_name: String(item.supplier_name || ''),
                 InfoveaveBatchId: Number(item.InfoveaveBatchId) || 0,
                 rowId: item.ROWID,
                 total: total,
@@ -219,7 +219,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
     if (selectedVendor) {
       setFormData((prev) => ({
         ...prev,
-        vendor_name: String(selectedVendor.company_name || ''),
+        supplier_name: String(selectedVendor.company_name || ''),
         vendor_id: String(selectedVendor.vendor_id || ''),
       }));
     }
@@ -229,7 +229,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
     e.preventDefault();
 
     // Validate required key-value fields
-    const requiredFields = ['po_issue_date', 'vendor_name'];
+    const requiredFields = ['po_issue_date', 'supplier_name'];
     const missingFields = requiredFields.filter(
       (field) => !formData[field]
     );
@@ -334,7 +334,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
     setFormData({
       po_issue_date: '',
       vendor_id: '',
-      vendor_name: '',
+      supplier_name: '',
       po_status: 'Pending',
     } as KeyValueRecord);
     poStore.clearItems();
@@ -489,10 +489,10 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
                 {/* Vendor Name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Vendor Name <span className="text-red-500">*</span>
+                    Supplier Name <span className="text-red-500">*</span>
                   </label>
                   <select
-                    value={String(formData.vendor_name ?? '')}
+                    value={String(formData.supplier_name ?? '')}
                     onChange={(e) => handleVendorChange(e.target.value)}
                     disabled={isEditMode}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
@@ -624,7 +624,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
                               <p className="text-sm text-gray-700 dark:text-gray-300">{item.vendor_id || '-'}</p>
                             </div>
                             <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
-                              <p className="text-sm text-gray-700 dark:text-gray-300">{item.vendor_name || '-'}</p>
+                              <p className="text-sm text-gray-700 dark:text-gray-300">{item.supplier_name || '-'}</p>
                             </div>
                             {/* <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
                             <p className="text-sm text-gray-700 dark:text-gray-300">{item.remarks || '-'}</p>

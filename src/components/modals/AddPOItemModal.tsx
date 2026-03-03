@@ -32,7 +32,7 @@ interface AddPOItemModalProps {
         po_number?: string;
         po_status?: string;
         vendor_id?: string;
-        vendor_name?: string;
+        supplier_name?: string;
     };
     onUserEdit?: () => void;
 }
@@ -78,7 +78,7 @@ function AddPOItemModalContent({
         quantity: '',
         po_status: poData?.po_status || '',
         vendor_id: poData?.vendor_id || '',
-        vendor_name: poData?.vendor_name || '',
+        supplier_name: poData?.supplier_name || '',
         total: '',
         work_order_created: "No",
         document: '',
@@ -447,12 +447,12 @@ function AddPOItemModalContent({
                                 {/* Vendor Name */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Vendor Name
+                                        Supplier Name
                                     </label>
                                     <input
                                         type="text"
                                         disabled
-                                        value={String(formData.vendor_name ?? '')}
+                                        value={String(formData.supplier_name ?? '')}
                                         className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
                                     />
                                 </div>

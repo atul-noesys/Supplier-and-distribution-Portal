@@ -18,7 +18,7 @@ interface PurchaseOrder {
   po_issue_date: string;
   po_status: "Pending" | "Shipped" | "Production" | "Completed";
   vendor_id: string;
-  vendor_name?: string;
+  supplier_name?: string;
   InfoveaveBatchId: number;
   ROWID: number;
   document?: string | null;
@@ -42,7 +42,7 @@ interface PurchaseOrderItem {
   po_status?: string;
   vendor_id?: string;
   remarks?: string;
-  vendor_name?: string;
+  supplier_name?: string;
   step_history?: string | null;
   [key: string]: any;
 }
@@ -239,7 +239,7 @@ export default observer(function PurchaseOrderPage() {
           step_name: item.step_name as string,
           document: (item.document as string) || null,
           work_order_created: (item.work_order_created as string) || null,
-          vendor_name: (item.vendor_name as string) || null,
+          supplier_name: (item.supplier_name as string) || null,
           step_history: (item.step_history as string) || null,
           InfoveaveBatchId: item.InfoveaveBatchId as number,
           ROWID: item.ROWID as number,
@@ -280,7 +280,7 @@ export default observer(function PurchaseOrderPage() {
     ? poItems
     : poItems.filter((item) =>
       (item.item && item.item.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (item.vendor_name && item.vendor_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (item.supplier_name && item.supplier_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (item.po_number && item.po_number.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
@@ -598,7 +598,7 @@ export default observer(function PurchaseOrderPage() {
                         Status
                       </th>
                       <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide">
-                        Vendor Name
+                        Supplier Name
                       </th>
                       <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide">
                         Document
@@ -643,7 +643,7 @@ export default observer(function PurchaseOrderPage() {
                             </Badge>
                           </td>
                           <td className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">
-                            {searchTerm ? highlightText(po.vendor_name || po.vendor_id, searchTerm) : (po.vendor_name || po.vendor_id)}
+                            {searchTerm ? highlightText(po.supplier_name || po.vendor_id, searchTerm) : (po.supplier_name || po.vendor_id)}
                           </td>
                           <td className="pl-11 px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">
                             {po.document ? (
