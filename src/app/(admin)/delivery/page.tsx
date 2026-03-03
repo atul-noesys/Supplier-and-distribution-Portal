@@ -735,7 +735,6 @@ export default observer(function DeliveryPage() {
                                                                     onClick={() => handleAcceptDelivery(String(row.ROWID || ""))}
                                                                     className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded text-sm flex items-center gap-1 justify-center whitespace-nowrap"
                                                                 >
-                                                                    <MdDone className="w-4 h-4" />
                                                                     Accept
                                                                 </button>
                                                             )}
@@ -902,7 +901,7 @@ export default observer(function DeliveryPage() {
                                     </>
                                 ) : (
                                     <>
-                                        <MdDone className="w-4 h-4" />
+                                        <MdDone className="w-5 h-5" />
                                         Accept Delivery
                                     </>
                                 )}
