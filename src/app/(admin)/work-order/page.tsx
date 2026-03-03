@@ -818,7 +818,7 @@ export default observer(function WorkOrderPage() {
         ) : (
           <div className="border-t border-gray-200 dark:border-white/5">
             <div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.65fr 1.15fr 0.9fr 0.6fr 70px 70px 80px', gap: '0', minWidth: '100%' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.7fr 1.2fr 0.9fr 0.6fr 70px 70px 80px', gap: '0', minWidth: '100%' }}>
                 {/* Table Header */}
                 {tableColumns.map((column) => (
                   <div
@@ -833,7 +833,7 @@ export default observer(function WorkOrderPage() {
                   Details
                 </div>
                 {/* Timeline Header */}
-                <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 border-r border-blue-800 dark:border-blue-800">
+                <div className="bg-blue-800 dark:bg-blue-700 px-1 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 border-r border-blue-800 dark:border-blue-800">
                   TimeLine
                 </div>
                 {/* Actions Header */}
@@ -843,7 +843,7 @@ export default observer(function WorkOrderPage() {
               </div>
 
               {/* Table Body */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.65fr 1.15fr 0.9fr 0.6fr 70px 70px 80px', gap: '0', minWidth: '100%' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.7fr 1.2fr 0.9fr 0.6fr 70px 70px 80px', gap: '0', minWidth: '100%' }}>
                 {paginatedItems.length === 0 ? (
                   <div style={{ gridColumn: '1 / -1' }} className="py-8 text-center bg-white dark:bg-gray-800">
                     <p className="text-gray-500 dark:text-gray-400">No work orders found</p>
