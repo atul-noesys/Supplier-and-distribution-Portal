@@ -31,7 +31,7 @@ interface AddPOItemModalProps {
     poData?: {
         po_number?: string;
         po_status?: string;
-        vendor_id?: string;
+        supplier_id?: string;
         supplier_name?: string;
     };
     onUserEdit?: () => void;
@@ -77,7 +77,7 @@ function AddPOItemModalContent({
         unit_price: '',
         quantity: '',
         po_status: poData?.po_status || '',
-        vendor_id: poData?.vendor_id || '',
+        supplier_id: poData?.supplier_id || '',
         supplier_name: poData?.supplier_name || '',
         total: '',
         work_order_created: "No",
@@ -431,20 +431,20 @@ function AddPOItemModalContent({
                                     />
                                 </div>
 
-                                {/* Vendor ID */}
+                                {/* Supplier ID */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Vendor ID
+                                        Supplier ID
                                     </label>
                                     <input
                                         type="text"
                                         disabled
-                                        value={String(formData.vendor_id ?? '')}
+                                        value={String(formData.supplier_id ?? '')}
                                         className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
                                     />
                                 </div>
 
-                                {/* Vendor Name */}
+                                {/* Supplier Name */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                         Supplier Name

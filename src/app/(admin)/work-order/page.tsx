@@ -23,7 +23,7 @@ const COLUMN_ORDER = [
   "workOrderId", // Computed field (po_number + item_code)
   "item_code",
   "item",
-  "vendor_id",
+  "supplier_id",
   "supplier_name",
   "step",
   "wo_status",
@@ -40,7 +40,7 @@ const DISPLAY_COLUMNS = [
   "workOrderId",
   "item_code",
   "item",
-  "vendor_id",
+  "supplier_id",
   "supplier_name",
   "step",
   "wo_status",
@@ -217,7 +217,7 @@ export default observer(function WorkOrderPage() {
         status: String(item.step || "Step 1"),
         InfoveaveBatchId: Number(item.InfoveaveBatchId) || 0,
         po_status: poItem?.po_status || "Pending",
-        vendor_id: String(item.vendor_id || ""),
+        supplier_id: String(item.supplier_id || ""),
         supplier_name: item.supplier_name ? String(item.supplier_name) : undefined,
         step_name: item.step_name ? String(item.step_name) : undefined,
         remarks: item.remarks ? String(item.remarks) : undefined,
@@ -654,7 +654,7 @@ export default observer(function WorkOrderPage() {
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="Search by PO number/Item code/Item name/Vendor"
+                  placeholder="Search by PO number/Item code/Item name/Supplier"
                   value={searchTerm}
                   onChange={(e) => handleSearchChange(e.target.value)}
                   className="w-80 px-4 py-2.25 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none text-sm"
@@ -1017,7 +1017,7 @@ export default observer(function WorkOrderPage() {
                   />
                 </div>
 
-                {/* Vendor Name - Disabled */}
+                {/* Supplier Name - Disabled */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Supplier Name

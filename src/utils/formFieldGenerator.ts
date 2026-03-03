@@ -42,9 +42,9 @@ export const generateFormFieldConfig = (
     po_issue_date: 'date',
     po_status: 'select',
 
-    // Vendor fields
-    vendor_id: 'text',
-    vendor_name: 'select',
+    // Supplier fields
+    supplier_id: 'text',
+    supplier_name: 'select',
 
     // Other fields
     status: 'select',
@@ -66,8 +66,8 @@ export const generateFormFieldConfig = (
     po_number: 'PO Number',
     po_issue_date: 'Issue Date',
     po_status: 'PO Status',
-    vendor_id: 'Vendor ID',
-    vendor_name: 'Vendor Name',
+    supplier_id: 'Supplier ID',
+    supplier_name: 'Supplier Name',
     status: 'Status',
     step_name: 'Step Name',
     step_history: 'Step History',

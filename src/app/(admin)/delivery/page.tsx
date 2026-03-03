@@ -42,7 +42,7 @@ const getStatusColor = (
     }
 };
 
-const HIDDEN_COLUMNS = ["ROWID", "InfoveaveBatchId", "vendor_id", "vendor_name", "step_history"];
+const HIDDEN_COLUMNS = ["ROWID", "InfoveaveBatchId", "supplier_id", "vendor_name", "step_history"];
 const HIDDEN_COLUMNS_MODAL = ["ROWID", "InfoveaveBatchId", "step_history", "actual_delivery_date", "delivery_accepted_by"];
 
 

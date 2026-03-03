@@ -483,7 +483,7 @@ function AddShipmentModalContent({
         shipmentToSave = {
           ...shipmentToSave,
           shipment_status: formData.carrier_name !== "" ? "In transit" : "Ready to ship",
-          vendor_id: currentLoggedInVendor?.vendor_id || "",
+          supplier_id: currentLoggedInVendor?.supplier_id || "",
           vendor_name: currentLoggedInVendor?.company_name || "",
         }
 
@@ -517,7 +517,7 @@ function AddShipmentModalContent({
         shipmentToSave = {
           ...shipmentToSave,
           shipment_status: formData.carrier_name !== "" ? "In transit" : "Ready to ship",
-          vendor_id: currentLoggedInVendor?.vendor_id || "",
+          supplier_id: currentLoggedInVendor?.supplier_id || "",
           vendor_name: currentLoggedInVendor?.company_name || "",
         }
 
@@ -829,7 +829,7 @@ function AddShipmentModalContent({
                           <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Qty</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Unit Price</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Total</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Vendor</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Supplier</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Step</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">WO Status</th>
                         </tr>

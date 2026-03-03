@@ -17,7 +17,7 @@ interface PurchaseOrder {
   po_number: string;
   po_issue_date: string;
   po_status: "Pending" | "Shipped" | "Production" | "Completed";
-  vendor_id: string;
+  supplier_id: string;
   supplier_name?: string;
   InfoveaveBatchId: number;
   ROWID: number;
@@ -40,7 +40,7 @@ interface PurchaseOrderItem {
   ROWID: number;
   total?: number;
   po_status?: string;
-  vendor_id?: string;
+  supplier_id?: string;
   remarks?: string;
   supplier_name?: string;
   step_history?: string | null;
@@ -537,7 +537,7 @@ export default observer(function PurchaseOrderPage() {
               <div className="relative flex-1">
                 <input
                   type="text"
-                  placeholder="Search by PO number/Item name/Vendor name"
+                  placeholder="Search by PO number/Item name/Supplier name"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full px-4 py-2.25 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none text-sm"
@@ -643,7 +643,7 @@ export default observer(function PurchaseOrderPage() {
                             </Badge>
                           </td>
                           <td className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">
-                            {searchTerm ? highlightText(po.supplier_name || po.vendor_id, searchTerm) : (po.supplier_name || po.vendor_id)}
+                            {searchTerm ? highlightText(po.supplier_name || po.supplier_id, searchTerm) : (po.supplier_name || po.supplier_id)}
                           </td>
                           <td className="pl-11 px-5 py-4 text-gray-600 dark:text-gray-400 text-sm">
                             {po.document ? (

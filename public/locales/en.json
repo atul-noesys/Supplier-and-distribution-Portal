@@ -6,7 +6,7 @@
         "poNumber": "PO Number",
         "issueDate": "Issue Date",
         "status": "Status",
-        "vendorName": "Vendor Name",
+        "vendorName": "Supplier Name",
         "document": "Document",
         "remarks": "Remarks",
         "woCreated": "WO Created",

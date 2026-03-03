@@ -155,7 +155,7 @@ export function AddItemFromWorkOrderModal({
                           Total
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">
-                          Vendor
+                          Supplier
                         </th>
                       </tr>
                     </thead>

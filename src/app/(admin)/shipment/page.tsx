@@ -36,7 +36,7 @@ const getStatusColor = (
   }
 };
 
-const HIDDEN_COLUMNS = ["ROWID", "InfoveaveBatchId", "vendor_id", "vendor_name", "step_history", "actual_delivery_date", "delivery_accepted_by"];
+const HIDDEN_COLUMNS = ["ROWID", "InfoveaveBatchId", "supplier_id", "vendor_name", "step_history", "actual_delivery_date", "delivery_accepted_by"];
 
 export default observer(function ShipmentPage() {
   const { nguageStore, shipmentStore } = useStore();
