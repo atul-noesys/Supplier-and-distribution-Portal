@@ -12,7 +12,8 @@ import {
   ListIcon,
   TaskIcon,
   TruckIcon,
-  BoxIconLine
+  BoxIconLine,
+  BoxCubeIcon
 } from "../icons/index";
 
 type NavItem = {
@@ -47,6 +48,11 @@ const getNavItems = (t: (key: string) => string): NavItem[] => [
     icon: <BoxIconLine />,
     name: t('sidebar.delivery'),
     path: "/delivery",
+  },
+  {
+    icon: <BoxCubeIcon />,
+    name: t('sidebar.warehouse'),
+    path: "/warehouse",
   },
 ];
 

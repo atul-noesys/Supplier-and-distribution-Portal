@@ -25,6 +25,7 @@
         "workOrder": "工作单",
         "shipment": "装运",
         "delivery": "交付",
+        "warehouse": "仓库",
         "menu": "菜单"
     }
 }

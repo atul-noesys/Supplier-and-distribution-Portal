@@ -25,6 +25,7 @@
         "workOrder": "Work Order",
         "shipment": "Shipment",
         "delivery": "Delivery",
+        "warehouse": "Warehouse",
         "menu": "Menu"
     }
 }
