@@ -5,6 +5,7 @@ import PDFViewerModal from "@/components/common/PDFViewerModal";
 import KanbanBoard from "@/components/kanban/KanbanBoard";
 import { TimelineLayout } from "@/components/timeline/timeline-layout";
 import { useStore } from "@/store/store-context";
+import { TextInput, Select } from "@/components/ui";
 import { RowData } from "@/types/nguage-rowdata";
 import { TimelineElement } from "@/types/timeline";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -1064,12 +1065,13 @@ export default observer(function WorkOrderPage() {
 
                   return (
                     <div key={key}>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        {label}
-                      </label>
-                      <div className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300">
-                        {displayValue}
-                      </div>
+                      <TextInput
+                        label={label}
+                        type="text"
+                        disabled
+                        value={displayValue}
+                        onValueChange={() => {}}
+                      />
                     </div>
                   );
                 })}
@@ -1111,144 +1113,128 @@ export default observer(function WorkOrderPage() {
               <div className="grid grid-cols-3 gap-6">
                 {/* Work Order ID - Disabled */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Work Order ID
-                  </label>
-                  <input
+                  <TextInput
+                    label="Work Order ID"
                     type="text"
                     disabled
                     value={String(selectedWorkOrder.workOrderId || selectedWorkOrder[Object.keys(selectedWorkOrder).find(k => k.startsWith("{")) || ""] || "-")}
-                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                    onValueChange={() => {}}
                   />
                 </div>
 
                 {/* Item Code - Disabled */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Item Code
-                  </label>
-                  <input
+                  <TextInput
+                    label="Item Code"
                     type="text"
                     disabled
                     value={String(editFormData.item_code || "-")}
-                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                    onValueChange={() => {}}
                   />
                 </div>
 
                 {/* Item - Disabled */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Item Name
-                  </label>
-                  <input
+                  <TextInput
+                    label="Item Name"
                     type="text"
                     disabled
                     value={String(editFormData.item || "-")}
-                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                    onValueChange={() => {}}
                   />
                 </div>
 
                 {/* Supplier Name - Disabled */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Supplier Name
-                  </label>
-                  <input
+                  <TextInput
+                    label="Supplier Name"
                     type="text"
                     disabled
                     value={String(editFormData.supplier_name || "-")}
-                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                    onValueChange={() => {}}
                   />
                 </div>
 
                 {/* PO Number - Disabled */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    PO Number
-                  </label>
-                  <input
+                  <TextInput
+                    label="PO Number"
                     type="text"
                     disabled
                     value={String(editFormData.po_number || "-")}
-                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                    onValueChange={() => {}}
                   />
                 </div>
 
                 {/* Start Date - Disabled */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Start Date
-                  </label>
-                  <input
+                  <TextInput
+                    label="Start Date"
                     type="text"
                     disabled
                     value={formatDate(String(editFormData.start_date || ""))}
-                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                    onValueChange={() => {}}
                   />
                 </div>
 
                 {/* End Date - Disabled */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    End Date
-                  </label>
-                  <input
+                  <TextInput
+                    label="End Date"
                     type="text"
                     disabled
                     value={formatDate(String(editFormData.end_date || ""))}
-                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                    onValueChange={() => {}}
                   />
                 </div>
 
                 {/* Step - Editable Dropdown */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Step
                   </label>
-                  <select
+                  <Select
+                    // label="Step"
                     value={String(editFormData.step || "")}
-                    onChange={(e) => handleEditFormChange("step", e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Select step</option>
-                    <option value="Step 1">Step 1</option>
-                    <option value="Step 2">Step 2</option>
-                    <option value="Step 3">Step 3</option>
-                    <option value="Step 4">Step 4</option>
-                    <option value="Step 5">Step 5</option>
-                  </select>
+                    onChange={(v) => handleEditFormChange("step", v ?? "")}
+                    data={[
+                      { label: "Step 1", value: "Step 1" },
+                      { label: "Step 2", value: "Step 2" },
+                      { label: "Step 3", value: "Step 3" },
+                      { label: "Step 4", value: "Step 4" },
+                      { label: "Step 5", value: "Step 5" },
+                    ]}
+                  />
                 </div>
 
                 {/* Step Name - Editable Dropdown */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Step Name
                   </label>
-                  <select
+                  <Select
+                    // label="Step Name"
                     value={String(editFormData.step_name || "")}
-                    onChange={(e) => handleEditFormChange("step_name", e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Select step name</option>
-                    <option value="Painting">Painting</option>
-                    <option value="Welding">Welding</option>
-                    <option value="Fitting">Fitting</option>
-                    <option value="Filing">Filing</option>
-                    <option value="Drilling">Drilling</option>
-                    <option value="Casting">Casting</option>
-                  </select>
+                    onChange={(v) => handleEditFormChange("step_name", v ?? "")}
+                    data={[
+                      { label: "Painting", value: "Painting" },
+                      { label: "Welding", value: "Welding" },
+                      { label: "Fitting", value: "Fitting" },
+                      { label: "Filing", value: "Filing" },
+                      { label: "Drilling", value: "Drilling" },
+                      { label: "Casting", value: "Casting" },
+                    ]}
+                  />
                 </div>
 
                 {/* WO Status - Disabled (Auto-calculated) */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    WO Status
-                  </label>
-                  <input
+                  <TextInput
+                    label="WO Status"
                     type="text"
                     disabled
                     value={String(editFormData.wo_status || "-")}
-                    className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                    onValueChange={() => {}}
                   />
                 </div>
 
@@ -1262,7 +1248,7 @@ export default observer(function WorkOrderPage() {
                     multiple
                     onChange={handleEditDocumentChange}
                     disabled={isUploadingDocument}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50"
+                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50"
                   />
                   {editFormData.document && (
                     <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
@@ -1286,7 +1272,7 @@ export default observer(function WorkOrderPage() {
 
                 {/* Remarks - Textarea (Full Width) */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {/* <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Remarks
                   </label>
                   <textarea
@@ -1295,6 +1281,13 @@ export default observer(function WorkOrderPage() {
                     rows={1}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none resize-none"
                     placeholder="Enter any remarks here..."
+                  /> */}
+                  <TextInput
+                    label="Remarks"
+                    type="text"
+                    placeholder="Enter any remarks here..."
+                    value={String(editFormData.remarks || "")}
+                    onValueChange={(value) => handleEditFormChange("remarks", value)}
                   />
                 </div>
               </div>

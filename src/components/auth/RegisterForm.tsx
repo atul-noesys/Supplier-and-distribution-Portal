@@ -297,7 +297,7 @@ export default observer(function RegisterForm() {
                         multiple
                         onChange={handleFileChange}
                         disabled={isUploading}
-                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-500 file:text-white hover:file:bg-brand-600 disabled:opacity-50"
+                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-500 file:text-white hover:file:bg-brand-600 disabled:opacity-50"
                       />
                       {isUploading && (
                         <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">

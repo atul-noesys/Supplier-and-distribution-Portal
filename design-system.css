@@ -1,0 +1,13 @@
+/* Import design system styles (includes Tailwind) */
+@import "@infoveave/design-system/styles";
+@source "./**/*.{ts,tsx}";
+@source "../../../../packages/*/src/**/*.{ts,tsx}";
+/* Scan external packages that use Tailwind but ship without CSS */
+@source "../../../../node_modules/@infoveave/ai-client/dist/**/*.{js,mjs}";
+@source "../../../../node_modules/@infoveave/ui-compoennts/dist/**/*.{js,mjs}";
+@source "../../../../node_modules/@infoveave/ui-primitives/dist/**/*.{js,mjs}";
+
+/* Override layer base: allow img to respect HTML height attribute when present */
+img[height] {
+  height: attr(height px) !important;
+}

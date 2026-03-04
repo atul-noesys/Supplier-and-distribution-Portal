@@ -1,9 +1,20 @@
 @import 'tailwindcss';
 
+@import "@infoveave/design-system/styles";
+
+@source "./app/**/*.{ts,tsx}";
+@source "./components/**/*.{ts,tsx}";
+@source "../../packages/*/src/**/*.{ts,tsx}";
+/* Scan external packages that use Tailwind but ship without CSS */
+@source "../../node_modules/@infoveave/ai-client/dist/**/*.{js,mjs}";
+@source "../../node_modules/@infoveave/ui-compoennts/dist/**/*.{js,mjs}";
+@source "../../node_modules/@infoveave/ui-primitives/dist/**/*.{js,mjs}";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme {
   --font-*: initial;
+  --font-sans: Outfit, sans-serif;
   --font-outfit: Outfit, sans-serif;
 
   --breakpoint-*: initial;
@@ -189,6 +200,10 @@
   }
   body {
     @apply relative font-normal font-outfit z-1 bg-gray-50;
+  }
+  /* Override layer base: allow img to respect HTML height attribute when present */
+  img[height] {
+    height: attr(height px) !important;
   }
 }
 

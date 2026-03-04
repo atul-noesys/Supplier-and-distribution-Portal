@@ -49,7 +49,10 @@
     "react-toastify": "^11.0.5",
     "swiper": "^11.2.10",
     "tailwind-merge": "^2.6.0",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "@infoveave/ui-components": "^7.0.12",
+    "@infoveave/design-system": "^7.0.2",
+    "@infoveave/ui-primitives": "^7.0.11"
   },
   "devDependencies": {
     "@cloudflare/next-on-pages": "^1.13.16",

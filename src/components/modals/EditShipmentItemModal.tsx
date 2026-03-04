@@ -2,6 +2,7 @@
 
 import { ShipmentItem } from "@/types/nguage-rowdata";
 import { useStore } from "@/store/store-context";
+import { TextInput } from "@/components/ui";
 import React, { useState } from "react";
 import { MdClose } from "react-icons/md";
 import { toast } from "react-toastify";
@@ -160,79 +161,67 @@ export function EditShipmentItemModal({
             <div className="grid grid-cols-3 gap-4">
               {/* Item Name */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                  Item Name
-                </label>
-                <input
+                <TextInput
+                  label="Item Name"
                   type="text"
                   value={String(item.item || "")}
                   disabled
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-sm cursor-not-allowed opacity-75"
+                  onValueChange={() => {}}
                 />
               </div>
 
               {/* Unit Price */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                  Unit Price
-                </label>
-                <input
+                <TextInput
+                  label="Unit Price"
                   type="number"
-                  value={Number(item.unit_price || 0)}
+                  value={String(Number(item.unit_price || 0))}
                   disabled
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-sm cursor-not-allowed opacity-75"
+                  onValueChange={() => {}}
                 />
               </div>
 
               {/* Quantity */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                  Quantity
-                </label>
-                <input
+                <TextInput
+                  label="Quantity"
                   type="number"
-                  value={Number(item.shipment_quantity || 0)}
+                  value={String(Number(item.shipment_quantity || 0))}
                   disabled
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-sm cursor-not-allowed opacity-75"
+                  onValueChange={() => {}}
                 />
               </div>
 
               {/* Total */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                  Total
-                </label>
-                <input
+                <TextInput
+                  label="Total"
                   type="number"
-                  value={Number(item.total || 0)}
+                  value={String(Number(item.total || 0))}
                   disabled
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-sm cursor-not-allowed opacity-75"
+                  onValueChange={() => {}}
                 />
               </div>
 
               {/* PO Number */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                  PO Number
-                </label>
-                <input
+                <TextInput
+                  label="PO Number"
                   type="text"
                   value={String(item.po_number || "")}
                   disabled
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-sm cursor-not-allowed opacity-75"
+                  onValueChange={() => {}}
                 />
               </div>
 
               {/* Status */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                  Status
-                </label>
-                <input
+                <TextInput
+                  label="Status"
                   type="text"
                   value={String(status || "")}
                   disabled
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-sm cursor-not-allowed opacity-75"
+                  onValueChange={() => {}}
                 />
               </div>
 
@@ -247,7 +236,7 @@ export function EditShipmentItemModal({
                     multiple
                     onChange={handleFileChange}
                     disabled={isUploadingDocument}
-                    className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     accept=".pdf,.doc,.docx,.jpg,.png"
                   />
                   {document && (
@@ -273,15 +262,12 @@ export function EditShipmentItemModal({
 
               {/* Remarks */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Remarks
-                </label>
-                <textarea
+                <TextInput
+                  label="Remarks"
+                  type="text"
                   value={remarks}
-                  onChange={(e) => setRemarks(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
+                  onValueChange={(value) => setRemarks(value)}
                   placeholder="Add any remarks about this item"
-                  rows={3}
                 />
               </div>
             </div>

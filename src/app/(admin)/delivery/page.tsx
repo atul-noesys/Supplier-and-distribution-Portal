@@ -2,6 +2,7 @@
 
 import PDFViewerModal from "@/components/common/PDFViewerModal";
 import Badge from "@/components/ui/badge/Badge";
+import { TextInput } from "@/components/ui/infoveave-components/TextInput";
 import { useStore } from "@/store/store-context";
 import { RowData } from "@/types/nguage-rowdata";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -804,9 +805,6 @@ export default observer(function DeliveryPage() {
 
                                         return (
                                             <div key={key}>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                    {key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                                                </label>
                                                 {isDocument ? (
                                                     <div>
                                                         <input
@@ -814,7 +812,7 @@ export default observer(function DeliveryPage() {
                                                             multiple
                                                             onChange={handleEditDocumentChange}
                                                             disabled={isUploadingDocument}
-                                                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50"
+                                                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50"
                                                         />
                                                         {acceptModalData.document && (
                                                             <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
@@ -841,29 +839,29 @@ export default observer(function DeliveryPage() {
                                                         )}
                                                     </div>
                                                 ) : isRemark ? (
-                                                    <textarea
-                                                        value={isRemark ? acceptModalRemarks : String(value || "")}
-                                                        onChange={(e) => isRemark && setAcceptModalRemarks(e.target.value)}
-                                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm focus:outline-none focus:border-blue-500 resize-none"
-                                                        rows={3}
+                                                    <TextInput
+                                                        label={key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                                                        type="text"
+                                                        value={acceptModalRemarks}
+                                                        onValueChange={(v) => setAcceptModalRemarks(v ?? "")}
                                                         placeholder="Add remarks"
                                                     />
                                                 ) : key.toLowerCase().includes("status") || key.toLowerCase().includes("state") ? (
                                                     <div>
+                                                        <label className="block text-xs text-black dark:text-gray-300 mb-2">
+                                                            {key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                                                        </label>
                                                         <Badge color={getStatusColor(String(value))} variant="solid">
                                                             {String(value)}
                                                         </Badge>
                                                     </div>
                                                 ) : (
-                                                    <input
+                                                    <TextInput
+                                                        label={key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
                                                         type="text"
                                                         value={String(value || "-")}
                                                         disabled={isDisabled}
-                                                        className={`w-full px-3 py-2 border rounded-lg text-sm ${isDisabled
-                                                                ? "bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-500 cursor-not-allowed"
-                                                                : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:border-blue-500"
-                                                            }`}
-                                                        readOnly={isDisabled}
+                                                        onValueChange={() => { }}
                                                     />
                                                 )}
                                             </div>

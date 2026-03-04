@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   images: {
     domains: ["engtek.com", "cdn.infoveave.com"],
   },
+  transpilePackages: ["@infoveave/design-system"],
   webpack(config) {
     config.module.rules.push({
       test: /\.svg$/,

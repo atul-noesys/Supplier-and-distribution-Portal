@@ -8,6 +8,7 @@ import * as React from 'react';
 import { useState } from 'react';
 import { MdClose } from 'react-icons/md';
 import { toast } from 'react-toastify';
+import { Select, TextInput } from "@/components/ui";
 
 /**
  * Convert KeyValueRecord to RowData for API submission
@@ -321,139 +322,105 @@ function AddPOItemModalContent({
                             <div className="grid grid-cols-3 gap-6">
                                 {/* Item Code */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                         Item Code <span className="text-red-500">*</span>
                                     </label>
-                                    <select
+                                    <Select
+                                        // label={<>Item Code <span className="text-red-500">*</span></>}
                                         value={String(formData.item_code ?? '')}
-                                        onChange={(e) => handleInputChange('item_code', e.target.value)}
-                                        className="w-full px-3 py-2.25 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none disabled:bg-gray-100"
-                                        required
+                                        onChange={(v) => handleInputChange('item_code', v ?? '')}
                                         disabled={poStore.editingItemIndex !== null}
-                                    >
-                                        <option value="">Select item code</option>
-                                        {isLoading && <option disabled>Loading items...</option>}
-                                        {error && <option disabled>Error loading items</option>}
-                                        {formData.item_code && Array.isArray(paginationData) && !paginationData.find((item: any) => item.Item_code === formData.item_code) && (
-                                            <option value={String(formData.item_code)}>
-                                                {formData.item_code}
-                                            </option>
-                                        )}
-                                        {Array.isArray(paginationData) && paginationData.length > 0 ? (
-                                            paginationData.map((item: any) => (
-                                                <option key={item.ROWID} value={item.Item_code}>
-                                                    {item.Item_code}
-                                                </option>
-                                            ))
-                                        ) : (
-                                            !isLoading && <option disabled>No items available</option>
-                                        )}
-                                    </select>
+                                        data={Array.isArray(paginationData) && paginationData.length > 0 ? paginationData.map((item: any) => ({
+                                            label: item.Item_code,
+                                            value: item.Item_code
+                                        })) : []}
+                                    />
                                 </div>
 
                                 {/* Item Name */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Item Name <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
+                                    <TextInput
+                                        label={<>Item Name <span className="text-red-500">*</span></>}
                                         type="text"
                                         value={String(formData.item ?? '')}
                                         disabled
-                                        className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                                        onValueChange={() => {}}
                                     />
                                 </div>
 
                                 {/* Unit Price */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Unit Price <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
+                                    <TextInput
+                                        label={<>Unit Price <span className="text-red-500">*</span></>}
                                         type="text"
                                         value={formData.unit_price ? `$${parseFloat(String(formData.unit_price)).toFixed(2)}` : '$0.00'}
                                         disabled
-                                        className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                                        onValueChange={() => {}}
                                     />
                                 </div>
 
                                 {/* Quantity */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Quantity <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
+                                    <TextInput
+                                        label={<>Quantity <span className="text-red-500">*</span></>}
                                         type="number"
                                         value={String(formData.quantity ?? '')}
-                                        onChange={(e) => handleInputChange('quantity', e.target.value)}
                                         placeholder="0"
-                                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        min="0"
-                                        required
+                                        onValueChange={(value) => handleInputChange('quantity', value)}
                                     />
                                 </div>
 
                                 {/* Total */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Total
-                                    </label>
-                                    <input
+                                    <TextInput
+                                        label="Total"
                                         type="text"
                                         disabled
                                         value={formData.total ? `$${parseFloat(String(formData.total)).toFixed(2)}` : '$0.00'}
-                                        className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                                        onValueChange={() => {}}
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        PO Number
-                                    </label>
-                                    <input
+                                    <TextInput
+                                        label="PO Number"
                                         type="text"
                                         disabled
                                         value={String(formData.po_number ?? '')}
-                                        className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                                        onValueChange={() => {}}
                                     />
                                 </div>
 
                                 {/* PO Status */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        PO Status
-                                    </label>
-                                    <input
+                                    <TextInput
+                                        label="PO Status"
                                         type="text"
                                         disabled
                                         value={String(formData.po_status ?? '')}
-                                        className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                                        onValueChange={() => {}}
                                     />
                                 </div>
 
                                 {/* Supplier ID */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Supplier ID
-                                    </label>
-                                    <input
+                                    <TextInput
+                                        label="Supplier ID"
                                         type="text"
                                         disabled
                                         value={String(formData.supplier_id ?? '')}
-                                        className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                                        onValueChange={() => {}}
                                     />
                                 </div>
 
                                 {/* Supplier Name */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Supplier Name
-                                    </label>
-                                    <input
+                                    <TextInput
+                                        label="Supplier Name"
                                         type="text"
                                         disabled
                                         value={String(formData.supplier_name ?? '')}
-                                        className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
+                                        onValueChange={() => {}}
                                     />
                                 </div>
 
@@ -467,7 +434,7 @@ function AddPOItemModalContent({
                                         multiple
                                         onChange={handleFileChange}
                                         disabled={isUploadingDocument}
-                                        className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
                                         accept=".pdf,.doc,.docx,.jpg,.png"
                                     />
                                     {formData.document && (

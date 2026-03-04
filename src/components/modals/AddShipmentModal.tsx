@@ -3,6 +3,7 @@
 import DatePicker from "@/components/form/date-picker";
 import { useStore } from "@/store/store-context";
 import { KeyValueRecord, RowData, ShipmentItem } from "@/types/nguage-rowdata";
+import { TextInput, Select } from "@/components/ui";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { observer } from "mobx-react-lite";
@@ -892,28 +893,24 @@ function AddShipmentModalContent({
                 <div className="grid grid-cols-3 gap-4">
                   {/* Shipment ID */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Shipment ID <span className="text-red-500">*</span>
-                    </label>
-                    <input
+                    <TextInput
+                      label={<>Shipment ID <span className="text-red-500">*</span></>}
                       type="text"
                       disabled
                       value={String(shipmentData?.shipment_id ?? 'SID-****')}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-sm bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 cursor-not-allowed text-sm"
                       placeholder="Auto-generated"
+                      onValueChange={() => {}}
                     />
                   </div>
 
                   {/* Invoice ID */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Invoice ID <span className="text-red-500">*</span>
-                    </label>
-                    <input
+                    <TextInput
+                      label={<>Invoice ID <span className="text-red-500">*</span></>}
                       type="text"
                       value={formData.invoice_id as string}
-                      onChange={(e) => {
-                        handleInputChange("invoice_id", e.target.value);
+                      onValueChange={(value) => {
+                        handleInputChange("invoice_id", value);
                         if (fieldErrors.invoice_id) {
                           setFieldErrors(prev => {
                             const newErrors = { ...prev };
@@ -922,13 +919,6 @@ function AddShipmentModalContent({
                           });
                         }
                       }}
-                      className={`w-full px-3 py-2 border ${fieldErrors.invoice_id
-                        ? "border-red-500 dark:border-red-500"
-                        : "border-gray-300 dark:border-gray-600"
-                        } rounded-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 ${fieldErrors.invoice_id
-                          ? "focus:ring-red-500"
-                          : "focus:ring-blue-500"
-                        } text-sm`}
                       placeholder="e.g., AR-IPX-5454"
                     />
                     {fieldErrors.invoice_id && (
@@ -940,7 +930,7 @@ function AddShipmentModalContent({
 
                   {/* Document */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Document
                     </label>
                     <input
@@ -948,7 +938,7 @@ function AddShipmentModalContent({
                       multiple
                       onChange={handleFileChange}
                       disabled={isUploadingDocument}
-                      className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-sm file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-1.5 file:px-4 file:rounded-sm file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
                       accept=".pdf,.doc,.docx,.jpg,.png"
                     />
                     {formData.document && (
@@ -973,21 +963,21 @@ function AddShipmentModalContent({
 
                   {/* Carrier Name */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Carrier Name
-                    </label>
-                    <select
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Carrier Name
+                  </label>
+                    <Select
+                      // label="Carrier Name"
                       value={formData.carrier_name as string}
-                      onChange={(e) => handleInputChange("carrier_name", e.target.value)}
-                      className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                    >
-                      <option value="">Select carrier</option>
-                      <option value="DHL Express">DHL Express</option>
-                      <option value="FedEx International">FedEx International</option>
-                      <option value="UPS International">UPS International</option>
-                      <option value="Aramex">Aramex</option>
-                      <option value="DTDC">DTDC</option>
-                    </select>
+                      onChange={(v) => handleInputChange("carrier_name", v ?? "")}
+                      data={[
+                        { label: "DHL Express", value: "DHL Express" },
+                        { label: "FedEx International", value: "FedEx International" },
+                        { label: "UPS International", value: "UPS International" },
+                        { label: "Aramex", value: "Aramex" },
+                        { label: "DTDC", value: "DTDC" },
+                      ]}
+                    />
                   </div>
 
                   {/* Shipment Date */}
@@ -1070,15 +1060,14 @@ function AddShipmentModalContent({
 
                   {/* Tracking Number */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Tracking Number {formData.carrier_name && <span className="text-red-500">*</span>}
-                    </label>
-                    <input
+                    <TextInput
+                      label={<>Tracking Number {formData.carrier_name && <span className="text-red-500">*</span>}</>}
                       type="text"
                       value={formData.tracking_number as string}
-                      onChange={(e) => {
-                        handleInputChange("tracking_number", e.target.value);
-                        if (fieldErrors.tracking_number) {
+                      placeholder="e.g., TK-ENG-123456789"
+                      onValueChange={(value) => {
+                        handleInputChange("tracking_number", value);
+                         if (fieldErrors.tracking_number) {
                           setFieldErrors(prev => {
                             const newErrors = { ...prev };
                             delete newErrors.tracking_number;
@@ -1086,14 +1075,6 @@ function AddShipmentModalContent({
                           });
                         }
                       }}
-                      className={`w-full px-3 py-2.5 border ${fieldErrors.tracking_number
-                        ? "border-red-500 dark:border-red-500"
-                        : "border-gray-300 dark:border-gray-600"
-                        } rounded-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 ${fieldErrors.tracking_number
-                          ? "focus:ring-red-500"
-                          : "focus:ring-blue-500"
-                        } text-sm`}
-                      placeholder="e.g., TK-ENG-123456789"
                     />
                     {fieldErrors.tracking_number && (
                       <p className="text-[10px] text-red-600 dark:text-red-400">
@@ -1104,7 +1085,7 @@ function AddShipmentModalContent({
 
                   {/* Remarks */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {/* <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Remarks
                     </label>
                     <textarea
@@ -1113,6 +1094,15 @@ function AddShipmentModalContent({
                       className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
                       placeholder="Additional remarks"
                       rows={1}
+                    /> */}
+                    <TextInput
+                      label= "Remarks"
+                      type="text"
+                      value={formData.remarks as string}
+                      onValueChange={(value) => {
+                        handleInputChange("remarks", value);
+                      }}
+                      placeholder="Additional remarks"
                     />
                   </div>
                 </div>
