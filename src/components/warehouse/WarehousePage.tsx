@@ -1,64 +1,76 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { ItemData, LocationData, parseCSV } from '@/utils/csvParser';
+import { useStore } from '@/store/store-context';
+import { ItemData, LocationData } from '@/utils/csvParser';
+import { useQuery } from '@tanstack/react-query';
+import { AlertCircle, Loader } from 'lucide-react';
+import React, { useCallback, useState } from 'react';
 import { ItemSelector } from './ItemSelector';
 import { WarehouseVisualization } from './WarehouseVisualization';
-import { Loader, AlertCircle, Package } from 'lucide-react';
 
 export const WarehousePage: React.FC = () => {
-  const [items, setItems] = useState<ItemData[]>([]);
-  const [locations, setLocations] = useState<LocationData[]>([]);
   const [selectedItem, setSelectedItem] = useState<ItemData | null>(null);
-  const [selectedLocationCode, setSelectedLocationCode] = useState<string | undefined>();
-  const [loading, setLoading] = useState(true);
+  const selectedLocationCode = React.useMemo(() => {
+    return selectedItem ? (selectedItem as any).Location : undefined;
+  }, [selectedItem]);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load CSV data
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+  const { nguageStore } = useStore();
 
-        const [itemsData, locationsData] = await Promise.all([
-          parseCSV('/warehouse/Toy_Products.csv'),
-          parseCSV('/warehouse/Location Master.csv'),
-        ]);
+  // Fetch toy products via nguageStore.GetPaginationData
+  const {
+    data: itemsData = [],
+    isLoading: itemsLoading,
+    error: itemsQueryError,
+  } = useQuery({
+    queryKey: ['toy_products'],
+    queryFn: async (): Promise<ItemData[]> => {
+      const pagination = await nguageStore.GetPaginationData({
+        table: 'toy_products',
+        skip: 0,
+        take: 500,
+        NGaugeId: '56',
+      });
+      const result = Array.isArray(pagination) ? pagination : pagination?.data || [];
+      return result as ItemData[];
+    },
+    enabled: !!nguageStore,
+    staleTime: 0,
+  });
 
-        if (itemsData.length === 0 || locationsData.length === 0) {
-          throw new Error('Failed to load warehouse data');
-        }
+  // Fetch location master via nguageStore.GetPaginationData
+  const {
+    data: locationsData = [],
+    isLoading: locationsLoading,
+    error: locationsQueryError,
+  } = useQuery({
+    queryKey: ['location_master'],
+    queryFn: async (): Promise<LocationData[]> => {
+      const pagination = await nguageStore.GetPaginationData({
+        table: 'location_master',
+        skip: 0,
+        take: 500,
+        NGaugeId: '55',
+      });
+      const result = Array.isArray(pagination) ? pagination : pagination?.data || [];
+      return result as LocationData[];
+    },
+    enabled: !!nguageStore,
+    staleTime: 0,
+  });
 
-        setItems(itemsData as unknown as ItemData[]);
-        setLocations(locationsData as unknown as LocationData[]);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load data');
-        console.error('Error loading warehouse data:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
-
-  // Update selected location when item changes
-  useEffect(() => {
-    if (selectedItem) {
-      setSelectedLocationCode(selectedItem.Location);
-    } else {
-      setSelectedLocationCode(undefined);
-    }
-  }, [selectedItem]);
+  // selectedLocationCode is derived from selectedItem via useMemo
 
   const handleLocationClick = useCallback((locationCode: string) => {
     // Find the item with this location
-    const item = items.find((i) => i.Location === locationCode);
+    const item = (itemsData as ItemData[]).find((i) => i.Location === locationCode);
     if (item) {
       setSelectedItem(item);
     }
-  }, [items]);
+  }, [itemsData]);
+
+  const isLoading = itemsLoading || locationsLoading;
 
   if (loading) {
     return (
@@ -91,19 +103,23 @@ export const WarehousePage: React.FC = () => {
           {/* Left Sidebar - Item Selector */}
           <div className="lg:col-span-3">
             <ItemSelector
-              items={items}
-              locations={locations}
+              items={itemsData as ItemData[]}
+              locations={locationsData as LocationData[]}
               selectedItem={selectedItem}
               onItemSelect={setSelectedItem}
+              isLoading={isLoading}
             />
           </div>
 
           {/* Right Content - Warehouse Visualization */}
           <div className="lg:col-span-3">
             <WarehouseVisualization
-              locations={locations}
+              locations={locationsData as LocationData[]}
               selectedLocation={selectedLocationCode}
+              selectedItem={selectedItem}
+              items={itemsData as ItemData[]}
               onLocationClick={handleLocationClick}
+              isLoading={isLoading}
             />
           </div>
         </div>

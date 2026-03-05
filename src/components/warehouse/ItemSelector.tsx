@@ -3,13 +3,14 @@
 import React, { useMemo } from 'react';
 import { ItemData, LocationData } from '@/utils/csvParser';
 import { Select } from "@/components/ui";
-import { Package } from 'lucide-react';
+import { Package, Loader } from 'lucide-react';
 
 interface ItemSelectorProps {
   items: ItemData[];
   locations: LocationData[];
   selectedItem: ItemData | null;
   onItemSelect: (item: ItemData | null) => void;
+  isLoading?: boolean;
 }
 
 export const ItemSelector: React.FC<ItemSelectorProps> = ({
@@ -17,6 +18,7 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
   locations,
   selectedItem,
   onItemSelect,
+  isLoading,
 }) => {
   const locationMap = useMemo(() => {
     const map = new Map<string, LocationData>();
@@ -33,6 +35,15 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
 
   return (
     <div className="flex flex-col lg:flex-row gap-5">
+      {isLoading ? (
+        <div className="w-full bg-white rounded shadow-sm p-6 border border-gray-200 flex items-center justify-center">
+          <div className="text-center">
+            <Loader className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-3" />
+            <p className="text-sm text-gray-600">Loading items and locations...</p>
+          </div>
+        </div>
+      ) : (
+        <>
       {/* Item Selector */}
       <div className="lg:w-[25%]">
         <label className="block text-sm font-semibold text-gray-800 mb-2">
@@ -93,7 +104,7 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
             {/* Last Updated */}
             <div className="bg-gray-50 p-1.5 rounded border border-gray-200 flex justify-between items-center">
               <p className="text-xs font-medium text-gray-500 uppercase">Updated</p>
-              <p className="text-xs font-semibold text-gray-700">{selectedItem.Last_Updated_Date}</p>
+              <p className="text-xs font-semibold text-gray-700">{selectedItem.Last_Updated_Date.slice(0,10)}</p>
             </div>
           </div>
 
@@ -131,10 +142,12 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
 
       {/* Empty State */}
       {!selectedItem && (
-        <div className="w-full bg-gray-50 rounded-lg p-8 text-center border border-gray-200">
+        <div className="w-full bg-gray-50 rounded-lg p-2.5 text-center border border-gray-200">
           <Package className="w-12 h-12 text-gray-400 mx-auto mb-3" />
           <p className="text-gray-600 font-medium">Select an item to view its warehouse location</p>
         </div>
+      )}
+        </>
       )}
     </div>
   );

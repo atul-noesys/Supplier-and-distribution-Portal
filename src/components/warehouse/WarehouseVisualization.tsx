@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useMemo, useRef, useEffect, useState } from 'react';
-import { LocationData } from '@/utils/csvParser';
+import { LocationData, ItemData } from '@/utils/csvParser';
+import { Loader } from 'lucide-react';
 
 // Add pulse animation styles
 const pulseStyles = `
@@ -93,7 +94,10 @@ const pulseStyles = `
 interface WarehouseVisualizationProps {
   locations: LocationData[];
   selectedLocation?: string;
+  selectedItem?: ItemData | null;
+  items?: ItemData[];
   onLocationClick?: (locationCode: string) => void;
+  isLoading?: boolean;
 }
 
 interface GridCell {
@@ -108,7 +112,10 @@ interface GridCell {
 export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
   locations,
   selectedLocation,
+  selectedItem,
+  items,
   onLocationClick,
+  isLoading,
 }) => {
   const mainScrollRef = useRef<HTMLDivElement>(null);
   const topHeaderRef = useRef<HTMLDivElement>(null);
@@ -121,49 +128,43 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
   const cellStartX = headerSize; // Start right after left header
   const cellStartY = headerSize; // Start right after top header
 
-  // Helper function to calculate visual position accounting for sub-paths and main paths
+  // Helper function to calculate visual position accounting for main paths only (sub-path gaps removed)
+  // New pattern per block: data1, data2, ..., dataBlockSize, mainpath
+  // blockLength = blockSize (data) + 1 (main path)
   const getVisualPosition = (dataPosition: number, blockSize: number) => {
-    // blockSize: 5 for rows, 6 for bays
-    // Pattern: data1, subpath, data2, subpath, ..., dataBlockSize, mainpath
-    // Each data item uses 2 visual positions (item + subpath), last data item is followed by mainpath
     const group = Math.ceil(dataPosition / blockSize);
     const posInGroup = ((dataPosition - 1) % blockSize) + 1;
-    const blockLength = blockSize * 2; // blockSize data items * 2 (with subpaths, last one gets mainpath)
-    return (group - 1) * blockLength + (posInGroup * 2 - 1);
+    const blockLength = blockSize + 1; // data items plus one main path slot
+    return (group - 1) * blockLength + posInGroup;
   };
 
-  // Helper function to check if a visual position is a sub-path
-  const isSubPathPosition = (visualPos: number, blockSize: number) => {
-    const blockLength = blockSize * 2;
-    const posInBlock = ((visualPos - 1) % blockLength) + 1;
-    // Sub-paths are at even positions (2, 4, 6, 8, 10, ...) within the block
-    // but not the last position (which is the mainpath)
-    return posInBlock % 2 === 0 && posInBlock !== blockLength;
-  };
+  // Sub-paths are removed; always return false
+  const isSubPathPosition = (_visualPos: number, _blockSize: number) => false;
 
   // Helper function to check if a visual position is a main path
   const isMainPathPosition = (visualPos: number, blockSize: number) => {
-    const blockLength = blockSize * 2;
+    const blockLength = blockSize + 1;
     const posInBlock = ((visualPos - 1) % blockLength) + 1;
     return posInBlock === blockLength;
   };
 
-  // Helper function to check if a visual position is reserved for any path (visible or hidden)
+  // Helper function to check if a visual position is reserved for any path (only main paths now)
   const isPathReservedPosition = (visualPos: number, blockSize: number) => {
-    const blockLength = blockSize * 2;
+    const blockLength = blockSize + 1;
     const posInBlock = ((visualPos - 1) % blockLength) + 1;
-    // All even positions are subpaths (including the last subpath), and the last position is main path
-    return posInBlock % 2 === 0 || posInBlock === blockLength;
+    return posInBlock === blockLength;
   };
 
   // Helper function to get the data position (label number) from visual position
   const getDataPosition = (visualPos: number, blockSize: number) => {
-    const blockLength = blockSize * 2;
+    const blockLength = blockSize + 1;
     const group = Math.floor((visualPos - 1) / blockLength) + 1;
     const posInBlock = ((visualPos - 1) % blockLength) + 1;
-    // posInBlock must be odd (1, 3, 5, 7, 9, ...)
-    // Convert to posInGroup: 1→1, 3→2, 5→3, 7→4, 9→5
-    const posInGroup = Math.ceil(posInBlock / 2);
+    // If this is the main path slot, return the last data index in the previous group
+    if (posInBlock === blockLength) {
+      return group * blockSize; // main path corresponds after group data
+    }
+    const posInGroup = posInBlock; // 1..blockSize
     return (group - 1) * blockSize + posInGroup;
   };
 
@@ -178,10 +179,10 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
 
       if (row > 0 && bay > 0 && level > 0) {
         // Calculate visual positions accounting for path rows/bays
-        const visualRow = getVisualPosition(row, 5); // 5 cells per block before path
+        const visualRow = getVisualPosition(row, 2); // 2 cells per block before main path
         const visualBay = getVisualPosition(bay, 6); // 6 cells per block before path
         const gridKey = `${visualRow}-${visualBay}`;
-        
+
         if (!grid.has(gridKey)) {
           grid.set(gridKey, []);
         }
@@ -207,7 +208,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
     () => Math.max(...gridData.flatMap((g) => g.cells.map(c => c.row)), 1),
     [gridData]
   );
-  
+
   const maxBay = useMemo(
     () => Math.max(...gridData.flatMap((g) => g.cells.map((c) => c.bay)), 1),
     [gridData]
@@ -216,6 +217,22 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
     () => Math.max(...gridData.flatMap((g) => g.cells.map((c) => c.level)), 1),
     [gridData]
   );
+
+  // Compute totals from source data (original row/bay/level counts)
+  const totalRowsCount = useMemo(() => {
+    const vals = locations.map((l) => parseInt(l['RowNumber*'] || '0')).filter((n) => n > 0);
+    return vals.length ? Math.max(...vals) : 0;
+  }, [locations]);
+
+  const totalBaysCount = useMemo(() => {
+    const vals = locations.map((l) => parseInt(l.BayNumber || '0')).filter((n) => n > 0);
+    return vals.length ? Math.max(...vals) : 0;
+  }, [locations]);
+
+  const totalLevelsCount = useMemo(() => {
+    const vals = locations.map((l) => parseInt(l['LevelNumber*'] || '0')).filter((n) => n > 0);
+    return vals.length ? Math.max(...vals) : 0;
+  }, [locations]);
 
   const svgWidth = cellStartX + maxBay * cellWidth;
   const svgHeight = cellStartY + maxRow * cellHeight;
@@ -255,15 +272,15 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
       const container = mainScrollRef.current;
       const containerWidth = container.clientWidth;
       const containerHeight = container.clientHeight;
-      
+
       // Calculate maximum scroll values to prevent overshooting
       const maxScrollLeft = Math.max(0, svgWidth - containerWidth);
       const maxScrollTop = Math.max(0, svgHeight - containerHeight);
-      
+
       // Calculate desired scroll position and clamp it
       let scrollLeft = cellX - 60; // Offset to center it in view
       let scrollTop = cellY - 60;
-      
+
       scrollLeft = Math.max(0, Math.min(scrollLeft, maxScrollLeft));
       scrollTop = Math.max(0, Math.min(scrollTop, maxScrollTop));
 
@@ -284,20 +301,64 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
           <h3 className="text-[16px] font-semibold text-gray-800">
             Warehouse Layout (2D View)
           </h3>
-          <label className="toggle-switch">
-            <input
-              type="checkbox"
-              checked={showLegend}
-              onChange={() => setShowLegend(!showLegend)}
-            />
-            <span className="toggle-slider"></span>
-            <span className="toggle-label">Legend</span>
-          </label>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="text-xs text-slate-500 font-semibold">Warehouse stats</div>
+
+              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-2 py-0 text-xs gap-3">
+                <div className="flex items-center px-2 gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-500" aria-hidden />
+                    <span className="text-[11px] text-slate-500">Rows</span>
+                  </div>
+                  <span className="text-sm font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">{totalRowsCount}</span>
+                </div>
+
+                <div className="w-px h-4 bg-slate-200" />
+
+                <div className="flex items-center px-2 gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-green-500" aria-hidden />
+                    <span className="text-[11px] text-slate-500">Bays</span>
+                  </div>
+                  <span className="text-sm font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-md">{totalBaysCount}</span>
+                </div>
+
+                <div className="w-px h-4 bg-slate-200" />
+
+                <div className="flex items-center px-2 gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-purple-600" aria-hidden />
+                    <span className="text-[11px] text-slate-500">Levels</span>
+                  </div>
+                  <span className="text-sm font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md">{totalLevelsCount}</span>
+                </div>
+              </div>
+            </div>
+
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                checked={showLegend}
+                onChange={() => setShowLegend(!showLegend)}
+              />
+              <span className="toggle-slider"></span>
+              <span className="toggle-label">Legend</span>
+            </label>
+          </div>
         </div>
       </div>
 
       {/* Grid container with fixed headers */}
       <div className="border border-slate-200 rounded-lg bg-white overflow-hidden h-112 relative shadow-sm">
+        {isLoading && (
+          <div className="absolute inset-0 z-40 flex items-center justify-center bg-white/70 backdrop-blur-sm">
+            <div className="text-center">
+              <Loader className="w-10 h-10 text-blue-600 animate-spin mx-auto mb-2" />
+              <p className="text-sm text-gray-600">Loading warehouse layout...</p>
+            </div>
+          </div>
+        )}
         {/* Main scrollable content */}
         <div
           ref={mainScrollRef}
@@ -371,7 +432,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
               }
               // For intermediate lines, only draw where not interrupted by path positions
               const row = i;
-              if (!isPathReservedPosition(row, 5)) {
+              if (!isPathReservedPosition(row, 2)) {
                 return (
                   <line
                     key={`hline-${i}`}
@@ -389,79 +450,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
             })}
 
             {/* Sub-path cells and main path cells - render first so location cells appear on top */}
-            {/* Horizontal sub-path rows */}
-            {Array.from({ length: maxRow }).map((_, rowIdx) => {
-              const row = rowIdx + 1;
-              if (isSubPathPosition(row, 5)) {
-                const y = cellStartY + (row - 1) * cellHeight;
-                return (
-                  <g key={`subpath-row-${row}`} pointerEvents="none">
-                    {/* Background - fully opaque white so overlapping subpaths appear seamless */}
-                    <rect
-                      x={cellStartX}
-                      y={y}
-                      width={maxBay * cellWidth}
-                      height={cellHeight}
-                      fill="#ffffff"
-                      opacity={1}
-                    />
-                  </g>
-                );
-              }
-              return null;
-            })}
-
-            {/* Horizontal sub-path rows - white background only */}
-            
-            {/* Intersection coverage - white rectangles where horizontal and vertical subpaths cross */}
-            {Array.from({ length: maxRow }).map((_, rIdx) => {
-              const row = rIdx + 1;
-              if (isSubPathPosition(row, 5)) {
-                return Array.from({ length: maxBay }).map((_, bIdx) => {
-                  const bay = bIdx + 1;
-                  if (isSubPathPosition(bay, 6)) {
-                    const x = cellStartX + (bay - 1) * cellWidth;
-                    const y = cellStartY + (row - 1) * cellHeight;
-                    return (
-                      <rect
-                        key={`intersection-${row}-${bay}`}
-                        x={x}
-                        y={y}
-                        width={cellWidth}
-                        height={cellHeight}
-                        fill="#ffffff"
-                        opacity={1}
-                        pointerEvents="none"
-                      />
-                    );
-                  }
-                  return null;
-                });
-              }
-              return null;
-            })}
-
-            {/* Vertical sub-path bays */}
-            {Array.from({ length: maxBay }).map((_, bayIdx) => {
-              const bay = bayIdx + 1;
-              if (isSubPathPosition(bay, 6)) {
-                const x = cellStartX + (bay - 1) * cellWidth;
-                return (
-                  <g key={`subpath-bay-${bay}`} pointerEvents="none">
-                    {/* Background - fully opaque white so overlapping subpaths appear seamless */}
-                    <rect
-                      x={x}
-                      y={cellStartY}
-                      width={cellWidth}
-                      height={maxRow * cellHeight}
-                      fill="#ffffff"
-                      opacity={1}
-                    />
-                  </g>
-                );
-              }
-              return null;
-            })}
+            {/* Sub-path rendering removed: white sub-path rows, vertical sub-paths, and intersections suppressed for now */}
 
             {/* Draw thin cell boxes for DATA positions so empty boxes remain visible when sub-paths overlap */}
             {Array.from({ length: maxRow }).map((_, rIdx) => {
@@ -469,7 +458,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
               return Array.from({ length: maxBay }).map((_, bIdx) => {
                 const bay = bIdx + 1;
                 // Only draw boxes for actual data positions (not path-reserved positions)
-                if (!isPathReservedPosition(row, 5) && !isPathReservedPosition(bay, 6)) {
+                if (!isPathReservedPosition(row, 2) && !isPathReservedPosition(bay, 6)) {
                   const x = cellStartX + (bay - 1) * cellWidth;
                   const y = cellStartY + (row - 1) * cellHeight;
                   return (
@@ -500,6 +489,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                 const x = cellStartX + (bay - 1) * cellWidth;
                 const y = cellStartY + (row - 1) * cellHeight;
                 const isSelected = cell.isSelected;
+                const itemAtCell = items?.find((it) => it.Location === cell.locationCode);
 
                 return (
                   <g key={`cell-${cell.locationCode}`}>
@@ -524,9 +514,9 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                       y={y}
                       width={cellWidth}
                       height={cellHeight}
-                      fill={isSelected ? '#2563eb' : '#6b7280'}
-                      stroke={isSelected ? '#1e40af' : '#000000'}
-                      strokeWidth={isSelected ? '2' : '2'}
+                      fill={isSelected ? '#2563eb' : itemAtCell ? '#fbbf24' : '#6b7280'}
+                      stroke={isSelected ? '#1e40af' : itemAtCell ? '#c4a208' : '#000000'}
+                      strokeWidth={'2'}
                       rx="4"
                       className={`warehouse-skeleton ${isSelected ? 'warehouse-pulse warehouse-cell-selected' : 'warehouse-cell-hover'}`}
                       onClick={() => onLocationClick?.(cell.locationCode)}
@@ -535,35 +525,69 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                       }}
                     />
 
-                    {/* Location code - small font on all cells */}
-                    <text
-                      x={x + cellWidth / 2}
-                      y={y + 8}
-                      fontSize="7"
-                      fontWeight="bold"
-                      fill={isSelected ? '#dbeafe' : '#1e293b'}
-                      textAnchor="middle"
-                      pointerEvents="none"
-                    >
-                      {cell.locationCode}
-                    </text>
+                    {/* Item code - small font on cells that have an item */}
+                    {itemAtCell && (
+                      <text
+                        x={x + cellWidth / 2}
+                        y={y + 8}
+                        fontSize="7"
+                        fontWeight="bold"
+                        fill={isSelected ? '#dbeafe' : '#1e293b'}
+                        textAnchor="middle"
+                        pointerEvents="none"
+                      >
+                        {itemAtCell.Item_Code}
+                      </text>
+                    )}
 
                     {/* Level indicator - centered when selected, bottom when not */}
                     <text
                       x={x + cellWidth / 2}
                       y={y + cellHeight - 6}
-                      fontSize={isSelected ? "10" : "8"}
-                      fill={isSelected ? '#dbeafe' : '#64748b'}
+                      fontSize={isSelected ? "10" : "9"}
+                      fill={isSelected ? '#dbeafe' : '#006dff'}
                       textAnchor="middle"
                       dominantBaseline="middle"
-                      fontWeight={isSelected ? "700" : "500"}
+                      fontWeight={isSelected ? "700" : "600"}
                       pointerEvents="none"
                     >
                       L{cell.level}
                     </text>
 
+                    {/* Quantity centered for selected cell when selectedItem matches this location */}
+                    {isSelected && selectedItem && selectedItem.Location === cell.locationCode && (
+                      <text
+                        x={x + cellWidth / 2}
+                        y={y + cellHeight / 2}
+                        fontSize="10"
+                        fill="#FFFF00"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fontWeight={700}
+                        pointerEvents="none"
+                      >
+                        Qty: {selectedItem.Qty}
+                      </text>
+                    )}
+
+                    {/* Quantity for non-selected but non-empty cells */}
+                    {!isSelected && itemAtCell && (
+                      <text
+                        x={x + cellWidth / 2}
+                        y={y + cellHeight / 2}
+                        fontSize="9"
+                        fill="#1e40af"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fontWeight={600}
+                        pointerEvents="none"
+                      >
+                        Qty: {itemAtCell.Qty}
+                      </text>
+                    )}
+
                     {/* Location code on hover - tooltip */}
-                    <title>{`${cell.locationCode} (Row ${getDataPosition(cell.row, 5)}, Bay ${getDataPosition(cell.bay, 6)}, Level ${cell.level})`}</title>
+                    <title>{`${cell.locationCode} (Row ${getDataPosition(cell.row, 2)}, Bay ${getDataPosition(cell.bay, 6)}, Level ${cell.level})`}</title>
                   </g>
                 );
               });
@@ -572,8 +596,10 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
             {/* Horizontal main path rows - rendered last for proper z-index */}
             {Array.from({ length: maxRow }).map((_, rowIdx) => {
               const row = rowIdx + 1;
-              if (isMainPathPosition(row, 5)) {
+              if (isMainPathPosition(row, 2)) {
                 const y = cellStartY + (row - 1) * cellHeight;
+                const pathHeight = cellHeight / 2;
+                const pathY = y + (cellHeight - pathHeight) / 2; // Center vertically
                 // Calculate horizontal path index (1, 2, 3, ...)
                 const pathIndex = Math.floor((row - 1) / 11) + 1;
                 return (
@@ -581,18 +607,18 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                     {/* Background */}
                     <rect
                       x={cellStartX}
-                      y={y}
+                      y={pathY}
                       width={maxBay * cellWidth}
-                      height={cellHeight}
+                      height={pathHeight}
                       fill="#000000"
                       opacity="0.7"
                     />
                     {/* Center dashed line */}
                     <line
                       x1={cellStartX}
-                      y1={y + cellHeight / 2}
+                      y1={pathY + pathHeight / 2}
                       x2={cellStartX + maxBay * cellWidth}
-                      y2={y + cellHeight / 2}
+                      y2={pathY + pathHeight / 2}
                       stroke="#fbbf24"
                       strokeWidth="2"
                       strokeDasharray="8,4"
@@ -600,7 +626,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                     {/* Path number label */}
                     <text
                       x={cellStartX + cellWidth / 2}
-                      y={y + 12}
+                      y={pathY + pathHeight / 2}
                       fontSize="14"
                       fontWeight="bold"
                       fill="#ffffff"
@@ -613,9 +639,9 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                     {/* Border */}
                     <rect
                       x={cellStartX}
-                      y={y}
+                      y={pathY}
                       width={maxBay * cellWidth}
-                      height={cellHeight}
+                      height={pathHeight}
                       fill="none"
                       stroke="#1a1a1a"
                       strokeWidth="1.5"
@@ -631,24 +657,26 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
               const bay = bayIdx + 1;
               if (isMainPathPosition(bay, 6)) {
                 const x = cellStartX + (bay - 1) * cellWidth;
+                const pathWidth = cellWidth / 2;
+                const pathX = x + (cellWidth - pathWidth) / 2; // Center horizontally
                 // Calculate vertical path index (1, 2, 3, ...)
                 const pathIndex = Math.floor((bay - 1) / 13) + 1;
                 return (
                   <g key={`path-bay-${bay}`}>
                     {/* Background */}
                     <rect
-                      x={x}
+                      x={pathX}
                       y={cellStartY}
-                      width={cellWidth}
+                      width={pathWidth}
                       height={maxRow * cellHeight}
                       fill="#000000"
                       opacity="0.7"
                     />
                     {/* Center dashed line */}
                     <line
-                      x1={x + cellWidth / 2}
+                      x1={pathX + pathWidth / 2}
                       y1={cellStartY}
-                      x2={x + cellWidth / 2}
+                      x2={pathX + pathWidth / 2}
                       y2={cellStartY + maxRow * cellHeight}
                       stroke="#fbbf24"
                       strokeWidth="2"
@@ -656,7 +684,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                     />
                     {/* Path number label */}
                     <text
-                      x={x + cellWidth / 2 + 8} 
+                      x={pathX + pathWidth / 2}
                       y={cellStartY + 12}
                       fontSize="14"
                       fontWeight="bold"
@@ -669,9 +697,9 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                     </text>
                     {/* Border */}
                     <rect
-                      x={x}
+                      x={pathX}
                       y={cellStartY}
-                      width={cellWidth}
+                      width={pathWidth}
                       height={maxRow * cellHeight}
                       fill="none"
                       stroke="#1a1a1a"
@@ -697,7 +725,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
             <div className="flex items-center gap-2 mb-1">
               <div
                 className="w-3 h-3 border rounded"
-                style={{ backgroundColor: '#6b7280', borderColor: '#000000' }}
+                style={{ backgroundColor: '#ffffff', borderColor: '#cacaca' }}
               />
               <span className="text-xs font-medium text-slate-700">Empty</span>
             </div>
@@ -711,18 +739,10 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
               <span className="text-xs font-medium text-slate-700">Selected</span>
             </div>
 
-            {/* Sub-path legend */}
-            <div className="flex items-center gap-2 mb-1">
-              <svg width="14" height="8" xmlns="http://www.w3.org/2000/svg">
-                <rect x="0" y="0" width="14" height="8" fill="#ffffff" opacity="0.4" />
-              </svg>
-              <span className="text-xs font-medium text-slate-700">Sub-path</span>
-            </div>
-
             {/* Main path legend */}
             <div className="flex items-center gap-2">
               <svg width="14" height="8" xmlns="http://www.w3.org/2000/svg">
-                <rect x="0" y="0" width="14" height="8" fill="#000000" opacity="0.7" />
+                <rect x="0" y="2" width="14" height="4" fill="#000000" opacity="0.7" />
                 <line x1="1" y1="4" x2="13" y2="4" stroke="#fbbf24" strokeWidth="1.5" strokeDasharray="3,2" />
               </svg>
               <span className="text-xs font-medium text-slate-700">Path</span>
@@ -772,7 +792,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
         {/* Fixed Left Header - Row numbers */}
         <div
           ref={leftHeaderRef}
-          className="absolute top-0 left-0 bg-gradient-to-r from-slate-100 to-slate-50 border-r border-slate-200"
+          className="absolute top-0 left-0 bg-linear-to-r from-slate-100 to-slate-50 border-r border-slate-200"
           style={{
             top: `${headerSize}px`,
             width: `${headerSize}px`,
@@ -788,8 +808,8 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
             {Array.from({ length: maxRow }).map((_, i) => {
               const visualPos = i + 1;
               // Only show labels for data rows (not path-reserved positions)
-              if (!isPathReservedPosition(visualPos, 5)) {
-                const dataPos = getDataPosition(visualPos, 5);
+              if (!isPathReservedPosition(visualPos, 2)) {
+                const dataPos = getDataPosition(visualPos, 2);
                 return (
                   <text
                     key={`row-label-${i}`}
@@ -812,7 +832,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
 
         {/* Top-left corner - empty cell */}
         <div
-          className="absolute top-0 left-0 bg-gradient-to-br from-slate-100 to-slate-50 border-b border-r border-slate-200"
+          className="absolute top-0 left-0 bg-linear-to-br from-slate-100 to-slate-50 border-b border-r border-slate-200"
           style={{
             width: `${headerSize}px`,
             height: `${headerSize}px`,
