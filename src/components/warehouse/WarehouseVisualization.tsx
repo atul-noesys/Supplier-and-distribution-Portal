@@ -122,6 +122,10 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
   const leftHeaderRef = useRef<HTMLDivElement>(null);
   const [showLegend, setShowLegend] = useState(true);
 
+  // Viewport state for virtualization
+  const [viewport, setViewport] = useState({ left: 0, top: 0, width: 800, height: 600 });
+  const rafRef = useRef<number | null>(null);
+
   const cellWidth = 60;
   const cellHeight = 52;
   const headerSize = 40;
@@ -243,16 +247,40 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
     if (!mainScroll) return;
 
     const handleScroll = () => {
+      // sync headers
       if (topHeaderRef.current) {
         topHeaderRef.current.scrollLeft = mainScroll.scrollLeft;
       }
       if (leftHeaderRef.current) {
         leftHeaderRef.current.scrollTop = mainScroll.scrollTop;
       }
+
+      // update viewport using rAF to avoid thrashing renders
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(() => {
+        setViewport({
+          left: Math.max(0, mainScroll.scrollLeft),
+          top: Math.max(0, mainScroll.scrollTop),
+          width: mainScroll.clientWidth,
+          height: mainScroll.clientHeight,
+        });
+      });
     };
 
+    // initialize viewport
+    setViewport({ left: mainScroll.scrollLeft, top: mainScroll.scrollTop, width: mainScroll.clientWidth, height: mainScroll.clientHeight });
+
     mainScroll.addEventListener('scroll', handleScroll);
-    return () => mainScroll.removeEventListener('scroll', handleScroll);
+    const onResize = () => {
+      setViewport({ left: mainScroll.scrollLeft, top: mainScroll.scrollTop, width: mainScroll.clientWidth, height: mainScroll.clientHeight });
+    };
+    window.addEventListener('resize', onResize);
+
+    return () => {
+      mainScroll.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', onResize);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
   }, []);
 
   // Auto-scroll and animate to selected location
@@ -455,145 +483,121 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
             {/* Sub-path rendering removed: white sub-path rows, vertical sub-paths, and intersections suppressed for now */}
 
             {/* Draw thin cell boxes for DATA positions so empty boxes remain visible when sub-paths overlap */}
-            {Array.from({ length: maxRow }).map((_, rIdx) => {
-              const row = rIdx + 1;
-              return Array.from({ length: maxBay }).map((_, bIdx) => {
-                const bay = bIdx + 1;
-                // Only draw boxes for actual data positions (not path-reserved positions)
-                if (!isPathReservedPosition(row, 2) && !isPathReservedPosition(bay, 6)) {
-                  const x = cellStartX + (bay - 1) * cellWidth;
-                  const y = cellStartY + (row - 1) * cellHeight;
-                  return (
-                    <rect
-                      key={`empty-box-${row}-${bay}`}
-                      x={x}
-                      y={y}
-                      width={cellWidth}
-                      height={cellHeight}
-                      fill="none"
-                      stroke="#e2e8f0"
-                      strokeWidth="1"
-                      pointerEvents="none"
-                    />
-                  );
+            {(() => {
+              const buffer = 2;
+              const startRow = Math.max(1, Math.floor(viewport.top / cellHeight) + 1 - buffer);
+              const endRow = Math.min(maxRow, Math.ceil((viewport.top + viewport.height) / cellHeight) + buffer);
+              const startBay = Math.max(1, Math.floor(viewport.left / cellWidth) + 1 - buffer);
+              const endBay = Math.min(maxBay, Math.ceil((viewport.left + viewport.width) / cellWidth) + buffer);
+              const rects: React.ReactNode[] = [];
+              for (let row = startRow; row <= endRow; row++) {
+                for (let bay = startBay; bay <= endBay; bay++) {
+                  if (!isPathReservedPosition(row, 2) && !isPathReservedPosition(bay, 6)) {
+                    const x = cellStartX + (bay - 1) * cellWidth;
+                    const y = cellStartY + (row - 1) * cellHeight;
+                    rects.push(
+                      <rect
+                        key={`empty-box-${row}-${bay}`}
+                        x={x}
+                        y={y}
+                        width={cellWidth}
+                        height={cellHeight}
+                        fill="none"
+                        stroke="#e2e8f0"
+                        strokeWidth="1"
+                        pointerEvents="none"
+                      />
+                    );
+                  }
                 }
-                return null;
-              });
-            })}
+              }
+              return rects;
+            })()}
 
             {/* Warehouse cells grouped by level */}
-            {gridData.map((gridItem) => {
-              const [rowStr, bayStr] = gridItem.gridKey.split('-');
-              const row = parseInt(rowStr);
-              const bay = parseInt(bayStr);
+            {(() => {
+              const buffer = 2;
+              const startRow = Math.max(1, Math.floor(viewport.top / cellHeight) + 1 - buffer);
+              const endRow = Math.min(maxRow, Math.ceil((viewport.top + viewport.height) / cellHeight) + buffer);
+              const startBay = Math.max(1, Math.floor(viewport.left / cellWidth) + 1 - buffer);
+              const endBay = Math.min(maxBay, Math.ceil((viewport.left + viewport.width) / cellWidth) + buffer);
 
-              return gridItem.cells.map((cell) => {
-                const x = cellStartX + (bay - 1) * cellWidth;
-                const y = cellStartY + (row - 1) * cellHeight;
-                const isSelected = cell.isSelected;
-                const itemAtCell = items?.find((it) => it.Location === cell.locationCode);
+              const nodes: React.ReactNode[] = [];
 
-                return (
-                  <g key={`cell-${cell.locationCode}`} data-location-code={cell.locationCode}>
-                    {/* Shadow for selected cell */}
-                    {isSelected && (
+              gridData.forEach((gridItem) => {
+                const [rowStr, bayStr] = gridItem.gridKey.split('-');
+                const row = parseInt(rowStr);
+                const bay = parseInt(bayStr);
+
+                // skip groups outside viewport
+                if (row < startRow || row > endRow || bay < startBay || bay > endBay) return;
+
+                gridItem.cells.forEach((cell) => {
+                  const x = cellStartX + (bay - 1) * cellWidth;
+                  const y = cellStartY + (row - 1) * cellHeight;
+                  const isSelected = cell.isSelected;
+                  const itemAtCell = items?.find((it) => it.Location === cell.locationCode);
+
+                  nodes.push(
+                    <g key={`cell-${cell.locationCode}`} data-location-code={cell.locationCode}>
+                      {isSelected && (
+                        <rect
+                          x={x - 2}
+                          y={y - 2}
+                          width={cellWidth + 4}
+                          height={cellHeight + 4}
+                          fill="none"
+                          stroke="#1e40af"
+                          strokeWidth="2"
+                          rx="4"
+                          opacity="0.2"
+                        />
+                      )}
+
                       <rect
-                        x={x - 2}
-                        y={y - 2}
-                        width={cellWidth + 4}
-                        height={cellHeight + 4}
-                        fill="none"
-                        stroke="#1e40af"
-                        strokeWidth="2"
+                        x={x}
+                        y={y}
+                        width={cellWidth}
+                        height={cellHeight}
+                        fill={isSelected ? '#2563eb' : itemAtCell ? '#fbbf24' : '#6b7280'}
+                        stroke={isSelected ? '#1e40af' : itemAtCell ? '#c4a208' : '#000000'}
+                        strokeWidth={'2'}
                         rx="4"
-                        opacity="0.2"
+                        className={`warehouse-skeleton ${isSelected ? 'warehouse-pulse warehouse-cell-selected' : 'warehouse-cell-hover'}`}
+                        onClick={() => onLocationClick?.(cell.locationCode)}
+                        style={{ filter: isSelected ? undefined : 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.05))' }}
                       />
-                    )}
 
-                    {/* Cell rectangle */}
-                    <rect
-                      x={x}
-                      y={y}
-                      width={cellWidth}
-                      height={cellHeight}
-                      fill={isSelected ? '#2563eb' : itemAtCell ? '#fbbf24' : '#6b7280'}
-                      stroke={isSelected ? '#1e40af' : itemAtCell ? '#c4a208' : '#000000'}
-                      strokeWidth={'2'}
-                      rx="4"
-                      className={`warehouse-skeleton ${isSelected ? 'warehouse-pulse warehouse-cell-selected' : 'warehouse-cell-hover'}`}
-                      onClick={() => onLocationClick?.(cell.locationCode)}
-                      style={{
-                        filter: isSelected ? undefined : 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.05))',
-                      }}
-                    />
+                      {itemAtCell && (
+                        <text x={x + cellWidth / 2} y={y + 8} fontSize="7" fontWeight="bold" fill={isSelected ? '#dbeafe' : '#1e293b'} textAnchor="middle" pointerEvents="none">
+                          {itemAtCell.Item_Code}
+                        </text>
+                      )}
 
-                    {/* Item code - small font on cells that have an item */}
-                    {itemAtCell && (
-                      <text
-                        x={x + cellWidth / 2}
-                        y={y + 8}
-                        fontSize="7"
-                        fontWeight="bold"
-                        fill={isSelected ? '#dbeafe' : '#1e293b'}
-                        textAnchor="middle"
-                        pointerEvents="none"
-                      >
-                        {itemAtCell.Item_Code}
+                      <text x={x + cellWidth / 2} y={y + cellHeight - 6} fontSize={isSelected ? '10' : '9'} fill={isSelected ? '#dbeafe' : '#006dff'} textAnchor="middle" dominantBaseline="middle" fontWeight={isSelected ? '700' : '600'} pointerEvents="none">
+                        L{cell.level}
                       </text>
-                    )}
 
-                    {/* Level indicator - centered when selected, bottom when not */}
-                    <text
-                      x={x + cellWidth / 2}
-                      y={y + cellHeight - 6}
-                      fontSize={isSelected ? "10" : "9"}
-                      fill={isSelected ? '#dbeafe' : '#006dff'}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      fontWeight={isSelected ? "700" : "600"}
-                      pointerEvents="none"
-                    >
-                      L{cell.level}
-                    </text>
+                      {isSelected && selectedItem && selectedItem.Location === cell.locationCode && (
+                        <text x={x + cellWidth / 2} y={y + cellHeight / 2} fontSize="10" fill="#FFFF00" textAnchor="middle" dominantBaseline="middle" fontWeight={700} pointerEvents="none">
+                          Qty: {selectedItem.Qty}
+                        </text>
+                      )}
 
-                    {/* Quantity centered for selected cell when selectedItem matches this location */}
-                    {isSelected && selectedItem && selectedItem.Location === cell.locationCode && (
-                      <text
-                        x={x + cellWidth / 2}
-                        y={y + cellHeight / 2}
-                        fontSize="10"
-                        fill="#FFFF00"
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        fontWeight={700}
-                        pointerEvents="none"
-                      >
-                        Qty: {selectedItem.Qty}
-                      </text>
-                    )}
+                      {!isSelected && itemAtCell && (
+                        <text x={x + cellWidth / 2} y={y + cellHeight / 2} fontSize="9" fill="#1e40af" textAnchor="middle" dominantBaseline="middle" fontWeight={600} pointerEvents="none">
+                          Qty: {itemAtCell.Qty}
+                        </text>
+                      )}
 
-                    {/* Quantity for non-selected but non-empty cells */}
-                    {!isSelected && itemAtCell && (
-                      <text
-                        x={x + cellWidth / 2}
-                        y={y + cellHeight / 2}
-                        fontSize="9"
-                        fill="#1e40af"
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        fontWeight={600}
-                        pointerEvents="none"
-                      >
-                        Qty: {itemAtCell.Qty}
-                      </text>
-                    )}
-
-                    {/* Location code on hover - tooltip */}
-                    <title>{`${cell.locationCode} (Row ${getDataPosition(cell.row, 2)}, Bay ${getDataPosition(cell.bay, 6)}, Level ${cell.level})`}</title>
-                  </g>
-                );
+                      <title>{`${cell.locationCode} (Row ${getDataPosition(cell.row, 2)}, Bay ${getDataPosition(cell.bay, 6)}, Level ${cell.level})`}</title>
+                    </g>
+                  );
+                });
               });
-            })}
+
+              return nodes;
+            })()}
 
             {/* Horizontal main path rows - rendered last for proper z-index */}
             {Array.from({ length: maxRow }).map((_, rowIdx) => {
@@ -769,27 +773,24 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
           <svg width={svgWidth} height={headerSize} xmlns="http://www.w3.org/2000/svg">
             <rect width={svgWidth} height={headerSize} fill="none" />
             {/* Axis labels - Bay numbers (top) */}
-            {Array.from({ length: maxBay }).map((_, i) => {
-              const visualPos = i + 1;
-              // Only show labels for data bays (not path-reserved positions)
-              if (!isPathReservedPosition(visualPos, 6)) {
-                const dataPos = getDataPosition(visualPos, 6);
-                return (
-                  <text
-                    key={`bay-label-${i}`}
-                    x={cellStartX + i * cellWidth + cellWidth / 2}
-                    y={headerSize - 10}
-                    fontSize="12"
-                    fill="#475569"
-                    textAnchor="middle"
-                    fontWeight="700"
-                  >
-                    B{dataPos}
-                  </text>
-                );
+            {(() => {
+              const buffer = 2;
+              const startBay = Math.max(1, Math.floor(viewport.left / cellWidth) + 1 - buffer);
+              const endBay = Math.min(maxBay, Math.ceil((viewport.left + viewport.width) / cellWidth) + buffer);
+              const nodes: React.ReactNode[] = [];
+              for (let visualPos = startBay; visualPos <= endBay; visualPos++) {
+                if (!isPathReservedPosition(visualPos, 6)) {
+                  const dataPos = getDataPosition(visualPos, 6);
+                  const i = visualPos - 1;
+                  nodes.push(
+                    <text key={`bay-label-${i}`} x={cellStartX + i * cellWidth + cellWidth / 2} y={headerSize - 10} fontSize="12" fill="#475569" textAnchor="middle" fontWeight="700">
+                      B{dataPos}
+                    </text>
+                  );
+                }
               }
-              return null;
-            })}
+              return nodes;
+            })()}
           </svg>
         </div>
 
@@ -809,28 +810,24 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
           <svg width={headerSize} height={svgHeight} xmlns="http://www.w3.org/2000/svg">
             <rect width={headerSize} height={svgHeight} fill="none" />
             {/* Axis labels - Row numbers (left side) */}
-            {Array.from({ length: maxRow }).map((_, i) => {
-              const visualPos = i + 1;
-              // Only show labels for data rows (not path-reserved positions)
-              if (!isPathReservedPosition(visualPos, 2)) {
-                const dataPos = getDataPosition(visualPos, 2);
-                return (
-                  <text
-                    key={`row-label-${i}`}
-                    x={headerSize / 2}
-                    y={cellStartY + i * cellHeight + cellHeight / 2}
-                    fontSize="12"
-                    fill="#475569"
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    fontWeight="700"
-                  >
-                    R{dataPos}
-                  </text>
-                );
+            {(() => {
+              const buffer = 2;
+              const startRow = Math.max(1, Math.floor(viewport.top / cellHeight) + 1 - buffer);
+              const endRow = Math.min(maxRow, Math.ceil((viewport.top + viewport.height) / cellHeight) + buffer);
+              const nodes: React.ReactNode[] = [];
+              for (let visualPos = startRow; visualPos <= endRow; visualPos++) {
+                if (!isPathReservedPosition(visualPos, 2)) {
+                  const dataPos = getDataPosition(visualPos, 2);
+                  const i = visualPos - 1;
+                  nodes.push(
+                    <text key={`row-label-${i}`} x={headerSize / 2} y={cellStartY + i * cellHeight + cellHeight / 2} fontSize="12" fill="#475569" textAnchor="middle" dominantBaseline="middle" fontWeight="700">
+                      R{dataPos}
+                    </text>
+                  );
+                }
               }
-              return null;
-            })}
+              return nodes;
+            })()}
           </svg>
         </div>
 

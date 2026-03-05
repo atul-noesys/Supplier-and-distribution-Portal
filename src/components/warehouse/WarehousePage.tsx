@@ -29,7 +29,7 @@ export const WarehousePage: React.FC = () => {
       const pagination = await nguageStore.GetPaginationData({
         table: 'toy_products',
         skip: 0,
-        take: 500,
+        take: 30000,
         NGaugeId: '56',
       });
       const result = Array.isArray(pagination) ? pagination : pagination?.data || [];
@@ -50,7 +50,7 @@ export const WarehousePage: React.FC = () => {
       const pagination = await nguageStore.GetPaginationData({
         table: 'location_master',
         skip: 0,
-        take: 500,
+        take: 55000,
         NGaugeId: '55',
       });
       const result = Array.isArray(pagination) ? pagination : pagination?.data || [];

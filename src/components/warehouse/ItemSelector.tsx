@@ -185,13 +185,29 @@ const SearchableItemSelect: React.FC<SearchableItemSelectProps> = ({ items, sele
     return () => window.removeEventListener('resize', measure);
   }, [selectedItem, query]);
 
-  const q = query.trim().toLowerCase();
-  const filtered = (q
-    ? items.filter((it) =>
-        it.Item_Code.toLowerCase().includes(q) || (it.Item_Description || '').toLowerCase().includes(q)
-      )
-    : items
-  ).slice(0, 100);
+  // Debounce search input to avoid filtering on every keystroke for very large datasets
+  const [debouncedQuery, setDebouncedQuery] = useState(query);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query), 150);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  const q = debouncedQuery.trim().toLowerCase();
+  const filtered = useMemo(() => {
+    if (!q) return items.slice(0, 100);
+    // simple filter optimized with local variables
+    const res: typeof items = [] as any;
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      const code = it.Item_Code && it.Item_Code.toLowerCase();
+      const desc = (it.Item_Description || '').toLowerCase();
+      if ((code && code.includes(q)) || (desc && desc.includes(q))) {
+        res.push(it);
+        if (res.length >= 100) break;
+      }
+    }
+    return res;
+  }, [items, q]);
 
   // Helper to highlight matched substrings (case-insensitive) with a yellow background
   const highlightText = (text?: string) => {
