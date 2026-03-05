@@ -119,6 +119,9 @@ dependencies:
   react-toastify:
     specifier: ^11.0.5
     version: 11.0.5(react-dom@19.2.4)(react@19.2.4)
+  react-window:
+    specifier: ^2.2.7
+    version: 2.2.7(react-dom@19.2.4)(react@19.2.4)
   swiper:
     specifier: ^11.2.10
     version: 11.2.10
@@ -8389,6 +8392,16 @@ packages:
       react-dom: ^18 || ^19
     dependencies:
       clsx: 2.1.1
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
+    dev: false
+
+  /react-window@2.2.7(react-dom@19.2.4)(react@19.2.4):
+    resolution: {integrity: sha512-SH5nvfUQwGHYyriDUAOt7wfPsfG9Qxd6OdzQxl5oQ4dsSsUicqQvjV7dR+NqZ4coY0fUn3w1jnC5PwzIUWEg5w==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+    dependencies:
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
     dev: false

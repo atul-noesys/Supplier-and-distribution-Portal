@@ -126,9 +126,23 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
   const [viewport, setViewport] = useState({ left: 0, top: 0, width: 800, height: 600 });
   const rafRef = useRef<number | null>(null);
 
-  const cellWidth = 60;
-  const cellHeight = 52;
+  // Tooltip state
+  const [tooltip, setTooltip] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    item?: ItemData | undefined;
+    location?: LocationData | undefined;
+    level?: number | undefined;
+    locationCode?: string | undefined;
+  }>({ visible: false, x: 0, y: 0 });
+
+  const cellWidth = 80;
+  // Increased cell height to give more vertical room for stacked levels
+  const cellHeight = 128;
   const headerSize = 40;
+  // Increased sizes to better display stacked levels
+  // `cellWidth`: horizontal size per bay; `cellHeight`: vertical size per row
   const cellStartX = headerSize; // Start right after left header
   const cellStartY = headerSize; // Start right after top header
 
@@ -141,9 +155,6 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
     const blockLength = blockSize + 1; // data items plus one main path slot
     return (group - 1) * blockLength + posInGroup;
   };
-
-  // Sub-paths are removed; always return false
-  const isSubPathPosition = (_visualPos: number, _blockSize: number) => false;
 
   // Helper function to check if a visual position is a main path
   const isMainPathPosition = (visualPos: number, blockSize: number) => {
@@ -207,6 +218,46 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
       cells: cells.sort((a, b) => a.level - b.level),
     }));
   }, [locations, selectedLocation]);
+
+  // Set of valid location codes coming from the Location Master (locations prop)
+  const validLocationCodes = useMemo(() => new Set(locations.map((l) => l.LocationCode)), [locations]);
+
+  // Items that map to a valid location (have row, bay and level in Location Master)
+  const itemsWithValidLocation = useMemo(() => {
+    if (!items) return new Map<string, ItemData>();
+    const m = new Map<string, ItemData>();
+    items.forEach((it) => {
+      if (it.Location && validLocationCodes.has(it.Location)) {
+        m.set(it.Location, it);
+      }
+    });
+    return m;
+  }, [items, validLocationCodes]);
+
+  // Tooltip styles (small modern card)
+  const tooltipStyles = {
+    container: {
+      position: 'fixed' as const,
+      zIndex: 60,
+      pointerEvents: 'none' as const,
+      transform: 'translate3d(0,0,0)',
+    },
+    card: {
+      minWidth: 160,
+      maxWidth: 260,
+      background: '#ffffff',
+      borderRadius: 6,
+      boxShadow: '0 8px 20px rgba(2, 6, 23, 0.08)',
+      padding: '6px 8px',
+      fontSize: 12,
+      color: '#0f172a',
+      border: '1px solid rgba(2,6,23,0.04)',
+    },
+    title: { fontWeight: 700, fontSize: 12, marginBottom: 4 },
+    row: { display: 'flex', justifyContent: 'space-between', gap: 6, marginBottom: 2, alignItems: 'center' },
+    label: { color: '#64748b', fontWeight: 600, fontSize: 11 },
+    value: { color: '#0f172a', fontWeight: 700, fontSize: 12 },
+  };
 
   const maxRow = useMemo(
     () => Math.max(...gridData.flatMap((g) => g.cells.map(c => c.row)), 1),
@@ -313,8 +364,9 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
       const maxScrollLeft = Math.max(0, svgWidth - containerWidth);
       const maxScrollTop = Math.max(0, svgHeight - containerHeight);
 
-      let scrollLeft = cellX - 60;
-      let scrollTop = cellY - 60;
+      // Center the selected cell in the viewport using current cell dimensions
+      let scrollLeft = cellX - Math.floor(containerWidth / 2) + Math.floor(cellWidth / 2);
+      let scrollTop = cellY - Math.floor(containerHeight / 2) + Math.floor(cellHeight / 2);
 
       scrollLeft = Math.max(0, Math.min(scrollLeft, maxScrollLeft));
       scrollTop = Math.max(0, Math.min(scrollTop, maxScrollTop));
@@ -380,13 +432,11 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
       </div>
 
       {/* Grid container with fixed headers */}
-      <div className="border border-slate-200 rounded-lg bg-white overflow-hidden h-112 relative shadow-sm">
+      <div className="border border-slate-200 rounded-lg bg-white overflow-hidden h-111 relative shadow-sm">
         {isLoading && (
           <div className="absolute inset-0 z-40 flex items-center justify-center bg-white/70 backdrop-blur-sm">
             <div className="text-center">
-              <Loader className="w-10 h-10 text-blue-600 animate-spin mx-auto mb-2" />
-              <p className="text-sm text-gray-600">Loading warehouse layout...</p>
-            </div>
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>            </div>
           </div>
         )}
         {/* Main scrollable content */}
@@ -532,68 +582,126 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                 // skip groups outside viewport
                 if (row < startRow || row > endRow || bay < startBay || bay > endBay) return;
 
-                gridItem.cells.forEach((cell) => {
-                  const x = cellStartX + (bay - 1) * cellWidth;
-                  const y = cellStartY + (row - 1) * cellHeight;
-                  const isSelected = cell.isSelected;
-                  const itemAtCell = items?.find((it) => it.Location === cell.locationCode);
+                // Render 10 fixed levels per cell (bottom = level 1, top = level 10)
+                {
+                  const levels = gridItem.cells;
+                  const levelMap = new Map<number, GridCell>();
+                  levels.forEach((c) => levelMap.set(c.level, c));
+                  const TOTAL_LEVELS = 6; // warehouse max level
+                  const sliceHeight = Math.max(12, Math.floor((cellHeight - 8) / TOTAL_LEVELS));
 
-                  nodes.push(
-                    <g key={`cell-${cell.locationCode}`} data-location-code={cell.locationCode}>
-                      {isSelected && (
+                  for (let levelNum = 1; levelNum <= TOTAL_LEVELS; levelNum++) {
+                    const cell = levelMap.get(levelNum);
+                    const x = cellStartX + (bay - 1) * cellWidth;
+                    const y = cellStartY + (row - 1) * cellHeight;
+                    const isSelected = !!cell && cell.isSelected;
+                    const itemAtCell = cell ? itemsWithValidLocation.get(cell.locationCode) : undefined;
+
+                    const sliceIndexFromBottom = levelNum - 1; // 0 = bottom
+                    const sliceY = y + cellHeight - sliceHeight * (sliceIndexFromBottom + 1);
+                    const sliceLabel = `L${levelNum}`;
+                    const showLabel = isSelected || sliceHeight >= 12;
+
+                    // Determine fill/stroke:
+                    // - occupied (item exists at this exact location) => yellow
+                    // - location exists but no item => dark gray (shelved)
+                    // - location does not exist => light gray (empty)
+                    const hasLocation = !!cell;
+                    const isOccupied = !!itemAtCell;
+
+                    const fill = isSelected
+                      ? '#2563eb'
+                      : isOccupied
+                        ? '#fbbf24'
+                        : hasLocation
+                          ? '#9ca3af' // dark gray for existing shelf without item
+                          : '#f1f5f9'; // very light for non-existent level
+
+                    const stroke = isSelected ? '#1e40af' : isOccupied ? '#c4a208' : '#e2e8f0';
+
+                    nodes.push(
+                      <g key={`cell-${row}-${bay}-L${levelNum}`} data-location-code={cell?.locationCode || ''}>
+                        {/* Highlight whole stack when selected (only if any level in this stack is selected) */}
+                        {isSelected && (
+                          <rect
+                            x={x - 2}
+                            y={y - 2}
+                            width={cellWidth + 4}
+                            height={cellHeight + 4}
+                            fill="none"
+                            stroke="#1e40af"
+                            strokeWidth="1.6"
+                            rx="6"
+                            opacity="0.12"
+                          />
+                        )}
+
+                        {/* Slice */}
                         <rect
-                          x={x - 2}
-                          y={y - 2}
-                          width={cellWidth + 4}
-                          height={cellHeight + 4}
-                          fill="none"
-                          stroke="#1e40af"
-                          strokeWidth="2"
-                          rx="4"
-                          opacity="0.2"
+                          x={x + 2}
+                          y={sliceY + 1}
+                          width={cellWidth - 4}
+                          height={sliceHeight - 2}
+                          fill={fill}
+                          stroke={stroke}
+                          strokeWidth={isSelected ? 1.6 : 0.8}
+                          rx={4}
+                          className={`warehouse-skeleton ${isSelected ? 'warehouse-pulse' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (cell?.locationCode) onLocationClick?.(cell.locationCode);
+                          }}
+                          onMouseEnter={(e) => {
+                            e.stopPropagation();
+                            // Only show tooltip when an item is present at this location
+                            if (!itemAtCell) return;
+                            setTooltip({
+                              visible: true,
+                              x: e.clientX + 12,
+                              y: e.clientY + 12,
+                              item: itemAtCell,
+                              location: cell?.zoneData,
+                              level: levelNum,
+                              locationCode: cell?.locationCode,
+                            });
+                          }}
+                          onMouseMove={(e) => {
+                            e.stopPropagation();
+                            setTooltip((t) => (t.visible ? { ...t, x: e.clientX + 12, y: e.clientY + 12 } : t));
+                          }}
+                          onMouseLeave={(e) => {
+                            e.stopPropagation();
+                            setTooltip((t) => ({ ...t, visible: false }));
+                          }}
+                          style={{ cursor: cell ? 'pointer' : 'default' }}
                         />
-                      )}
 
-                      <rect
-                        x={x}
-                        y={y}
-                        width={cellWidth}
-                        height={cellHeight}
-                        fill={isSelected ? '#2563eb' : itemAtCell ? '#fbbf24' : '#6b7280'}
-                        stroke={isSelected ? '#1e40af' : itemAtCell ? '#c4a208' : '#000000'}
-                        strokeWidth={'2'}
-                        rx="4"
-                        className={`warehouse-skeleton ${isSelected ? 'warehouse-pulse warehouse-cell-selected' : 'warehouse-cell-hover'}`}
-                        onClick={() => onLocationClick?.(cell.locationCode)}
-                        style={{ filter: isSelected ? undefined : 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.05))' }}
-                      />
+                        {/* Level label only when enough space or selected */}
+                        {showLabel && (
+                          <text
+                            x={x + 6}
+                            y={sliceY + Math.max(10, sliceHeight / 2)}
+                            fontSize={Math.min(10, Math.max(8, Math.floor(sliceHeight / 2)))}
+                            fill={isSelected ? '#e6f0ff' : '#0f172a'}
+                            textAnchor="start"
+                            dominantBaseline="middle"
+                            fontWeight={700}
+                            pointerEvents="none"
+                          >
+                            {sliceLabel}
+                          </text>
+                        )}
 
-                      {itemAtCell && (
-                        <text x={x + cellWidth / 2} y={y + 8} fontSize="7" fontWeight="bold" fill={isSelected ? '#dbeafe' : '#1e293b'} textAnchor="middle" pointerEvents="none">
-                          {itemAtCell.Item_Code}
-                        </text>
-                      )}
-
-                      <text x={x + cellWidth / 2} y={y + cellHeight - 6} fontSize={isSelected ? '10' : '9'} fill={isSelected ? '#dbeafe' : '#006dff'} textAnchor="middle" dominantBaseline="middle" fontWeight={isSelected ? '700' : '600'} pointerEvents="none">
-                        L{cell.level}
-                      </text>
-
-                      {isSelected && selectedItem && selectedItem.Location === cell.locationCode && (
-                        <text x={x + cellWidth / 2} y={y + cellHeight / 2} fontSize="10" fill="#FFFF00" textAnchor="middle" dominantBaseline="middle" fontWeight={700} pointerEvents="none">
-                          Qty: {selectedItem.Qty}
-                        </text>
-                      )}
-
-                      {!isSelected && itemAtCell && (
-                        <text x={x + cellWidth / 2} y={y + cellHeight / 2} fontSize="9" fill="#1e40af" textAnchor="middle" dominantBaseline="middle" fontWeight={600} pointerEvents="none">
-                          Qty: {itemAtCell.Qty}
-                        </text>
-                      )}
-
-                      <title>{`${cell.locationCode} (Row ${getDataPosition(cell.row, 2)}, Bay ${getDataPosition(cell.bay, 6)}, Level ${cell.level})`}</title>
-                    </g>
-                  );
-                });
+                        {/* Selected slice shows qty in the center */}
+                        {isSelected && isOccupied && (
+                          <text x={x + cellWidth - 8} y={sliceY + sliceHeight / 2} fontSize="10" fill="#fff7cc" textAnchor="end" dominantBaseline="middle" fontWeight={700} pointerEvents="none">
+                            Qty: {itemAtCell?.Qty}
+                          </text>
+                        )}
+                      </g>
+                    );
+                  }
+                }
               });
 
               return nodes;
@@ -720,6 +828,28 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
             })}
           </svg>
         </div>
+
+        {/* Tooltip overlay (fixed) */}
+        {tooltip.visible && (
+          <div style={{ ...tooltipStyles.container, left: tooltip.x, top: tooltip.y }}>
+            <div style={tooltipStyles.card}>
+              <div style={tooltipStyles.title}>{tooltip.item ? tooltip.item.Item_Code : tooltip.location?.LocationCode || tooltip.locationCode}</div>
+
+              {tooltip.item && (
+                <div>
+                  <div style={tooltipStyles.row}><div style={tooltipStyles.label}>Quantity</div><div style={tooltipStyles.value}>{tooltip.item.Qty}</div></div>
+                  <div style={tooltipStyles.row}><div style={tooltipStyles.label}>Location</div><div style={tooltipStyles.value}>{tooltip.item.Location}</div></div>
+                </div>
+              )}
+
+              {tooltip.location && (
+                <div>
+                  <div style={tooltipStyles.row}><div style={tooltipStyles.label}>Warehouse</div><div style={tooltipStyles.value}>{tooltip.location.WarehouseName}</div></div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Sticky Legend - Top Right */}
         {showLegend && (

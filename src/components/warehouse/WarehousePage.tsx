@@ -3,7 +3,7 @@
 import { useStore } from '@/store/store-context';
 import { ItemData, LocationData } from '@/utils/csvParser';
 import { useQuery } from '@tanstack/react-query';
-import { AlertCircle, Loader } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { ItemSelector } from './ItemSelector';
 import { WarehouseVisualization } from './WarehouseVisualization';
@@ -76,8 +76,7 @@ export const WarehousePage: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
         <div className="text-center">
-          <Loader className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-700 font-medium">Loading warehouse data...</p>
+          <div className="h-12 w-12 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
         </div>
       </div>
     );

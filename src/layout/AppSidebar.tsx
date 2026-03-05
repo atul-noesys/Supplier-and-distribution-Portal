@@ -13,8 +13,8 @@ import {
   TaskIcon,
   TruckIcon,
   BoxIconLine,
-  BoxCubeIcon
-} from "../icons/index";
+  BoxCubeIcon,
+} from "@/icons/index";
 
 type NavItem = {
   name: string;

@@ -1,9 +1,8 @@
-'use client';
+"use client";
 
-import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { ItemData, LocationData } from '@/utils/csvParser';
-import { Select } from "@/components/ui";
-import { Package, Loader, X } from 'lucide-react';
+import { Package, X } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 interface ItemSelectorProps {
   items: ItemData[];
@@ -36,10 +35,9 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
   return (
     <div className="flex flex-col lg:flex-row gap-5">
       {isLoading ? (
-        <div className="w-full bg-white rounded shadow-sm p-6 border border-gray-200 flex items-center justify-center">
+        <div className="w-full bg-white rounded shadow-sm p-9 border border-gray-200 flex items-center justify-center">
           <div className="text-center">
-            <Loader className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-3" />
-            <p className="text-sm text-gray-600">Loading items and locations...</p>
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
           </div>
         </div>
       ) : (
@@ -192,6 +190,8 @@ const SearchableItemSelect: React.FC<SearchableItemSelectProps> = ({ items, sele
     return () => clearTimeout(t);
   }, [query]);
 
+  const [visibleCount, setVisibleCount] = useState(100);
+
   const q = debouncedQuery.trim().toLowerCase();
   const filtered = useMemo(() => {
     if (!q) return items.slice(0, 100);
@@ -268,27 +268,39 @@ const SearchableItemSelect: React.FC<SearchableItemSelectProps> = ({ items, sele
 
       {open && (
         <div
-          className="absolute left-0 mt-1 bg-white border border-gray-200 rounded shadow-lg z-50 max-h-56 overflow-auto"
-          style={{ width: dropdownWidth ? `${dropdownWidth}px` : undefined }}
+          className="absolute left-0 mt-1 bg-white border border-gray-200 rounded shadow-lg z-50 max-h-72 overflow-auto"
+          style={{ width: dropdownWidth ? `${dropdownWidth}px` : '280px' }}
         >
           {filtered.length === 0 ? (
             <div className="p-2 text-sm text-gray-500">No items found</div>
           ) : (
-            filtered.map((it) => (
-              <button
-                key={it.Item_Code}
-                type="button"
-                className="w-full text-left px-3 py-2 hover:bg-slate-50"
-                onClick={() => { onItemSelect(it); setQuery(''); setOpen(false); }}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-semibold text-gray-800">{highlightText(it.Item_Code)}</div>
-                    <div className="text-xs text-gray-500">{highlightText(it.Item_Description)}</div>
+            <>
+              {(filtered.slice(0, visibleCount)).map((it) => (
+                <button
+                  key={it.Item_Code}
+                  type="button"
+                  className="w-full text-left px-3 py-2 hover:bg-slate-50"
+                  onClick={() => { onItemSelect(it); setQuery(''); setOpen(false); }}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-semibold text-gray-800">{highlightText(it.Item_Code)}</div>
+                      <div className="text-xs text-gray-500">{highlightText(it.Item_Description)}</div>
+                    </div>
                   </div>
+                </button>
+              ))}
+              {filtered.length > visibleCount && (
+                <div className="p-2 text-center">
+                  <button
+                    className="text-sm text-blue-600 underline"
+                    onClick={() => setVisibleCount((c) => Math.min(filtered.length, c + 200))}
+                  >
+                    Show more ({filtered.length - visibleCount} more)
+                  </button>
                 </div>
-              </button>
-            ))
+              )}
+            </>
           )}
         </div>
       )}
