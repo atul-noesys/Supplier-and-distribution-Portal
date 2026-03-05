@@ -259,37 +259,39 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
   useEffect(() => {
     if (!selectedLocation || !mainScrollRef.current) return;
 
-    // Find the selected cell's position in the grid
-    const selectedCell = gridData
-      .flatMap((gridItem) => gridItem.cells)
-      .find((cell) => cell.locationCode === selectedLocation);
+    // Try to locate the rendered <g> for the selected cell and scroll to it precisely.
+    const container = mainScrollRef.current;
+    const allCells = Array.from(container.querySelectorAll('g')) as SVGGElement[];
+    const elem = allCells.find((el) => el.getAttribute('data-location-code') === selectedLocation);
 
+    if (elem) {
+      // Prefer using scrollIntoView to let the browser handle edge cases and padding
+      try {
+        (elem as Element).scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        return;
+      } catch (e) {
+        // Fallback to manual calculation below if scrollIntoView fails
+      }
+    }
+
+    // Fallback: previous calculation based on grid coordinates
+    const selectedCell = gridData.flatMap((g) => g.cells).find((cell) => cell.locationCode === selectedLocation);
     if (selectedCell) {
       const cellX = cellStartX + (selectedCell.bay - 1) * cellWidth;
       const cellY = cellStartY + (selectedCell.row - 1) * cellHeight;
 
-      // Get the container dimensions
-      const container = mainScrollRef.current;
       const containerWidth = container.clientWidth;
       const containerHeight = container.clientHeight;
-
-      // Calculate maximum scroll values to prevent overshooting
       const maxScrollLeft = Math.max(0, svgWidth - containerWidth);
       const maxScrollTop = Math.max(0, svgHeight - containerHeight);
 
-      // Calculate desired scroll position and clamp it
-      let scrollLeft = cellX - 60; // Offset to center it in view
+      let scrollLeft = cellX - 60;
       let scrollTop = cellY - 60;
 
       scrollLeft = Math.max(0, Math.min(scrollLeft, maxScrollLeft));
       scrollTop = Math.max(0, Math.min(scrollTop, maxScrollTop));
 
-      // Smooth scroll to the cell position
-      mainScrollRef.current.scrollTo({
-        left: scrollLeft,
-        top: scrollTop,
-        behavior: 'smooth',
-      });
+      container.scrollTo({ left: scrollLeft, top: scrollTop, behavior: 'smooth' });
     }
   }, [selectedLocation, gridData, cellWidth, cellHeight, cellStartX, cellStartY, svgWidth, svgHeight]);
 
@@ -492,7 +494,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                 const itemAtCell = items?.find((it) => it.Location === cell.locationCode);
 
                 return (
-                  <g key={`cell-${cell.locationCode}`}>
+                  <g key={`cell-${cell.locationCode}`} data-location-code={cell.locationCode}>
                     {/* Shadow for selected cell */}
                     {isSelected && (
                       <rect
