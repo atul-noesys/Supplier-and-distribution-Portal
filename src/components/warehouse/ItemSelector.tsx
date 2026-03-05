@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { ItemData, LocationData } from '@/utils/csvParser';
 import { Select } from "@/components/ui";
-import { Package, Loader } from 'lucide-react';
+import { Package, Loader, X } from 'lucide-react';
 
 interface ItemSelectorProps {
   items: ItemData[];
@@ -45,31 +45,22 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
       ) : (
         <>
       {/* Item Selector */}
-      <div className="lg:w-[25%]">
+      <div className="lg:w-[25%] relative">
         <label className="block text-sm font-semibold text-gray-800 mb-2">
           <Package className="inline mr-2 w-4 h-4" />
           Select Item to Track
         </label>
 
-        <Select
-          value={selectedItem?.Item_Code || ''}
-          onChange={(value) => {
-            const item = items.find((i) => i.Item_Code === value) || null;
-            onItemSelect(item);
-          }}
-          data={[
-            { label: '-- Select an Item --', value: '' },
-            ...items.map((item) => ({
-              label: item.Item_Code,
-              value: item.Item_Code,
-            })),
-          ]}
+        {/* Searchable input replacing Infoveave Select. Keeps similar UI but allows searching by code or description. */}
+        <SearchableItemSelect
+          items={items}
+          selectedItem={selectedItem}
+          onItemSelect={onItemSelect}
         />
 
         {/* Description */}
         {selectedItem && (
           <div className="mt-1 bg-amber-50 p-1 rounded border border-amber-200">
-            {/* <p className="text-xs font-medium text-gray-500 uppercase mb-1">Description</p> */}
             <p className="text-xs text-gray-700">
               {selectedItem.Item_Description}
             </p>
@@ -148,6 +139,142 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
         </div>
       )}
         </>
+      )}
+    </div>
+  );
+};
+
+interface SearchableItemSelectProps {
+  items: ItemData[];
+  selectedItem: ItemData | null;
+  onItemSelect: (item: ItemData | null) => void;
+}
+
+const SearchableItemSelect: React.FC<SearchableItemSelectProps> = ({ items, selectedItem, onItemSelect }) => {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [dropdownWidth, setDropdownWidth] = useState<number | null>(null);
+
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      if (!containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, []);
+
+  // Measure input width and update dropdown width. Re-measure when selection or query changes.
+  useEffect(() => {
+    const measure = () => {
+      // Prefer container width so dropdown matches total control width
+      if (containerRef.current) {
+        setDropdownWidth(containerRef.current.offsetWidth);
+        return;
+      }
+      if (inputRef.current) {
+        setDropdownWidth(inputRef.current.offsetWidth);
+      }
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [selectedItem, query]);
+
+  const q = query.trim().toLowerCase();
+  const filtered = (q
+    ? items.filter((it) =>
+        it.Item_Code.toLowerCase().includes(q) || (it.Item_Description || '').toLowerCase().includes(q)
+      )
+    : items
+  ).slice(0, 100);
+
+  // Helper to highlight matched substrings (case-insensitive) with a yellow background
+  const highlightText = (text?: string) => {
+    const str = (text || '').toString();
+    if (!q) return str;
+
+    const lower = str.toLowerCase();
+    const nodes: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let matchIndex = lower.indexOf(q, lastIndex);
+    let keyIndex = 0;
+
+    while (matchIndex !== -1) {
+      if (matchIndex > lastIndex) {
+        nodes.push(str.slice(lastIndex, matchIndex));
+      }
+      const matched = str.slice(matchIndex, matchIndex + q.length);
+      nodes.push(
+        <span key={`hl-${keyIndex}-${matchIndex}`} className="bg-yellow-200 px-0.5 rounded">
+          {matched}
+        </span>
+      );
+      keyIndex += 1;
+      lastIndex = matchIndex + q.length;
+      matchIndex = lower.indexOf(q, lastIndex);
+    }
+
+    if (lastIndex < str.length) {
+      nodes.push(str.slice(lastIndex));
+    }
+
+    return nodes.length ? nodes : str;
+  };
+
+  return (
+    <div ref={containerRef} className="relative w-full">
+      <div className="relative">
+        <input
+          ref={inputRef}
+          type="text"
+          value={open ? query : (selectedItem?.Item_Code ?? query)}
+          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          placeholder="Search by code or description"
+          className="w-full min-w-75 pr-9 border border-gray-200 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-300 bg-white box-border"
+        />
+        {(selectedItem || query) && (
+          <button
+            type="button"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-gray-500 hover:text-gray-700"
+            onClick={() => { setQuery(''); onItemSelect(null); setOpen(false); inputRef.current?.focus(); }}
+            aria-label="Clear selection"
+          >
+            <X className="w-3 h-3" aria-hidden />
+          </button>
+        )}
+      </div>
+
+      {open && (
+        <div
+          className="absolute left-0 mt-1 bg-white border border-gray-200 rounded shadow-lg z-50 max-h-56 overflow-auto"
+          style={{ width: dropdownWidth ? `${dropdownWidth}px` : undefined }}
+        >
+          {filtered.length === 0 ? (
+            <div className="p-2 text-sm text-gray-500">No items found</div>
+          ) : (
+            filtered.map((it) => (
+              <button
+                key={it.Item_Code}
+                type="button"
+                className="w-full text-left px-3 py-2 hover:bg-slate-50"
+                onClick={() => { onItemSelect(it); setQuery(''); setOpen(false); }}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-semibold text-gray-800">{highlightText(it.Item_Code)}</div>
+                    <div className="text-xs text-gray-500">{highlightText(it.Item_Description)}</div>
+                  </div>
+                </div>
+              </button>
+            ))
+          )}
+        </div>
       )}
     </div>
   );
