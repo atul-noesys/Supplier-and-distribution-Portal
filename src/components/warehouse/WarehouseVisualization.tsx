@@ -601,7 +601,8 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                 const pathHeight = cellHeight / 2;
                 const pathY = y + (cellHeight - pathHeight) / 2; // Center vertically
                 // Calculate horizontal path index (1, 2, 3, ...)
-                const pathIndex = Math.floor((row - 1) / 11) + 1;
+                // Each row block has `blockSize=2` data rows + 1 main path -> blockLength = 3
+                const pathIndex = Math.ceil(row / (2 + 1));
                 return (
                   <g key={`path-row-${row}`}>
                     {/* Background */}
@@ -660,7 +661,8 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                 const pathWidth = cellWidth / 2;
                 const pathX = x + (cellWidth - pathWidth) / 2; // Center horizontally
                 // Calculate vertical path index (1, 2, 3, ...)
-                const pathIndex = Math.floor((bay - 1) / 13) + 1;
+                // Each bay block has `blockSize=6` data bays + 1 main path -> blockLength = 7
+                const pathIndex = Math.ceil(bay / (6 + 1));
                 return (
                   <g key={`path-bay-${bay}`}>
                     {/* Background */}
