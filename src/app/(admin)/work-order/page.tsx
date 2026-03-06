@@ -819,7 +819,7 @@ export default observer(function WorkOrderPage() {
         ) : (
           <div className="border-t border-gray-200 dark:border-white/5">
             <div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.7fr 1.2fr 0.9fr 0.6fr 70px 70px 80px', gap: '0', minWidth: '100%' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.7fr 1.3fr 0.9fr 0.6fr 70px 70px 80px', gap: '0', minWidth: '100%' }}>
                 {/* Table Header */}
                 {tableColumns.map((column) => (
                   <div
@@ -844,7 +844,7 @@ export default observer(function WorkOrderPage() {
               </div>
 
               {/* Table Body */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.7fr 1.2fr 0.9fr 0.6fr 70px 70px 80px', gap: '0', minWidth: '100%' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.7fr 1.3fr 0.9fr 0.6fr 70px 70px 80px', gap: '0', minWidth: '100%' }}>
                 {paginatedItems.length === 0 ? (
                   <div style={{ gridColumn: '1 / -1' }} className="py-8 text-center bg-white dark:bg-gray-800">
                     <p className="text-gray-500 dark:text-gray-400">No work orders found</p>
@@ -909,10 +909,10 @@ export default observer(function WorkOrderPage() {
                               className="cursor-pointer hover:opacity-75 transition-opacity"
                               title="View document"
                             >
-                              <AiOutlineEye className="ml-5 w-5 h-5 text-blue-600 dark:text-blue-400" />
+                              <AiOutlineEye className="ml-3.5 w-5 h-5 text-blue-600 dark:text-blue-400" />
                             </button>
                           ) : (
-                            <AiOutlineEyeInvisible className="ml-5 w-5 h-5 text-gray-400 dark:text-gray-500" />
+                            <AiOutlineEyeInvisible className="ml-3.5 w-5 h-5 text-gray-400 dark:text-gray-500" />
                           );
                         } else if (value !== null && value !== undefined && value !== "") {
                           // Render with highlight if search term exists
@@ -934,7 +934,7 @@ export default observer(function WorkOrderPage() {
                       <div className="px-2.5 py-3 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
                         <button
                           onClick={() => handleViewDetails(item)}
-                          className="flex justify-center items-center ml-2 w-8 h-4 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
+                          className="flex justify-center items-center ml-4 text-blue-600 dark:text-blue-400 transition-colors"
                           title="View Details"
                         >
                           <MdOpenInNew className="w-4 h-4" />
@@ -945,9 +945,9 @@ export default observer(function WorkOrderPage() {
                         <button
                           onClick={() => handleViewTimeline(item.step_history as string | null, `${item.po_number}${item.item_code}`)}
                           disabled={!item.step_history}
-                          className={`flex justify-center items-center ml-2 w-8 h-4 rounded transition-colors ${
+                          className={`flex justify-center items-center ml-4 transition-colors ${
                             item.step_history
-                              ? "hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 cursor-pointer"
+                              ? "text-blue-600 dark:text-blue-400 cursor-pointer"
                               : "text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50"
                           }`}
                           title={item.step_history ? "View Timeline" : "No timeline data"}
