@@ -25,7 +25,7 @@ export const TextInput = ({
   disabled = false,
   placeholder,
   onValueChange = () => {},
-  className,
+  className = "max-w-full",
   containerClassName,
   error,
 }: TextInputProps) => {

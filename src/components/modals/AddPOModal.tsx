@@ -491,11 +491,8 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
 
                 {/* Supplier Name */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Supplier Name <span className="text-red-500">*</span>
-                  </label>
                   <Select
-                    // label={<>Supplier Name <span className="text-red-500">*</span></>}
+                    label={<>Supplier Name <span className="text-red-500">*</span></>}
                     value={String(formData.supplier_name ?? '')}
                     onChange={(v) => handleVendorChange(v ?? "")}
                     disabled={isEditMode}

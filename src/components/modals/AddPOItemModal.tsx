@@ -322,11 +322,8 @@ function AddPOItemModalContent({
                             <div className="grid grid-cols-3 gap-6">
                                 {/* Item Code */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        Item Code <span className="text-red-500">*</span>
-                                    </label>
                                     <Select
-                                        // label={<>Item Code <span className="text-red-500">*</span></>}
+                                        label={<>Item Code <span className="text-red-500">*</span></>}
                                         value={String(formData.item_code ?? '')}
                                         onChange={(v) => handleInputChange('item_code', v ?? '')}
                                         disabled={poStore.editingItemIndex !== null}

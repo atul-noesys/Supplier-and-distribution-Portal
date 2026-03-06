@@ -32,7 +32,7 @@ export const Select = ({
   data = [],
   disabled = false,
   placeholder,
-  className,
+  className = "max-w-full",
   containerClassName,
   error,
 }: SelectProps) => {
@@ -45,9 +45,9 @@ export const Select = ({
   return (
     <div className={containerClassName}>
       <InfoveaveSelect
-        // label={label}
+        label={label}
         value={normalizedValue}
-        onChange={handleChange}
+        onValueChange={handleChange}
         data={data as readonly { label: string; value: string }[]}
         disabled={disabled}
         placeholder={placeholder}

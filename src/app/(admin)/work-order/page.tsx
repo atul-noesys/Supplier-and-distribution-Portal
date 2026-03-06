@@ -1190,11 +1190,8 @@ export default observer(function WorkOrderPage() {
 
                 {/* Step - Editable Dropdown */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Step
-                  </label>
                   <Select
-                    // label="Step"
+                    label="Step"
                     value={String(editFormData.step || "")}
                     onChange={(v) => handleEditFormChange("step", v ?? "")}
                     data={[

@@ -33,14 +33,14 @@ dependencies:
     specifier: ^6.1.19
     version: 6.1.20(@fullcalendar/core@6.1.20)
   '@infoveave/design-system':
-    specifier: ^7.0.2
-    version: 7.0.2(@fontsource/fira-code@5.2.7)(@fontsource/poppins@5.2.7)(react-dom@19.2.4)(react@19.2.4)(shadcn@3.8.5)(tw-animate-css@1.4.0)
+    specifier: ^7.1.1
+    version: 7.1.1(@fontsource/fira-code@5.2.7)(@fontsource/poppins@5.2.7)(react-dom@19.2.4)(react@19.2.4)(shadcn@3.8.5)(tw-animate-css@1.4.0)
   '@infoveave/ui-components':
-    specifier: ^7.0.12
-    version: 7.0.12(@infoveave/icon-library@7.0.6)(@infoveave/ui-primitives@7.0.11)(class-variance-authority@0.7.1)(clsx@2.1.1)(motion@12.34.4)(react-dom@19.2.4)(react@19.2.4)(tailwind-merge@2.6.1)(tinycolor2@1.6.0)
+    specifier: ^7.1.2
+    version: 7.1.2(@infoveave/i18n-core@7.1.1)(@infoveave/icon-library@7.1.1)(@infoveave/ui-primitives@7.1.2)(class-variance-authority@0.7.1)(clsx@2.1.1)(motion@12.35.0)(react-dom@19.2.4)(react@19.2.4)(tailwind-merge@2.6.1)(tinycolor2@1.6.0)
   '@infoveave/ui-primitives':
-    specifier: ^7.0.11
-    version: 7.0.11(@base-ui/react@1.2.0)(@infoveave/icon-library@7.0.6)(class-variance-authority@0.7.1)(clsx@2.1.1)(cmdk@1.1.1)(motion@12.34.4)(react-dom@19.2.4)(react@19.2.4)(shadcn@3.8.5)(tailwind-merge@2.6.1)(tw-animate-css@1.4.0)
+    specifier: ^7.1.2
+    version: 7.1.2(@base-ui/react@1.2.0)(@infoveave/i18n-core@7.1.1)(@infoveave/icon-library@7.1.1)(class-variance-authority@0.7.1)(clsx@2.1.1)(cmdk@1.1.1)(motion@12.35.0)(react-dom@19.2.4)(react@19.2.4)(shadcn@3.8.5)(tailwind-merge@2.6.1)(tw-animate-css@1.4.0)
   '@react-jvectormap/core':
     specifier: ^1.0.4
     version: 1.0.4(jquery@3.7.1)(react-dom@19.2.4)(react@19.2.4)
@@ -1537,6 +1537,10 @@ packages:
       '@jridgewell/trace-mapping': 0.3.9
     dev: true
 
+  /@date-fns/tz@1.4.1:
+    resolution: {integrity: sha512-P5LUNhtbj6YfI3iJjw5EL9eUAG6OitD0W3fWQcpQjDRc/QIsL0tRNuO1PcDvPccWL1fSTXXdE1ds+l95DV/OFA==}
+    dev: false
+
   /@dnd-kit/accessibility@3.1.1(react@19.2.4):
     resolution: {integrity: sha512-2P+YgaXF+gRsIihwwY1gCsQSYnu9Zyj2py8kY5fFvUM1qm2WA2u639R6YNVfU4GWr+ZM5mqEsfHZZLoRONbemw==}
     peerDependencies:
@@ -2084,13 +2088,13 @@ packages:
       '@fullcalendar/daygrid': 6.1.20(@fullcalendar/core@6.1.20)
     dev: false
 
-  /@hono/node-server@1.19.9(hono@4.12.3):
-    resolution: {integrity: sha512-vHL6w3ecZsky+8P5MD+eFfaGTyCeOHUIFYMGpQGbrBTSmNNoxv0if69rEZ5giu36weC5saFuznL411gRX7bJDw==}
+  /@hono/node-server@1.19.11(hono@4.12.5):
+    resolution: {integrity: sha512-dr8/3zEaB+p0D2n/IUrlPF1HZm586qgJNXK1a9fhg/PzdtkK7Ksd5l312tJX2yBuALqDYBlG20QEbayqPyxn+g==}
     engines: {node: '>=18.14.1'}
     peerDependencies:
       hono: ^4
     dependencies:
-      hono: 4.12.3
+      hono: 4.12.5
     dev: false
 
   /@humanfs/core@0.19.1:
@@ -2324,8 +2328,8 @@ packages:
     requiresBuild: true
     optional: true
 
-  /@infoveave/design-system@7.0.2(@fontsource/fira-code@5.2.7)(@fontsource/poppins@5.2.7)(react-dom@19.2.4)(react@19.2.4)(shadcn@3.8.5)(tw-animate-css@1.4.0):
-    resolution: {integrity: sha512-XDSPekSRk/DLypAVP3favbK5Fh2IfbBmP6QtyrUFyXKsyjbgpI8lzS7nZV/sdNnQHn+bw9aj6GRgFYveoxYZsg==, tarball: https://npm.pkg.github.com/download/@infoveave/design-system/7.0.2/c5293ce2aec2a8ec8d7c51395ab47324c0fe715c}
+  /@infoveave/design-system@7.1.1(@fontsource/fira-code@5.2.7)(@fontsource/poppins@5.2.7)(react-dom@19.2.4)(react@19.2.4)(shadcn@3.8.5)(tw-animate-css@1.4.0):
+    resolution: {integrity: sha512-ozhVx1J6R9PSM6GjjYECdB7QGkxxihKFZPB6+kyS2d8dl5FQXjqrj+lBV6hyJp/Gs6ztKPwW/n00PjmQ4A/0QQ==, tarball: https://npm.pkg.github.com/download/@infoveave/design-system/7.1.1/2c370e391704f01c7766c5224d8fde3377f57953}
     peerDependencies:
       '@fontsource/fira-code': ^5.2.7
       '@fontsource/poppins': ^5.2.7
@@ -2343,8 +2347,24 @@ packages:
       - supports-color
     dev: false
 
-  /@infoveave/icon-library@7.0.6(react-dom@19.2.4)(react@19.2.4):
-    resolution: {integrity: sha512-qLc1LXRQPm7DaQuI8Q2Qi03NjcwXqIdnl0xEvPs04Ys3mIyr4fgplIqUp8lQcn75idTaDtWysowhupnYa5A8cA==, tarball: https://npm.pkg.github.com/download/@infoveave/icon-library/7.0.6/07b107197a9eee26269babca66be993e717cc54d}
+  /@infoveave/i18n-core@7.1.1(react-dom@19.2.4)(react-i18next@16.5.4)(react@19.2.4)(typescript@5.9.3):
+    resolution: {integrity: sha512-ZkTwRmQyMvvJZgYWXmvR7ctbonGS6PTLdb9s3ohRBdMukvOeB5GCdlElrTx42MytZ4S3YL83ys8iqD+Z0bLCDA==, tarball: https://npm.pkg.github.com/download/@infoveave/i18n-core/7.1.1/6d03d0075e65e4dd60d3f68d5a38fff1b076e9cb}
+    peerDependencies:
+      react: ^18.2 || ^19.2
+      react-dom: ^18.2 || ^19.2
+      react-i18next: ^16.5.3
+    dependencies:
+      i18next: 25.8.14(typescript@5.9.3)
+      i18next-browser-languagedetector: 8.2.1
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
+      react-i18next: 16.5.4(i18next@25.8.14)(react-dom@19.2.4)(react@19.2.4)(typescript@5.9.3)
+    transitivePeerDependencies:
+      - typescript
+    dev: false
+
+  /@infoveave/icon-library@7.1.1(react-dom@19.2.4)(react@19.2.4):
+    resolution: {integrity: sha512-8s60EN6jYQuxdRnLDpZzTgaix4K5VgyY3MbYiQW4TlN2MMWj9iMz78ooiLD61iec98q3oIksaxNGhte/IrgahQ==, tarball: https://npm.pkg.github.com/download/@infoveave/icon-library/7.1.1/bfc571261ba9af8c0a550de54e72381e190de56f}
     peerDependencies:
       react: ^18.2 || ^19.2
       react-dom: ^18.2 || ^19.2
@@ -2358,11 +2378,12 @@ packages:
       react-dom: 19.2.4(react@19.2.4)
     dev: false
 
-  /@infoveave/ui-components@7.0.12(@infoveave/icon-library@7.0.6)(@infoveave/ui-primitives@7.0.11)(class-variance-authority@0.7.1)(clsx@2.1.1)(motion@12.34.4)(react-dom@19.2.4)(react@19.2.4)(tailwind-merge@2.6.1)(tinycolor2@1.6.0):
-    resolution: {integrity: sha512-a8IpMGtCZfXMvTyB+QnqzW6e1HDhL3gE3nFB/HXMZAALn4iOReLjhGu0RuR2VVRe3+tpa0mUMxsc8eMOldpprA==, tarball: https://npm.pkg.github.com/download/@infoveave/ui-components/7.0.12/35466dbe89033b5050e0f7fb0da6b8aa7c8fe2c9}
+  /@infoveave/ui-components@7.1.2(@infoveave/i18n-core@7.1.1)(@infoveave/icon-library@7.1.1)(@infoveave/ui-primitives@7.1.2)(class-variance-authority@0.7.1)(clsx@2.1.1)(motion@12.35.0)(react-dom@19.2.4)(react@19.2.4)(tailwind-merge@2.6.1)(tinycolor2@1.6.0):
+    resolution: {integrity: sha512-tUkfXfUUWUohcM27BPc3csoVXzuU1KKi4e4RLbMHQmDBSnSkmlA3UBvRFCIMwQiKUprAHS/tI7RDNCZSmCp+3w==, tarball: https://npm.pkg.github.com/download/@infoveave/ui-components/7.1.2/d4d2c52fda172f47fdb28efe731dcbee556ac768}
     peerDependencies:
-      '@infoveave/icon-library': 7.0.6
-      '@infoveave/ui-primitives': 7.0.11
+      '@infoveave/i18n-core': 7.1.1
+      '@infoveave/icon-library': 7.1.1
+      '@infoveave/ui-primitives': 7.1.2
       class-variance-authority: ^0.7.1
       clsx: ^2.1.1
       motion: ^12.29.0
@@ -2371,22 +2392,26 @@ packages:
       tailwind-merge: ^3.4.0
       tinycolor2: ^1.6.0
     dependencies:
-      '@infoveave/icon-library': 7.0.6(react-dom@19.2.4)(react@19.2.4)
-      '@infoveave/ui-primitives': 7.0.11(@base-ui/react@1.2.0)(@infoveave/icon-library@7.0.6)(class-variance-authority@0.7.1)(clsx@2.1.1)(cmdk@1.1.1)(motion@12.34.4)(react-dom@19.2.4)(react@19.2.4)(shadcn@3.8.5)(tailwind-merge@2.6.1)(tw-animate-css@1.4.0)
+      '@infoveave/i18n-core': 7.1.1(react-dom@19.2.4)(react-i18next@16.5.4)(react@19.2.4)(typescript@5.9.3)
+      '@infoveave/icon-library': 7.1.1(react-dom@19.2.4)(react@19.2.4)
+      '@infoveave/ui-primitives': 7.1.2(@base-ui/react@1.2.0)(@infoveave/i18n-core@7.1.1)(@infoveave/icon-library@7.1.1)(class-variance-authority@0.7.1)(clsx@2.1.1)(cmdk@1.1.1)(motion@12.35.0)(react-dom@19.2.4)(react@19.2.4)(shadcn@3.8.5)(tailwind-merge@2.6.1)(tw-animate-css@1.4.0)
+      '@tanstack/react-virtual': 3.13.19(react-dom@19.2.4)(react@19.2.4)
       class-variance-authority: 0.7.1
       clsx: 2.1.1
-      motion: 12.34.4(react-dom@19.2.4)(react@19.2.4)
+      motion: 12.35.0(react-dom@19.2.4)(react@19.2.4)
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
+      react-resizable-panels: 4.7.1(react-dom@19.2.4)(react@19.2.4)
       tailwind-merge: 2.6.1
       tinycolor2: 1.6.0
     dev: false
 
-  /@infoveave/ui-primitives@7.0.11(@base-ui/react@1.2.0)(@infoveave/icon-library@7.0.6)(class-variance-authority@0.7.1)(clsx@2.1.1)(cmdk@1.1.1)(motion@12.34.4)(react-dom@19.2.4)(react@19.2.4)(shadcn@3.8.5)(tailwind-merge@2.6.1)(tw-animate-css@1.4.0):
-    resolution: {integrity: sha512-cKpqPCfsbT+gyks7po/Bm25UyImp0ozumNWdytp4rCWYeb4ZTOTkDqcNujoq9AuZwYDBcTMMk3jwVLE6Qa1cEw==, tarball: https://npm.pkg.github.com/download/@infoveave/ui-primitives/7.0.11/12aec0bea07dad5b8d312ee4b8ea2442b9270e96}
+  /@infoveave/ui-primitives@7.1.2(@base-ui/react@1.2.0)(@infoveave/i18n-core@7.1.1)(@infoveave/icon-library@7.1.1)(class-variance-authority@0.7.1)(clsx@2.1.1)(cmdk@1.1.1)(motion@12.35.0)(react-dom@19.2.4)(react@19.2.4)(shadcn@3.8.5)(tailwind-merge@2.6.1)(tw-animate-css@1.4.0):
+    resolution: {integrity: sha512-6Lz+YmGH+MB7wfnY7sVliHGIsEApIoCj2YOXwLKX4NwM2hrqRM/XJV+IDI/r0DzFpNmsQwV3d2it6KodQXRfsw==, tarball: https://npm.pkg.github.com/download/@infoveave/ui-primitives/7.1.2/74af66bc435e59e942f25cead214709b424d3dd1}
     peerDependencies:
       '@base-ui/react': ^1.1.0
-      '@infoveave/icon-library': 7.0.6
+      '@infoveave/i18n-core': 7.1.1
+      '@infoveave/icon-library': 7.1.1
       class-variance-authority: ^0.7.1
       clsx: ^2.1.1
       cmdk: ^1.1.1
@@ -2398,12 +2423,14 @@ packages:
       tw-animate-css: ^1.4.0
     dependencies:
       '@base-ui/react': 1.2.0(@types/react@19.2.10)(react-dom@19.2.4)(react@19.2.4)
-      '@infoveave/icon-library': 7.0.6(react-dom@19.2.4)(react@19.2.4)
+      '@infoveave/i18n-core': 7.1.1(react-dom@19.2.4)(react-i18next@16.5.4)(react@19.2.4)(typescript@5.9.3)
+      '@infoveave/icon-library': 7.1.1(react-dom@19.2.4)(react@19.2.4)
       class-variance-authority: 0.7.1
       clsx: 2.1.1
       cmdk: 1.1.1(@types/react-dom@19.2.3)(@types/react@19.2.10)(react-dom@19.2.4)(react@19.2.4)
-      motion: 12.34.4(react-dom@19.2.4)(react@19.2.4)
+      motion: 12.35.0(react-dom@19.2.4)(react@19.2.4)
       react: 19.2.4
+      react-day-picker: 9.14.0(react@19.2.4)
       react-dom: 19.2.4(react@19.2.4)
       shadcn: 3.8.5(@types/node@20.19.31)(typescript@5.9.3)
       tailwind-merge: 2.6.1
@@ -2508,7 +2535,7 @@ packages:
       '@cfworker/json-schema':
         optional: true
     dependencies:
-      '@hono/node-server': 1.19.9(hono@4.12.3)
+      '@hono/node-server': 1.19.11(hono@4.12.5)
       ajv: 8.18.0
       ajv-formats: 3.0.1(ajv@8.18.0)
       content-type: 1.0.5
@@ -2518,8 +2545,8 @@ packages:
       eventsource-parser: 3.0.6
       express: 5.2.1
       express-rate-limit: 8.2.1(express@5.2.1)
-      hono: 4.12.3
-      jose: 6.1.3
+      hono: 4.12.5
+      jose: 6.2.0
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
       raw-body: 3.0.2
@@ -3277,6 +3304,11 @@ packages:
     dependencies:
       tslib: 2.8.1
 
+  /@tabby_ai/hijri-converter@1.0.5:
+    resolution: {integrity: sha512-r5bClKrcIusDoo049dSL8CawnHR6mRdDwhlQuIgZRNty68q0x8k3Lf1BtPAMxRf/GgnHBnIO4ujd3+GQdLWzxQ==}
+    engines: {node: '>=16.0.0'}
+    dev: false
+
   /@tailwindcss/forms@0.5.11(tailwindcss@4.1.18):
     resolution: {integrity: sha512-h9wegbZDPurxG22xZSoWtdzc41/OlNEUQERNqI/0fOwa2aVlWGu7C35E/x6LDyD3lgtztFSSjKZyuVM0hxhbgA==}
     peerDependencies:
@@ -3451,6 +3483,21 @@ packages:
     dependencies:
       '@tanstack/query-core': 5.90.20
       react: 19.2.4
+    dev: false
+
+  /@tanstack/react-virtual@3.13.19(react-dom@19.2.4)(react@19.2.4):
+    resolution: {integrity: sha512-KzwmU1IbE0IvCZSm6OXkS+kRdrgW2c2P3Ho3NC+zZXWK6oObv/L+lcV/2VuJ+snVESRlMJ+w/fg4WXI/JzoNGQ==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+    dependencies:
+      '@tanstack/virtual-core': 3.13.19
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
+    dev: false
+
+  /@tanstack/virtual-core@3.13.19:
+    resolution: {integrity: sha512-/BMP7kNhzKOd7wnDeB8NrIRNLwkf5AhCYCvtfZV2GXWbBieFm/el0n6LOAXlTi6ZwHICSNnQcIxRCWHrLzDY+g==}
     dev: false
 
   /@transloadit/prettier-bytes@0.3.5:
@@ -4708,6 +4755,14 @@ packages:
       is-data-view: 1.0.2
     dev: true
 
+  /date-fns-jalali@4.1.0-0:
+    resolution: {integrity: sha512-hTIP/z+t+qKwBDcmmsnmjWTduxCg+5KfdqWQvb2X/8C9+knYY6epN/pfxdDuyVlSVeFz0sM5eEfwIUQ70U4ckg==}
+    dev: false
+
+  /date-fns@4.1.0:
+    resolution: {integrity: sha512-Ukq0owbQXxa/U3EGtsdVBkR1w7KOQ5gIBqdH2hkvknzZPYvBxb/aa6E8L7tmjFtkwZBu3UXBbjIgPo/Ez4xaNg==}
+    dev: false
+
   /debug@3.2.7:
     resolution: {integrity: sha512-CFjzYYAi4ThfiQvizrFQevTTXHtnCqWfe7x1AhgEscTz6ZbLbfoLRLPugTQyBth6f8ZERVUSyWHFD/7Wu4t1XQ==}
     peerDependencies:
@@ -5936,13 +5991,34 @@ packages:
       tslib: 2.8.1
     dev: false
 
+  /framer-motion@12.35.0(react-dom@19.2.4)(react@19.2.4):
+    resolution: {integrity: sha512-w8hghCMQ4oq10j6aZh3U2yeEQv5K69O/seDI/41PK4HtgkLrcBovUNc0ayBC3UyyU7V1mrY2yLzvYdWJX9pGZQ==}
+    peerDependencies:
+      '@emotion/is-prop-valid': '*'
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+    peerDependenciesMeta:
+      '@emotion/is-prop-valid':
+        optional: true
+      react:
+        optional: true
+      react-dom:
+        optional: true
+    dependencies:
+      motion-dom: 12.35.0
+      motion-utils: 12.29.2
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
+      tslib: 2.8.1
+    dev: false
+
   /fresh@2.0.0:
     resolution: {integrity: sha512-Rx/WycZ60HOaqLKAi6cHRKKI7zxWbJ31MhntmtwMoaTeF7XFH9hhBp8vITaMidfljRQ6eYWCKkaTK+ykVJHP2A==}
     engines: {node: '>= 0.8'}
     dev: false
 
-  /fs-extra@11.3.3:
-    resolution: {integrity: sha512-VWSRii4t0AFm6ixFFmLLx1t7wS1gh+ckoa84aOeapGum0h+EZd1EhEumSB+ZdDLnEPuucsVB9oB7cxJHap6Afg==}
+  /fs-extra@11.3.4:
+    resolution: {integrity: sha512-CTXd6rk/M3/ULNQj8FBqBWHYBVYybQ3VPBw0xGKFe3tuH7ytT6ACnvzpIQ3UZtB8yvUKC2cXn1a+x+5EVQLovA==}
     engines: {node: '>=14.14'}
     dependencies:
       graceful-fs: 4.2.11
@@ -6114,8 +6190,8 @@ packages:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
     dev: false
 
-  /graphql@16.13.0:
-    resolution: {integrity: sha512-uSisMYERbaB9bkA9M4/4dnqyktaEkf1kMHNKq/7DHyxVeWqHQ2mBmVqm5u6/FVHwF3iCNalKcg82Zfl+tffWoA==}
+  /graphql@16.13.1:
+    resolution: {integrity: sha512-gGgrVCoDKlIZ8fIqXBBb0pPKqDgki0Z/FSKNiQzSGj2uEYHr1tq5wmBegGwJx6QB5S5cM0khSBpi/JFHMCvsmQ==}
     engines: {node: ^12.22.0 || ^14.16.0 || ^16.0.0 || >=17.0.0}
     dev: false
 
@@ -6273,9 +6349,15 @@ packages:
       react-is: 16.13.1
     dev: false
 
-  /hono@4.12.3:
-    resolution: {integrity: sha512-SFsVSjp8sj5UumXOOFlkZOG6XS9SJDKw0TbwFeV+AJ8xlST8kxK5Z/5EYa111UY8732lK2S/xB653ceuaoGwpg==}
+  /hono@4.12.5:
+    resolution: {integrity: sha512-3qq+FUBtlTHhtYxbxheZgY8NIFnkkC/MR8u5TTsr7YZ3wixryQ3cCwn3iZbg8p8B88iDBBAYSfZDS75t8MN7Vg==}
     engines: {node: '>=16.9.0'}
+    dev: false
+
+  /html-parse-stringify@3.0.1:
+    resolution: {integrity: sha512-KknJ50kTInJ7qIScF3jeaFRpMpE8/lfiTdzf/twXyPBLAGrLRTmkz3AdTnKeh40X8k9L2fdYwEp/42WGXIRGcg==}
+    dependencies:
+      void-elements: 3.1.0
     dev: false
 
   /html-url-attributes@3.0.1:
@@ -6315,6 +6397,24 @@ packages:
   /human-signals@8.0.1:
     resolution: {integrity: sha512-eKCa6bwnJhvxj14kZk5NCPc6Hb6BdsU9DZcOnmQKSnO1VKrfV0zCvtttPZUsBvjmNDn8rpcJfpwSYnHBjc95MQ==}
     engines: {node: '>=18.18.0'}
+    dev: false
+
+  /i18next-browser-languagedetector@8.2.1:
+    resolution: {integrity: sha512-bZg8+4bdmaOiApD7N7BPT9W8MLZG+nPTOFlLiJiT8uzKXFjhxw4v2ierCXOwB5sFDMtuA5G4kgYZ0AznZxQ/cw==}
+    dependencies:
+      '@babel/runtime': 7.28.6
+    dev: false
+
+  /i18next@25.8.14(typescript@5.9.3):
+    resolution: {integrity: sha512-paMUYkfWJMsWPeE/Hejcw+XLhHrQPehem+4wMo+uELnvIwvCG019L9sAIljwjCmEMtFQQO3YeitJY8Kctei3iA==}
+    peerDependencies:
+      typescript: ^5
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+    dependencies:
+      '@babel/runtime': 7.28.6
+      typescript: 5.9.3
     dev: false
 
   /iconv-lite@0.7.2:
@@ -6700,8 +6800,8 @@ packages:
     hasBin: true
     dev: false
 
-  /jose@6.1.3:
-    resolution: {integrity: sha512-0TpaTfihd4QMNwrz/ob2Bp7X04yuxJkjRGi4aKmOqwhov54i6u79oCv7T+C7lo70MKH6BesI3vscD1yb/yzKXQ==}
+  /jose@6.2.0:
+    resolution: {integrity: sha512-xsfE1TcSCbUdo6U07tR0mvhg0flGxU8tPLbF03mirl2ukGQENhUg4ubGYQnhVH0b5stLlPM+WOqDkEl1R1y5sQ==}
     dev: false
 
   /jquery@3.7.1:
@@ -7653,12 +7753,18 @@ packages:
       motion-utils: 12.29.2
     dev: false
 
+  /motion-dom@12.35.0:
+    resolution: {integrity: sha512-FFMLEnIejK/zDABn+vqGVAUN4T0+3fw+cVAY8MMT65yR+j5uMuvWdd4npACWhh94OVWQs79CrBBuwOwGRZAQiA==}
+    dependencies:
+      motion-utils: 12.29.2
+    dev: false
+
   /motion-utils@12.29.2:
     resolution: {integrity: sha512-G3kc34H2cX2gI63RqU+cZq+zWRRPSsNIOjpdl9TN4AQwC4sgwYPl/Q/Obf/d53nOm569T0fYK+tcoSV50BWx8A==}
     dev: false
 
-  /motion@12.34.4(react-dom@19.2.4)(react@19.2.4):
-    resolution: {integrity: sha512-J0cuDNRymNzE0M2WY8CFcbQuprHBZwY+iqADKGLLe6kQUVP4kBQ2l7Z6gWK7Zfrt5Wgxs+kCojj4qu7I4wxBIw==}
+  /motion@12.35.0(react-dom@19.2.4)(react@19.2.4):
+    resolution: {integrity: sha512-BQUhNUIGvUcwXCzwmnT1JpjUqab34lIwxHnXUyWRht1WC1vAyp7/4qgMiUXxN3K6hgUhyoR+HNnLeQMwUZjVjw==}
     peerDependencies:
       '@emotion/is-prop-valid': '*'
       react: ^18.0.0 || ^19.0.0
@@ -7671,7 +7777,7 @@ packages:
       react-dom:
         optional: true
     dependencies:
-      framer-motion: 12.34.4(react-dom@19.2.4)(react@19.2.4)
+      framer-motion: 12.35.0(react-dom@19.2.4)(react@19.2.4)
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
       tslib: 2.8.1
@@ -7696,7 +7802,7 @@ packages:
       '@open-draft/deferred-promise': 2.2.0
       '@types/statuses': 2.0.6
       cookie: 1.1.1
-      graphql: 16.13.0
+      graphql: 16.13.1
       headers-polyfill: 4.0.3
       is-node-process: 1.2.0
       outvariant: 1.4.3
@@ -8163,6 +8269,15 @@ packages:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
+  /postcss@8.5.8:
+    resolution: {integrity: sha512-OW/rX8O/jXnm82Ey1k44pObPtdblfiuWnrd8X7GJ7emImCOstunGbXUpp7HdBrFQX6rJzn3sPT397Wp5aCwCHg==}
+    engines: {node: ^10 || ^12 || >=14}
+    dependencies:
+      nanoid: 3.3.11
+      picocolors: 1.1.1
+      source-map-js: 1.2.1
+    dev: false
+
   /powershell-utils@0.1.0:
     resolution: {integrity: sha512-dM0jVuXJPsDN6DvRpea484tCUaMiXWjuCn++HGTqUWzGDjv5tZkEZldAJ/UMlqRYGFrD/etByo4/xOuC/snX2A==}
     engines: {node: '>=20'}
@@ -8272,6 +8387,19 @@ packages:
       react: 19.2.4
     dev: false
 
+  /react-day-picker@9.14.0(react@19.2.4):
+    resolution: {integrity: sha512-tBaoDWjPwe0M5pGrum4H0SR6Lyk+BO9oHnp9JbKpGKW2mlraNPgP9BMfsg5pWpwrssARmeqk7YBl2oXutZTaHA==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      react: '>=16.8.0'
+    dependencies:
+      '@date-fns/tz': 1.4.1
+      '@tabby_ai/hijri-converter': 1.0.5
+      date-fns: 4.1.0
+      date-fns-jalali: 4.1.0-0
+      react: 19.2.4
+    dev: false
+
   /react-dnd-html5-backend@16.0.1:
     resolution: {integrity: sha512-Wu3dw5aDJmOGw8WjH1I1/yTH+vlXEL4vmjk5p+MHxP8HuHJS1lAGeIdG/hze1AvNeXWo/JgULV87LyQOr+r5jw==}
     dependencies:
@@ -8323,6 +8451,31 @@ packages:
       react: 19.2.4
     dev: false
 
+  /react-i18next@16.5.4(i18next@25.8.14)(react-dom@19.2.4)(react@19.2.4)(typescript@5.9.3):
+    resolution: {integrity: sha512-6yj+dcfMncEC21QPhOTsW8mOSO+pzFmT6uvU7XXdvM/Cp38zJkmTeMeKmTrmCMD5ToT79FmiE/mRWiYWcJYW4g==}
+    peerDependencies:
+      i18next: '>= 25.6.2'
+      react: '>= 16.8.0'
+      react-dom: '*'
+      react-native: '*'
+      typescript: ^5
+    peerDependenciesMeta:
+      react-dom:
+        optional: true
+      react-native:
+        optional: true
+      typescript:
+        optional: true
+    dependencies:
+      '@babel/runtime': 7.28.6
+      html-parse-stringify: 3.0.1
+      i18next: 25.8.14(typescript@5.9.3)
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
+      typescript: 5.9.3
+      use-sync-external-store: 1.6.0(react@19.2.4)
+    dev: false
+
   /react-icons@5.5.0(react@19.2.4):
     resolution: {integrity: sha512-MEFcXdkP3dLo8uumGI5xN3lDFNsRtrjbOEKDLD7yv76v4wpnEq2Lt2qeHaQOr34I/wPN3s3+N08WkQ+CW37Xiw==}
     peerDependencies:
@@ -8367,6 +8520,16 @@ packages:
       tslib: 2.8.1
       use-callback-ref: 1.3.3(@types/react@19.2.10)(react@19.2.4)
       use-sidecar: 1.1.3(@types/react@19.2.10)(react@19.2.4)
+    dev: false
+
+  /react-resizable-panels@4.7.1(react-dom@19.2.4)(react@19.2.4):
+    resolution: {integrity: sha512-RYBRgvdZhnUds5jJWYr1up0hYFofgN1dqSwhxfBl9Savoxms0gyGF0AfaXskhxTYkXrlwc+TlQPe5UkoV+1neg==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+    dependencies:
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
     dev: false
 
   /react-style-singleton@2.2.3(@types/react@19.2.10)(react@19.2.4):
@@ -8789,7 +8952,7 @@ packages:
       diff: 8.0.3
       execa: 9.6.1
       fast-glob: 3.3.3
-      fs-extra: 11.3.3
+      fs-extra: 11.3.4
       fuzzysort: 3.1.0
       https-proxy-agent: 7.0.6
       kleur: 4.1.5
@@ -8797,7 +8960,7 @@ packages:
       node-fetch: 3.3.2
       open: 11.0.0
       ora: 8.2.0
-      postcss: 8.5.6
+      postcss: 8.5.8
       postcss-selector-parser: 7.1.1
       prompts: 2.4.2
       recast: 0.23.11
@@ -9674,6 +9837,11 @@ packages:
     dependencies:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
+    dev: false
+
+  /void-elements@3.1.0:
+    resolution: {integrity: sha512-Dhxzh5HZuiHQhbvTW9AMetFfBHDMYpo23Uo9btPXgdYP+3T5S+p+jgNy7spra+veYhBP2dCSgxR/i2Y02h5/6w==}
+    engines: {node: '>=0.10.0'}
     dev: false
 
   /web-namespaces@2.0.1:
