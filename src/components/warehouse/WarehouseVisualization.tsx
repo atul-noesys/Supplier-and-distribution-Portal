@@ -2,7 +2,10 @@
 
 import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { LocationData, ItemData } from '@/utils/csvParser';
-import { Loader } from 'lucide-react';
+import { Loader, X } from 'lucide-react';
+import Badge from '@/components/ui/badge/Badge';
+import { useStore } from '@/store/store-context';
+import { useQuery } from '@tanstack/react-query';
 
 // Add pulse animation styles
 const pulseStyles = `
@@ -91,6 +94,32 @@ const pulseStyles = `
   }
 `;
 
+const getStatusColor = (
+  status: string | number | null | undefined,
+): "primary" | "success" | "error" | "warning" | "info" | "light" | "dark" => {
+  const lowerStatus = String(status || "").toLowerCase();
+  switch (lowerStatus) {
+    case "completed":
+    case "delivered":
+    case "approved":
+    case "ready to ship":
+      return "success";
+    case "pending":
+    case "work in progress":
+      return "warning";
+    case "shipped":
+    case "production":
+    case "in shipment":
+      return "info";
+    case "in warehouse":
+      return "primary";
+    case "cancelled":
+      return "error";
+    default:
+      return "primary";
+  }
+};
+
 interface WarehouseVisualizationProps {
   locations: LocationData[];
   selectedLocation?: string;
@@ -109,6 +138,16 @@ interface GridCell {
   zoneData: LocationData;
 }
 
+interface TooltipState {
+  visible: boolean;
+  x: number;
+  y: number;
+  item?: ItemData;
+  location?: LocationData;
+  level?: number;
+  locationCode?: string;
+}
+
 export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
   locations,
   selectedLocation,
@@ -121,21 +160,14 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
   const topHeaderRef = useRef<HTMLDivElement>(null);
   const leftHeaderRef = useRef<HTMLDivElement>(null);
   const [showLegend, setShowLegend] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Viewport state for virtualization
   const [viewport, setViewport] = useState({ left: 0, top: 0, width: 800, height: 600 });
   const rafRef = useRef<number | null>(null);
 
   // Tooltip state
-  const [tooltip, setTooltip] = useState<{
-    visible: boolean;
-    x: number;
-    y: number;
-    item?: ItemData | undefined;
-    location?: LocationData | undefined;
-    level?: number | undefined;
-    locationCode?: string | undefined;
-  }>({ visible: false, x: 0, y: 0 });
+  const [tooltip, setTooltip] = useState<TooltipState>({ visible: false, x: 0, y: 0 });
 
   const cellWidth = 80;
   // Increased cell height to give more vertical room for stacked levels
@@ -233,6 +265,61 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
     });
     return m;
   }, [items, validLocationCodes]);
+
+  // Helper to derive a simple work order id (fallback to po-item key)
+  const getWorkOrderId = (workOrder: Record<string, any>) => {
+    const expressionKey = Object.keys(workOrder).find(
+      (key) => key.includes('expression') && (key.includes('po_number') || key.includes('item_code'))
+    );
+    if (expressionKey) return String(workOrder[expressionKey] || '');
+    return `${workOrder.po_number || ''}-${workOrder.item_code || ''}`;
+  };
+
+  // Helpers to extract qty/unit_price/total from dynamic response fields
+  const getQuantity = (wo: Record<string, any>) => {
+    const qKey = Object.keys(wo).find((k) => k.toLowerCase().includes('quantity'));
+    if (qKey) return Number(wo[qKey] || 0);
+    const expr = Object.keys(wo).find((k) => k.includes('expression') && k.includes('quantity'));
+    if (expr) return Number(wo[expr] || 0);
+    return Number(wo.quantity || wo.qty || 0);
+  };
+
+  const getUnitPrice = (wo: Record<string, any>) => {
+    const pKey = Object.keys(wo).find((k) => k.toLowerCase().includes('unit_price') || k.toLowerCase().includes('unitprice') || k.toLowerCase().includes('price'));
+    if (pKey) return Number(wo[pKey] || 0);
+    const expr = Object.keys(wo).find((k) => k.includes('expression') && k.includes('unit_price'));
+    if (expr) return Number(wo[expr] || 0);
+    return Number(wo.unit_price || wo.price || 0);
+  };
+
+  const getTotalFromWorkOrder = (wo: Record<string, any>) => {
+    const tKey = Object.keys(wo).find((k) => k.toLowerCase().includes('total'));
+    if (tKey) return Number(wo[tKey] || 0);
+    const expr = Object.keys(wo).find((k) => k.includes('expression') && (k.includes('unit_price') || k.includes('quantity') || k.includes('total')));
+    if (expr) return Number(wo[expr] || 0);
+    // fallback to qty * unit price
+    return getQuantity(wo) * getUnitPrice(wo);
+  };
+
+  const { nguageStore } = useStore();
+
+  // Fetch work orders with status "Finished goods" when modal is open
+  const { data: finishedWorkOrders = [], isLoading: finishedWorkOrdersLoading } = useQuery({
+    queryKey: ['warehouseFinishedWorkOrders'],
+    queryFn: async (): Promise<any[]> => {
+      if (!nguageStore) return [];
+      const resp = await nguageStore.GetPaginationData({
+        table: 'work_order',
+        skip: 0,
+        take: 500,
+        NGaugeId: '44',
+      });
+      const items = Array.isArray(resp) ? resp : resp?.data || [];
+      return Array.isArray(items) ? items.filter((w: any) => String(w.wo_status).trim() === 'Finished goods') : [];
+    },
+    enabled: isModalOpen && !!nguageStore,
+    staleTime: 0,
+  });
 
   // Tooltip styles (small modern card)
   const tooltipStyles = {
@@ -418,15 +505,27 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
               </div>
             </div>
 
-            <label className="toggle-switch">
-              <input
-                type="checkbox"
-                checked={showLegend}
-                onChange={() => setShowLegend(!showLegend)}
-              />
-              <span className="toggle-slider"></span>
-              <span className="toggle-label">Legend</span>
-            </label>
+            <div className="flex items-center gap-2">
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  checked={showLegend}
+                  onChange={() => setShowLegend(!showLegend)}
+                />
+                <span className="toggle-slider"></span>
+                <span className="toggle-label">Legend</span>
+              </label>
+
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(true)}
+                className="ml-2 text-sm px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                aria-haspopup="dialog"
+                aria-expanded={isModalOpen}
+              >
+                Add to Warehouse
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -847,6 +946,98 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                   <div style={tooltipStyles.row}><div style={tooltipStyles.label}>Warehouse</div><div style={tooltipStyles.value}>{tooltip.location.WarehouseName}</div></div>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+        
+        {/* Simple Modal (controlled by Open modal button) */}
+        {isModalOpen && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl w-4/5 h-[90vh] flex flex-col overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-5 py-3">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
+                    Finished Goods Work Orders
+                  </h2>
+                </div>
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="text-gray-900 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                  aria-label="Close modal"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto px-5 py-3">
+                {finishedWorkOrdersLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                      <Loader className="w-4 h-4 animate-spin" /> Loading work orders...
+                    </div>
+                  </div>
+                ) : finishedWorkOrders.length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
+                    <p className="text-gray-600 dark:text-gray-400">No finished goods work orders available.</p>
+                  </div>
+                ) : (
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="bg-linear-to-r from-blue-700 to-blue-800 dark:from-blue-900 dark:to-blue-950">
+                            <th className="px-4 py-3 text-left">
+                              <input type="checkbox" className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer" aria-label="select all" />
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">WO ID</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Item Code</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Item Name</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">PO #</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Qty</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Unit Price</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Total</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                          {finishedWorkOrders.map((wo: any, idx: number) => (
+                            <tr key={wo.ROWID || wo.rowid || `${getWorkOrderId(wo)}-${idx}`} className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                              <td className="px-4 py-3">
+                                <input type="checkbox" className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer" aria-label={`select-${idx}`} />
+                              </td>
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{getWorkOrderId(wo)}</td>
+                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{wo.item_code || '-'}</td>
+                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 max-w-xs truncate">{wo.item || '-'}</td>
+                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{wo.po_number || '-'}</td>
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{Number(getQuantity(wo) || 0)}</td>
+                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">${Number(getUnitPrice(wo) || 0).toFixed(2)}</td>
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">${Number(getTotalFromWorkOrder(wo) || 0).toFixed(2)}</td>
+                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                <Badge color={getStatusColor(wo.wo_status)} variant="solid">
+                                  {wo.wo_status || '-'}
+                                </Badge>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-end gap-3 border-t border-gray-200 dark:border-gray-700 px-5 py-2 bg-gray-50 dark:bg-gray-800">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         )}
