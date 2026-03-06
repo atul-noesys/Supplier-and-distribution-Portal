@@ -593,7 +593,7 @@ export default observer(function WorkOrderPage() {
       const dataToSave = {
         ...editFormData,
         end_date: currentDate,
-        wo_status: editFormData.step?.toString() === "Step 5" ? "In warehouse" : "Work in progress"
+        wo_status: editFormData.step?.toString() === "Step 5" ? "Finished goods" : "Work in progress"
       };
 
       console.log("Saving work order with data:", dataToSave);
@@ -649,7 +649,7 @@ export default observer(function WorkOrderPage() {
         ...latestData,
         step: newStep,
         end_date: currentDate,
-        wo_status: newStep.toString() === "Step 5" ? "In warehouse" : "Work in progress"
+        wo_status: newStep.toString() === "Step 5" ? "Finished goods" : "Work in progress"
       };
 
       console.log("Saving drag-drop change:", dataToSave);
