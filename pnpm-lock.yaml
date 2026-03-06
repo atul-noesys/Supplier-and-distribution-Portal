@@ -1584,8 +1584,8 @@ packages:
       tslib: 2.8.1
     dev: false
 
-  /@dotenvx/dotenvx@1.52.0:
-    resolution: {integrity: sha512-CaQcc8JvtzQhUSm9877b6V4Tb7HCotkcyud9X2YwdqtQKwgljkMRwU96fVYKnzN3V0Hj74oP7Es+vZ0mS+Aa1w==}
+  /@dotenvx/dotenvx@1.53.0:
+    resolution: {integrity: sha512-OnsVuJ5O2WCUMXBnyuYah08/I6Tnt1FEZ2PGH9skSRuRh3LK5UoGa6Bzi5Toj/F/0mbeFfv+eNKTsYRoGgRh3Q==}
     hasBin: true
     dependencies:
       commander: 11.1.0
@@ -2347,7 +2347,7 @@ packages:
       - supports-color
     dev: false
 
-  /@infoveave/i18n-core@7.1.1(react-dom@19.2.4)(react-i18next@16.5.4)(react@19.2.4)(typescript@5.9.3):
+  /@infoveave/i18n-core@7.1.1(react-dom@19.2.4)(react-i18next@16.5.5)(react@19.2.4)(typescript@5.9.3):
     resolution: {integrity: sha512-ZkTwRmQyMvvJZgYWXmvR7ctbonGS6PTLdb9s3ohRBdMukvOeB5GCdlElrTx42MytZ4S3YL83ys8iqD+Z0bLCDA==, tarball: https://npm.pkg.github.com/download/@infoveave/i18n-core/7.1.1/6d03d0075e65e4dd60d3f68d5a38fff1b076e9cb}
     peerDependencies:
       react: ^18.2 || ^19.2
@@ -2358,7 +2358,7 @@ packages:
       i18next-browser-languagedetector: 8.2.1
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
-      react-i18next: 16.5.4(i18next@25.8.14)(react-dom@19.2.4)(react@19.2.4)(typescript@5.9.3)
+      react-i18next: 16.5.5(i18next@25.8.14)(react-dom@19.2.4)(react@19.2.4)(typescript@5.9.3)
     transitivePeerDependencies:
       - typescript
     dev: false
@@ -2392,7 +2392,7 @@ packages:
       tailwind-merge: ^3.4.0
       tinycolor2: ^1.6.0
     dependencies:
-      '@infoveave/i18n-core': 7.1.1(react-dom@19.2.4)(react-i18next@16.5.4)(react@19.2.4)(typescript@5.9.3)
+      '@infoveave/i18n-core': 7.1.1(react-dom@19.2.4)(react-i18next@16.5.5)(react@19.2.4)(typescript@5.9.3)
       '@infoveave/icon-library': 7.1.1(react-dom@19.2.4)(react@19.2.4)
       '@infoveave/ui-primitives': 7.1.2(@base-ui/react@1.2.0)(@infoveave/i18n-core@7.1.1)(@infoveave/icon-library@7.1.1)(class-variance-authority@0.7.1)(clsx@2.1.1)(cmdk@1.1.1)(motion@12.35.0)(react-dom@19.2.4)(react@19.2.4)(shadcn@3.8.5)(tailwind-merge@2.6.1)(tw-animate-css@1.4.0)
       '@tanstack/react-virtual': 3.13.19(react-dom@19.2.4)(react@19.2.4)
@@ -2423,7 +2423,7 @@ packages:
       tw-animate-css: ^1.4.0
     dependencies:
       '@base-ui/react': 1.2.0(@types/react@19.2.10)(react-dom@19.2.4)(react@19.2.4)
-      '@infoveave/i18n-core': 7.1.1(react-dom@19.2.4)(react-i18next@16.5.4)(react@19.2.4)(typescript@5.9.3)
+      '@infoveave/i18n-core': 7.1.1(react-dom@19.2.4)(react-i18next@16.5.5)(react@19.2.4)(typescript@5.9.3)
       '@infoveave/icon-library': 7.1.1(react-dom@19.2.4)(react@19.2.4)
       class-variance-authority: 0.7.1
       clsx: 2.1.1
@@ -2544,7 +2544,7 @@ packages:
       eventsource: 3.0.7
       eventsource-parser: 3.0.6
       express: 5.2.1
-      express-rate-limit: 8.2.1(express@5.2.1)
+      express-rate-limit: 8.3.0(express@5.2.1)
       hono: 4.12.5
       jose: 6.2.0
       json-schema-typed: 8.0.2
@@ -5750,14 +5750,14 @@ packages:
     engines: {node: '>=6'}
     dev: true
 
-  /express-rate-limit@8.2.1(express@5.2.1):
-    resolution: {integrity: sha512-PCZEIEIxqwhzw4KF0n7QF4QqruVTcF73O5kFKUnGOyjbCCgizBBiFaYpd/fnBLUMPw/BWw9OsiN7GgrNYr7j6g==}
+  /express-rate-limit@8.3.0(express@5.2.1):
+    resolution: {integrity: sha512-KJzBawY6fB9FiZGdE/0aftepZ91YlaGIrV8vgblRM3J8X+dHx/aiowJWwkx6LIGyuqGiANsjSwwrbb8mifOJ4Q==}
     engines: {node: '>= 16'}
     peerDependencies:
       express: '>= 4.11'
     dependencies:
       express: 5.2.1
-      ip-address: 10.0.1
+      ip-address: 10.1.0
     dev: false
 
   /express@5.2.1:
@@ -6462,8 +6462,8 @@ packages:
       side-channel: 1.1.0
     dev: true
 
-  /ip-address@10.0.1:
-    resolution: {integrity: sha512-NWv9YLW4PoW2B7xtzaS3NCot75m6nK7Icdv0o3lfMceJVRfSoQwqD4wEH5rLwoKJwUiZ/rfpiVBhnaF0FK4HoA==}
+  /ip-address@10.1.0:
+    resolution: {integrity: sha512-XXADHxXmvT9+CRxhXg56LJovE+bmWnEWB78LB83VZTprKTmaC5QfruXocxzTZ2Kl0DNwKuBdlIhjL8LeY8Sf8Q==}
     engines: {node: '>= 12'}
     dev: false
 
@@ -8451,8 +8451,8 @@ packages:
       react: 19.2.4
     dev: false
 
-  /react-i18next@16.5.4(i18next@25.8.14)(react-dom@19.2.4)(react@19.2.4)(typescript@5.9.3):
-    resolution: {integrity: sha512-6yj+dcfMncEC21QPhOTsW8mOSO+pzFmT6uvU7XXdvM/Cp38zJkmTeMeKmTrmCMD5ToT79FmiE/mRWiYWcJYW4g==}
+  /react-i18next@16.5.5(i18next@25.8.14)(react-dom@19.2.4)(react@19.2.4)(typescript@5.9.3):
+    resolution: {integrity: sha512-5Z35e2JMALNR16FK/LDNQoAatQTVuO/4m4uHrIzewOPXIyf75gAHzuNLSWwmj5lRDJxDvXRJDECThkxWSAReng==}
     peerDependencies:
       i18next: '>= 25.6.2'
       react: '>= 16.8.0'
@@ -8941,7 +8941,7 @@ packages:
       '@babel/parser': 7.29.0
       '@babel/plugin-transform-typescript': 7.28.6(@babel/core@7.29.0)
       '@babel/preset-typescript': 7.28.5(@babel/core@7.29.0)
-      '@dotenvx/dotenvx': 1.52.0
+      '@dotenvx/dotenvx': 1.53.0
       '@modelcontextprotocol/sdk': 1.27.1(zod@3.25.76)
       '@types/validate-npm-package-name': 4.0.2
       browserslist: 4.28.1
