@@ -15,14 +15,14 @@ import { Select, TextInput } from "@/components/ui";
  * Removes undefined values and ensures type compatibility
  */
 const toRowData = (record: KeyValueRecord): RowData => {
-  const rowData: RowData = {};
-  Object.keys(record).forEach((key) => {
-    const value = record[key];
-    if (value !== null && value !== undefined && value !== '') {
-      rowData[key] = typeof value === 'boolean' ? (value ? 1 : 0) : value;
-    }
-  });
-  return rowData;
+    const rowData: RowData = {};
+    Object.keys(record).forEach((key) => {
+        const value = record[key];
+        if (value !== null && value !== undefined && value !== '') {
+            rowData[key] = typeof value === 'boolean' ? (value ? 1 : 0) : value;
+        }
+    });
+    return rowData;
 };
 
 interface AddPOItemModalProps {
@@ -133,9 +133,9 @@ function AddPOItemModalContent({
         const files = e.target.files;
         if (files && files.length > 0) {
             const fileArray = Array.from(files);
-            
+
             setIsUploadingDocument(true);
-            
+
             try {
                 const uploadFiles = async () => {
                     const uploadResult = await nguageStore.UploadMultipleMedia(fileArray);
@@ -220,9 +220,9 @@ function AddPOItemModalContent({
 
                 // Store the rowId from response
                 // API returns { data: rowId, message: "..." }
-                const rowId = typeof result.result === 'object' && result.result !== null 
-                  ? (result.result as any).data 
-                  : result.result;
+                const rowId = typeof result.result === 'object' && result.result !== null
+                    ? (result.result as any).data
+                    : result.result;
 
                 const itemWithRowId: POItem = {
                     ...formData,
@@ -262,10 +262,10 @@ function AddPOItemModalContent({
                 }
 
                 // Extract key-value data excluding rowId
-                const itemToUpdate = toRowData({...formData, rowId: undefined});
+                const itemToUpdate = toRowData({ ...formData, rowId: undefined });
 
-                const rowIdString = typeof formData.rowId === 'string' || typeof formData.rowId === 'number' 
-                    ? String(formData.rowId) 
+                const rowIdString = typeof formData.rowId === 'string' || typeof formData.rowId === 'number'
+                    ? String(formData.rowId)
                     : '';
 
                 if (!rowIdString) {
@@ -341,7 +341,7 @@ function AddPOItemModalContent({
                                         type="text"
                                         value={String(formData.item ?? '')}
                                         disabled
-                                        onValueChange={() => {}}
+                                        onValueChange={() => { }}
                                     />
                                 </div>
 
@@ -352,7 +352,7 @@ function AddPOItemModalContent({
                                         type="text"
                                         value={formData.unit_price ? `$${parseFloat(String(formData.unit_price)).toFixed(2)}` : '$0.00'}
                                         disabled
-                                        onValueChange={() => {}}
+                                        onValueChange={() => { }}
                                     />
                                 </div>
 
@@ -374,7 +374,7 @@ function AddPOItemModalContent({
                                         type="text"
                                         disabled
                                         value={formData.total ? `$${parseFloat(String(formData.total)).toFixed(2)}` : '$0.00'}
-                                        onValueChange={() => {}}
+                                        onValueChange={() => { }}
                                     />
                                 </div>
 
@@ -384,7 +384,7 @@ function AddPOItemModalContent({
                                         type="text"
                                         disabled
                                         value={String(formData.po_number ?? '')}
-                                        onValueChange={() => {}}
+                                        onValueChange={() => { }}
                                     />
                                 </div>
 
@@ -395,7 +395,7 @@ function AddPOItemModalContent({
                                         type="text"
                                         disabled
                                         value={String(formData.po_status ?? '')}
-                                        onValueChange={() => {}}
+                                        onValueChange={() => { }}
                                     />
                                 </div>
 
@@ -406,7 +406,7 @@ function AddPOItemModalContent({
                                         type="text"
                                         disabled
                                         value={String(formData.supplier_id ?? '')}
-                                        onValueChange={() => {}}
+                                        onValueChange={() => { }}
                                     />
                                 </div>
 
@@ -417,7 +417,7 @@ function AddPOItemModalContent({
                                         type="text"
                                         disabled
                                         value={String(formData.supplier_name ?? '')}
-                                        onValueChange={() => {}}
+                                        onValueChange={() => { }}
                                     />
                                 </div>
 
@@ -455,15 +455,12 @@ function AddPOItemModalContent({
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Remarks
-                                    </label>
-                                    <textarea
-                                        value={String(formData.remarks ?? '')}
-                                        onChange={(e) => handleInputChange('remarks', e.target.value)}
-                                        className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                                    <TextInput
+                                        label="Remarks"
+                                        type="text"
                                         placeholder="Enter remarks"
-                                        rows={1}
+                                        value={String(formData.remarks ?? '')}
+                                        onValueChange={(value) => handleInputChange("remarks", value)}
                                     />
                                 </div>
                             </div>

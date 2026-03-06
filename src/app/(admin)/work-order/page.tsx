@@ -1321,9 +1321,9 @@ export default observer(function WorkOrderPage() {
       {/* Timeline Modal */}
       {isTimelineModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden border border-gray-100 dark:border-gray-800">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden border border-gray-100 dark:border-gray-800">
             {/* Modal Header with Gradient */}
-            <div className="relative px-6 py-3">
+            <div className="relative px-5 py-2 border-b border-gray-300">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-800/20 backdrop-blur-sm">
