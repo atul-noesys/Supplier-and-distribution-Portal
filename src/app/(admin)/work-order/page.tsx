@@ -684,10 +684,14 @@ export default observer(function WorkOrderPage() {
       const today = new Date();
       const currentDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
+      // Get the new step name for the new step
+      const newStepName = getStepNameForItemCodeAndStep(String(latestData.item_code), newStep);
+
       // Prepare data with new step and current date
       const dataToSave = {
         ...latestData,
         step: newStep,
+        step_name: newStepName,
         end_date: currentDate,
         wo_status: newStep.toString() === "Step 5" ? "Finished goods" : "Work in progress"
       };
@@ -908,6 +912,35 @@ export default observer(function WorkOrderPage() {
       }
     },
     [getStepNameForStep]
+  );
+
+  // Function to get step name for any item_code and step value (for drag-drop operations)
+  const getStepNameForItemCodeAndStep = useCallback(
+    (itemCode: string, stepValue: string): string | null => {
+      if (!itemCode || !stepValue) {
+        return null;
+      }
+
+      // Extract sequence number from step value (e.g., "Step 1" -> 1)
+      const sequenceMatch = stepValue.match(/\d+/);
+      if (!sequenceMatch) return null;
+
+      const sequence = parseInt(sequenceMatch[0], 10);
+
+      // Filter steps by item_code and find the matching sequence
+      const steps = Array.isArray(itemProcessSteps) ? itemProcessSteps : [];
+      const matchingStep = steps.find((step: any) =>
+        String(step.item_code || "").toLowerCase() === String(itemCode || "").toLowerCase() &&
+        step.sequence === sequence
+      );
+
+      if (!matchingStep) return null;
+
+      // Look up the step name using item_process_id
+      const processId = String(matchingStep.item_process_id || "");
+      return processNameMap.get(processId) || null;
+    },
+    [itemProcessSteps, processNameMap]
   );
 
   if (error) {
