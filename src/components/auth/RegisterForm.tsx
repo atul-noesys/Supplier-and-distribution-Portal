@@ -100,7 +100,7 @@ export default observer(function RegisterForm() {
     setSubmitMessage(null);
 
     try {
-      const result = await nguageStore.AddRowData({
+      const result = await nguageStore.RegisterSupplier({
         "company_name": formData.companyName,
         "business_address": formData.businessAddress,
         "industry": formData.industry,
@@ -114,7 +114,7 @@ export default observer(function RegisterForm() {
         "approved": 0,
         "user_registration_date": new Date().toISOString().split('T')[0],
         "is_account_created": "false",
-        "vendor_type": "Raw Material",
+        "supplier_type": "Raw Material",
       }, 31, "userregistration");
 
       if (result.result) {

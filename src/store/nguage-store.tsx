@@ -2,6 +2,7 @@ import { axios, AxiosResponse, authConfig } from "./axios";
 import { makeAutoObservable } from "mobx";
 import Uppy from "@uppy/core";
 import Tus from "@uppy/tus";
+import pkg from "../../package.json";
 
 interface InfoboardFromAPI {
   id: number;
@@ -152,7 +153,7 @@ export class NguageStore {
       if (typeof window !== "undefined") {
         token = localStorage.getItem("access_token");
       }
-      
+
       const formData = new FormData();
       files.forEach((file) => {
         formData.append("files", file);
@@ -235,6 +236,61 @@ export class NguageStore {
       return {
         result: null,
         error: (e as { data: { ref: string } }).data.ref ?? "",
+      };
+    }
+  }
+
+  async RegisterSupplier(
+    rowData: RowData,
+    tableNumber: number,
+    tableName: string,
+  ): Promise<{ result: string | null; error: string }> {
+    try {
+      const CLIENT_ID = "nooms|register";
+      const CLIENT_SECRET = "71950db9-49d0-4484-824a-d5f590d4cf5a";
+
+      const tokenResponse = await axios.post(
+        "https://nooms.infoveave.app/connect/token",
+        {
+          grant_type: "client_credentials",
+          client_id: CLIENT_ID,
+          client_secret: CLIENT_SECRET,
+        },
+        {
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+        },
+      );
+
+      const accessToken = tokenResponse.data?.access_token;
+      if (!accessToken) {
+        throw new Error("Failed to obtain access token");
+      }
+
+      // Step 2: Call the actual API with the obtained token
+      const { data }: AxiosResponse<string> = await axios.post(
+        `https://nooms.infoveave.app/api/v10/ngauge/forms/${tableNumber}/row`,
+        {
+          tableName,
+          rowData,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+            "x-web-app": "Infoveave",
+            "x-web-app-version": pkg.version,
+          },
+        },
+      );
+
+      return { result: data, error: "" };
+    } catch (e) {
+      const errRef = (e as any)?.response?.data?.ref ?? "";
+      return {
+        result: null,
+        error: errRef,
       };
     }
   }
