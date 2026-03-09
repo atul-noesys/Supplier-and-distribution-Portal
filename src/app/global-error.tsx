@@ -1,6 +1,6 @@
-'use client';
-
 export const runtime = 'edge';
+
+import GlobalErrorResetButton from '../components/GlobalErrorResetButton';
 
 export default function GlobalError({
   error,
@@ -14,7 +14,7 @@ export default function GlobalError({
       <body>
         <div style={{ padding: '20px', textAlign: 'center' }}>
           <h2>Something went wrong!</h2>
-          <button onClick={() => reset()}>Try again</button>
+          <GlobalErrorResetButton reset={reset} />
         </div>
       </body>
     </html>
