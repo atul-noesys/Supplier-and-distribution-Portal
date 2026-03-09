@@ -24,13 +24,13 @@ export const WarehousePage: React.FC = () => {
     isLoading: itemsLoading,
     error: itemsQueryError,
   } = useQuery({
-    queryKey: ['toy_products'],
+    queryKey: ['item_warehouse'],
     queryFn: async (): Promise<ItemData[]> => {
       const pagination = await nguageStore.GetPaginationData({
-        table: 'toy_products',
+        table: 'item_warehouse',
         skip: 0,
         take: 30000,
-        NGaugeId: '56',
+        NGaugeId: '57',
       });
       const result = Array.isArray(pagination) ? pagination : pagination?.data || [];
       return result as ItemData[];

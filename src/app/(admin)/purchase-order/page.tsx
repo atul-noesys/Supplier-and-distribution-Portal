@@ -252,6 +252,77 @@ export default observer(function PurchaseOrderPage() {
     enabled: !!authToken,
   });
 
+  // Fetch item process data
+  const { data: itemProcesses = [] } = useQuery({
+    queryKey: ["itemProcesses", authToken],
+    queryFn: async () => {
+      try {
+        const response = await nguageStore.GetPaginationData({
+          table: "item_process",
+          skip: 0,
+          take: 500,
+          NGaugeId: "58",
+        });
+        return response?.data || response || [];
+      } catch (err) {
+        console.error("Error fetching item_process:", err);
+        return [];
+      }
+    },
+    staleTime: 0,
+    enabled: !!authToken,
+  });
+
+  // Fetch item process steps data
+  const { data: itemProcessSteps = [] } = useQuery({
+    queryKey: ["itemProcessSteps", authToken],
+    queryFn: async () => {
+      try {
+        const response = await nguageStore.GetPaginationData({
+          table: "item_process_steps",
+          skip: 0,
+          take: 1000,
+          NGaugeId: "60",
+        });
+        return response?.data || response || [];
+      } catch (err) {
+        console.error("Error fetching item_process_steps:", err);
+        return [];
+      }
+    },
+    staleTime: 0,
+    enabled: !!authToken,
+  });
+
+  // Create a map of item_process_id to item_process_name
+  const processNameMap = useRef(new Map<string, string>()).current;
+  useEffect(() => {
+    const processes = Array.isArray(itemProcesses) ? itemProcesses : [];
+    processes.forEach((proc: any) => {
+      if (proc.item_process_id && proc.item_process_name) {
+        processNameMap.set(String(proc.item_process_id), String(proc.item_process_name));
+      }
+    });
+  }, [itemProcesses, processNameMap]);
+
+  // Function to get step name for a given item_code and sequence
+  const getStepNameForItemCode = useCallback(
+    (itemCode: string, sequence: number = 1): string | null => {
+      const steps = Array.isArray(itemProcessSteps) ? itemProcessSteps : [];
+      
+      const matchingStep = steps.find((step: any) =>
+        String(step.item_code || "").toLowerCase() === String(itemCode || "").toLowerCase() &&
+        step.sequence === sequence
+      );
+
+      if (!matchingStep) return null;
+
+      const processId = String(matchingStep.item_process_id || "");
+      return processNameMap.get(processId) || null;
+    },
+    [itemProcessSteps, processNameMap]
+  );
+
   // Function to highlight search term in text
   const highlightText = (text: string | null | undefined, highlight: string) => {
     if (!text) return text;
@@ -379,7 +450,7 @@ export default observer(function PurchaseOrderPage() {
       const payloadForWorkOrder = {
         ...latestRowData,
         step: "Step 1",
-        step_name: null,
+        step_name: getStepNameForItemCode(String(item.item_code), 1),
         document: null,
         remarks: "",
         start_date: new Date().toISOString().split('T')[0],
@@ -479,7 +550,7 @@ export default observer(function PurchaseOrderPage() {
           const payloadForWorkOrder = {
             ...latestRowData,
             step: "Step 1",
-            step_name: null,
+            step_name: getStepNameForItemCode(String(item.item_code), 1),
             document: null,
             remarks: "",
             start_date: new Date().toISOString().split('T')[0],

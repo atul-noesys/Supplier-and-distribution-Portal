@@ -179,6 +179,46 @@ export default observer(function WorkOrderPage() {
     setCurrentPage(1);
   };
 
+  const { data: itemProcesses = [] } = useQuery({
+    queryKey: ["itemProcesses", authToken],
+    queryFn: async () => {
+      try {
+        const response = await nguageStore.GetPaginationData({
+          table: "item_process",
+          skip: 0,
+          take: 500,
+          NGaugeId: "58",
+        });
+        return response?.data || response || [];
+      } catch (err) {
+        console.error("Error fetching item_process:", err);
+        return [];
+      }
+    },
+    staleTime: 0,
+    enabled: !!authToken,
+  });
+
+  const { data: itemProcessSteps = [] } = useQuery({
+    queryKey: ["itemProcessSteps", authToken],
+    queryFn: async () => {
+      try {
+        const response = await nguageStore.GetPaginationData({
+          table: "item_process_steps",
+          skip: 0,
+          take: 1000,
+          NGaugeId: "60",
+        });
+        return response?.data || response || [];
+      } catch (err) {
+        console.error("Error fetching item_process_steps:", err);
+        return [];
+      }
+    },
+    staleTime: 0,
+    enabled: !!authToken,
+  });
+
   // Fetch PO items data
   const { data: poItemsData = [] } = useQuery({
     queryKey: ["poItemsForKanban", authToken],
@@ -419,11 +459,11 @@ export default observer(function WorkOrderPage() {
             const changes = item.values
               .map((v: any) => {
                 const displayKey = v.key.replace(/_/g, ' ').split(' ').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-                
+
                 // Extract filenames if this is a document field
                 let oldVal = v.oldValue === "" ? "(empty)" : String(v.oldValue);
                 let newVal = v.newValue === "" ? "(empty)" : String(v.newValue);
-                
+
                 if (v.key === 'document') {
                   oldVal = oldVal === "(empty)" ? "(empty)" : extractFilenames(oldVal);
                   newVal = newVal === "(empty)" ? "(empty)" : extractFilenames(newVal);
@@ -431,7 +471,7 @@ export default observer(function WorkOrderPage() {
                   oldVal = oldVal.substring(0, 40) + (oldVal.length > 40 ? "..." : "");
                   newVal = newVal.substring(0, 40) + (newVal.length > 40 ? "..." : "");
                 }
-                
+
                 return { key: displayKey, oldValue: v.oldValue, newValue: v.newValue, oldVal, newVal };
               });
 
@@ -524,7 +564,7 @@ export default observer(function WorkOrderPage() {
       setHasEditFormChanged(true);
       hasEditFormChangedRef.current = true;
 
-        try {
+      try {
         const uploadResult = await nguageStore.UploadMultipleMedia(files);
         console.log("Upload result:", uploadResult);
 
@@ -743,6 +783,133 @@ export default observer(function WorkOrderPage() {
     return undefined;
   })();
 
+  // Get all steps for the current item_code, sorted by sequence
+  const availableSteps = useMemo(() => {
+    if (!editFormData?.item_code) {
+      return [];
+    }
+
+    // Handle both array and PaginationData formats
+    const steps = Array.isArray(itemProcessSteps) ? itemProcessSteps : [];
+    if (steps.length === 0) {
+      return [];
+    }
+
+    // Filter steps by item_code and sort by sequence
+    return steps
+      .filter((step: any) =>
+        String(step.item_code || "").toLowerCase() === String(editFormData.item_code || "").toLowerCase()
+      )
+      .sort((a: any, b: any) => (a.sequence || 0) - (b.sequence || 0));
+  }, [editFormData?.item_code, itemProcessSteps]);
+
+  // Generate step options for the Step dropdown
+  const stepOptions = useMemo(() => {
+    if (availableSteps.length === 0) {
+      // Fallback to default steps if no dynamic data available
+      return [
+        { label: "Step 1", value: "Step 1" },
+        { label: "Step 2", value: "Step 2" },
+        { label: "Step 3", value: "Step 3" },
+        { label: "Step 4", value: "Step 4" },
+        { label: "Step 5", value: "Step 5" },
+      ];
+    }
+
+    return availableSteps.map((step: any) => ({
+      label: `Step ${step.sequence}`,
+      value: `Step ${step.sequence}`,
+    }));
+  }, [availableSteps]);
+
+  // Create a map of item_process_id to item_process_name from itemProcesses table
+  const processNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    const processes = Array.isArray(itemProcesses) ? itemProcesses : [];
+    
+    processes.forEach((proc: any) => {
+      if (proc.item_process_id && proc.item_process_name) {
+        map.set(String(proc.item_process_id), String(proc.item_process_name));
+      }
+    });
+
+    return map;
+  }, [itemProcesses]);
+
+  // Generate step name options for the Step Name dropdown
+  const stepNameOptions = useMemo(() => {
+    if (availableSteps.length === 0) {
+      // Fallback to default step names if no dynamic data available
+      return [
+        { label: "Painting", value: "Painting" },
+        { label: "Welding", value: "Welding" },
+        { label: "Fitting", value: "Fitting" },
+        { label: "Filing", value: "Filing" },
+        { label: "Drilling", value: "Drilling" },
+        { label: "Casting", value: "Casting" },
+      ];
+    }
+
+    // Create unique step names from available steps using item_process_id lookup
+    const nameSet = new Set<string>();
+    availableSteps.forEach((step: any) => {
+      const processId = String(step.item_process_id || "");
+      const stepName = processNameMap.get(processId);
+      
+      if (stepName) {
+        nameSet.add(stepName);
+      }
+    });
+
+    console.log("Extracted step names from itemProcesses:", Array.from(nameSet));
+
+    return Array.from(nameSet).map((name) => ({
+      label: name,
+      value: name,
+    }));
+  }, [availableSteps, processNameMap]);
+
+  // Get the step name for a given step value
+  const getStepNameForStep = useCallback(
+    (stepValue: string): string | null => {
+      if (!availableSteps || availableSteps.length === 0) {
+        return null;
+      }
+
+      // Extract sequence number from step value (e.g., "Step 1" -> 1)
+      const sequenceMatch = stepValue.match(/\d+/);
+      if (!sequenceMatch) return null;
+
+      const sequence = parseInt(sequenceMatch[0], 10);
+      const step = availableSteps.find((s: any) => s.sequence === sequence);
+
+      if (!step) return null;
+
+      // Look up the item_process_name using item_process_id
+      const processId = String(step.item_process_id || "");
+      const stepName = processNameMap.get(processId);
+
+      return stepName || null;
+    },
+    [availableSteps, processNameMap]
+  );
+
+  // Enhanced handleEditFormChange to auto-populate step_name when step changes
+  const handleEditFormChangeEnhanced = useCallback(
+    (field: string, value: string) => {
+      handleEditFormChange(field, value);
+
+      // Auto-populate step_name when step changes
+      if (field === "step") {
+        const stepName = getStepNameForStep(value);
+        if (stepName) {
+          handleEditFormChange("step_name", stepName);
+        }
+      }
+    },
+    [getStepNameForStep]
+  );
+
   if (error) {
     return (
       <div className="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
@@ -786,8 +953,8 @@ export default observer(function WorkOrderPage() {
                 <button
                   onClick={() => setViewMode("kanban")}
                   className={`p-1.5 rounded-full transition-all ${viewMode === "kanban"
-                      ? "bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
+                    ? "bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
                     }`}
                   title="Kanban view"
                 >
@@ -796,8 +963,8 @@ export default observer(function WorkOrderPage() {
                 <button
                   onClick={() => setViewMode("table")}
                   className={`p-1.5 rounded-full transition-all ${viewMode === "table"
-                      ? "bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
+                    ? "bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
                     }`}
                   title="Table view"
                 >
@@ -945,11 +1112,10 @@ export default observer(function WorkOrderPage() {
                         <button
                           onClick={() => handleViewTimeline(item.step_history as string | null, `${item.po_number}${item.item_code}`)}
                           disabled={!item.step_history}
-                          className={`flex justify-center items-center ml-4 transition-colors ${
-                            item.step_history
+                          className={`flex justify-center items-center ml-4 transition-colors ${item.step_history
                               ? "text-blue-600 dark:text-blue-400 cursor-pointer"
                               : "text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50"
-                          }`}
+                            }`}
                           title={item.step_history ? "View Timeline" : "No timeline data"}
                         >
                           <MdDateRange className="w-5 h-5" />
@@ -1070,7 +1236,7 @@ export default observer(function WorkOrderPage() {
                         type="text"
                         disabled
                         value={displayValue}
-                        onValueChange={() => {}}
+                        onValueChange={() => { }}
                       />
                     </div>
                   );
@@ -1118,7 +1284,7 @@ export default observer(function WorkOrderPage() {
                     type="text"
                     disabled
                     value={String(selectedWorkOrder.workOrderId || selectedWorkOrder[Object.keys(selectedWorkOrder).find(k => k.startsWith("{")) || ""] || "-")}
-                    onValueChange={() => {}}
+                    onValueChange={() => { }}
                   />
                 </div>
 
@@ -1129,7 +1295,7 @@ export default observer(function WorkOrderPage() {
                     type="text"
                     disabled
                     value={String(editFormData.item_code || "-")}
-                    onValueChange={() => {}}
+                    onValueChange={() => { }}
                   />
                 </div>
 
@@ -1140,7 +1306,7 @@ export default observer(function WorkOrderPage() {
                     type="text"
                     disabled
                     value={String(editFormData.item || "-")}
-                    onValueChange={() => {}}
+                    onValueChange={() => { }}
                   />
                 </div>
 
@@ -1151,7 +1317,7 @@ export default observer(function WorkOrderPage() {
                     type="text"
                     disabled
                     value={String(editFormData.supplier_name || "-")}
-                    onValueChange={() => {}}
+                    onValueChange={() => { }}
                   />
                 </div>
 
@@ -1162,7 +1328,7 @@ export default observer(function WorkOrderPage() {
                     type="text"
                     disabled
                     value={String(editFormData.po_number || "-")}
-                    onValueChange={() => {}}
+                    onValueChange={() => { }}
                   />
                 </div>
 
@@ -1173,7 +1339,7 @@ export default observer(function WorkOrderPage() {
                     type="text"
                     disabled
                     value={formatDate(String(editFormData.start_date || ""))}
-                    onValueChange={() => {}}
+                    onValueChange={() => { }}
                   />
                 </div>
 
@@ -1184,7 +1350,7 @@ export default observer(function WorkOrderPage() {
                     type="text"
                     disabled
                     value={formatDate(String(editFormData.end_date || ""))}
-                    onValueChange={() => {}}
+                    onValueChange={() => { }}
                   />
                 </div>
 
@@ -1193,34 +1359,19 @@ export default observer(function WorkOrderPage() {
                   <Select
                     label="Step"
                     value={String(editFormData.step || "")}
-                    onChange={(v) => handleEditFormChange("step", v ?? "")}
-                    data={[
-                      { label: "Step 1", value: "Step 1" },
-                      { label: "Step 2", value: "Step 2" },
-                      { label: "Step 3", value: "Step 3" },
-                      { label: "Step 4", value: "Step 4" },
-                      { label: "Step 5", value: "Step 5" },
-                    ]}
+                    onChange={(v) => handleEditFormChangeEnhanced("step", v ?? "")}
+                    data={stepOptions}
                   />
                 </div>
 
                 {/* Step Name - Editable Dropdown */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Step Name
-                  </label>
                   <Select
-                    // label="Step Name"
+                    label="Step Name"
                     value={String(editFormData.step_name || "")}
                     onChange={(v) => handleEditFormChange("step_name", v ?? "")}
-                    data={[
-                      { label: "Painting", value: "Painting" },
-                      { label: "Welding", value: "Welding" },
-                      { label: "Fitting", value: "Fitting" },
-                      { label: "Filing", value: "Filing" },
-                      { label: "Drilling", value: "Drilling" },
-                      { label: "Casting", value: "Casting" },
-                    ]}
+                    data={stepNameOptions}
+                    disabled
                   />
                 </div>
 
@@ -1231,7 +1382,7 @@ export default observer(function WorkOrderPage() {
                     type="text"
                     disabled
                     value={String(editFormData.wo_status || "-")}
-                    onValueChange={() => {}}
+                    onValueChange={() => { }}
                   />
                 </div>
 
@@ -1269,16 +1420,6 @@ export default observer(function WorkOrderPage() {
 
                 {/* Remarks - Textarea (Full Width) */}
                 <div>
-                  {/* <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Remarks
-                  </label>
-                  <textarea
-                    value={String(editFormData.remarks || "")}
-                    onChange={(e) => handleEditFormChange("remarks", e.target.value)}
-                    rows={1}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none resize-none"
-                    placeholder="Enter any remarks here..."
-                  /> */}
                   <TextInput
                     label="Remarks"
                     type="text"
