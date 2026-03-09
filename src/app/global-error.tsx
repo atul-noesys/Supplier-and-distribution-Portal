@@ -1,3 +1,5 @@
+"use client";
+
 export const runtime = 'edge';
 
 import GlobalErrorResetButton from '../components/GlobalErrorResetButton';
