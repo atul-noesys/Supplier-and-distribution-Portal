@@ -113,7 +113,8 @@ export default observer(function RegisterForm() {
         "phone_number": formData.phoneNumber,
         "approved": 0,
         "user_registration_date": new Date().toISOString().split('T')[0],
-        "is_account_created": "false"
+        "is_account_created": "false",
+        "vendor_type": "Raw Material",
       }, 31, "userregistration");
 
       if (result.result) {
