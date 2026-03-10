@@ -7,6 +7,27 @@ import AppHeader from "@/layout/AppHeader";
 import AppSidebar from "@/layout/AppSidebar";
 import Backdrop from "@/layout/Backdrop";
 import React, { useEffect } from "react";
+import { initializeI18n } from "@infoveave/i18n-core";
+import { configurePdfWorker } from "@infoveave/document-viewers";
+// import { pdfjs } from "react-pdf";
+
+// initialize i18n
+await initializeI18n();
+
+// PDF worker
+await configurePdfWorker({
+  workerSrc: "/v8/pdf/build/pdf.worker.min.mjs",
+  cmapUrl: "/v8/pdf/cmaps/",
+  standardFontDataUrl: "/v8/pdf/standard_fonts/",
+  wasmUrl: "/v8/pdf/wasm/",
+});
+
+// configurePdfWorker({
+//   workerSrc: "https://unpkg.com/pdfjs-dist@" + pdfjs.version + "/build/pdf.worker.min.mjs",
+//   cmapUrl: "https://unpkg.com/pdfjs-dist@" + pdfjs.version + "/cmaps/",
+//   standardFontDataUrl: "https://unpkg.com/pdfjs-dist@" + pdfjs.version + "/standard_fonts/",
+//   wasmUrl: "https://unpkg.com/pdfjs-dist@" + pdfjs.version + "/wasm/",
+// });
 
 export default function AdminLayout({
   children,

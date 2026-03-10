@@ -3,6 +3,7 @@
 import { MdClose, MdHistory, MdExpandLess, MdExpandMore } from "react-icons/md";
 import { FaFilePdf  } from "react-icons/fa";
 import { PDFPreview } from "@/components/pdf-preview";
+import { PdfViewer } from "@infoveave/document-viewers";
 import { useState, useEffect } from "react";
 
 interface StepHistoryVersion {
@@ -348,9 +349,8 @@ export default function PDFViewerModal({
                     </div>
                   ) : pdfUrl ? (
                     <div className="w-full h-full">
-                      <PDFPreview
-                        pdfUrl={pdfUrl}
-                        docName={currentDocument || ""}
+                      <PdfViewer
+                        file={pdfUrl}
                       />
                     </div>
                   ) : (
@@ -369,7 +369,7 @@ export default function PDFViewerModal({
               <div className={`border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 overflow-hidden flex flex-col rounded-b-lg transition-all duration-300 ease-in-out ${
                 isVersionCollapsed ? 'h-8' : (documentsForDisplay.length > 0 ? 'flex-[0.35]' : 'flex-1')
               }`}>
-                <div className={`flex justify-between items-center px-4 ${documentsForDisplay.length > 0 ? 'py-1' : 'py-3'} border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors flex-shrink-0`} onClick={() => setIsVersionCollapsed(!isVersionCollapsed)}>
+                <div className={`flex justify-between items-center px-4 ${documentsForDisplay.length > 0 ? 'py-1' : 'py-3'} border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors shrink-0`} onClick={() => setIsVersionCollapsed(!isVersionCollapsed)}>
                   <h3 className="text-md font-semibold text-blue-800 dark:text-gray-300">
                     Version {selectedVersionIndex + 1}
                   </h3>
@@ -391,8 +391,8 @@ export default function PDFViewerModal({
                 }`}>
                   <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden flex flex-col min-h-0">
                     {/* Header */}
-                    <div className="sticky top-0 bg-linear-to-r from-blue-700 to-blue-800 dark:from-blue-800 dark:to-blue-900 z-10 flex flex-shrink-0">
-                      <div className="px-2 py-2.5 text-left text-xs font-semibold text-white uppercase tracking-wide border border-blue-500 w-40 flex-shrink-0">Field</div>
+                    <div className="sticky top-0 bg-linear-to-r from-blue-700 to-blue-800 dark:from-blue-800 dark:to-blue-900 z-10 flex shrink-0">
+                      <div className="px-2 py-2.5 text-left text-xs font-semibold text-white uppercase tracking-wide border border-blue-500 w-40 shrink-0">Field</div>
                       <div className="px-4 py-2.5 text-left text-xs font-semibold text-white uppercase tracking-wide border border-blue-500 flex-1">Previous</div>
                       <div className="px-4 py-2.5 text-left text-xs font-semibold text-white uppercase tracking-wide border border-blue-500 flex-1">Current</div>
                     </div>
@@ -445,7 +445,7 @@ export default function PDFViewerModal({
                         
                         return (
                           <div key={idx} className={`flex ${idx % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700/50'} hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-300 dark:border-gray-600`}>
-                            <div className="px-2 py-3 text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide w-40 flex-shrink-0 wrap-break-word border-r border-gray-300 dark:border-gray-600">
+                            <div className="px-2 py-3 text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide w-40 shrink-0 wrap-break-word border-r border-gray-300 dark:border-gray-600">
                               {value.key}
                             </div>
                             <div className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400 flex-1 border-r border-gray-300 dark:border-gray-600">
