@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
 import { observer } from 'mobx-react-lite';
 import axios from 'axios';
-import DatePicker from '@/components/form/date-picker';
+import DateInput from '@/components/ui/infoveave-components/DateInput';
 import { useStore } from '@/store/store-context';
 import AddPOItemModal from './AddPOItemModal';
 import { POItem, KeyValueRecord, RowData } from '@/types/nguage-rowdata';
@@ -460,33 +460,21 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
 
                 {/* PO Issue Date */}
                 <div>
-                  {isEditMode ?
-                    (
-                      <TextInput
-                        label="Issue Date"
-                        type="text"
-                        disabled
-                        value={formData.po_issue_date ? new Date(String(formData.po_issue_date)).toISOString().slice(0, 10) : ""}
-                        onValueChange={() => { }}
-                      />) : (
-                      <DatePicker
-                        id="po_issue_date"
-                        label="Issue Date"
-                        placeholder="Select date"
-                        mode="single"
-                        defaultDate={formData.po_issue_date ? new Date(String(formData.po_issue_date)) : undefined}
-                        required
-                        onChange={(selectedDates) => {
-                          if (selectedDates.length > 0) {
-                            const date = selectedDates[0];
-                            const year = date.getFullYear();
-                            const month = String(date.getMonth() + 1).padStart(2, '0');
-                            const day = String(date.getDate()).padStart(2, '0');
-                            const formattedDate = `${year}-${month}-${day}`;
-                            handleInputChange('po_issue_date', formattedDate);
-                          }
-                        }}
-                      />)}
+                  <DateInput
+                    label="Issue Date"
+                    placeholder="Select date"
+                    value={formData.po_issue_date ? new Date(String(formData.po_issue_date)) : undefined}
+                    disabled={isEditMode}
+                    onValueChange={(date) => {
+                      if (date) {
+                        const year = date.getFullYear();
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const formattedDate = `${year}-${month}-${day}`;
+                        handleInputChange('po_issue_date', formattedDate);
+                      }
+                    }}
+                  />
                 </div>
 
                 {/* Supplier Name */}

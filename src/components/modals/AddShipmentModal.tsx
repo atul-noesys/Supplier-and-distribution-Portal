@@ -1,6 +1,6 @@
 "use client";
 
-import DatePicker from "@/components/form/date-picker";
+import DateInput from '@/components/ui/infoveave-components/DateInput';
 import { Select, TextInput } from "@/components/ui";
 import Badge from "@/components/ui/badge/Badge";
 import { useStore } from "@/store/store-context";
@@ -978,26 +978,18 @@ function AddShipmentModalContent({
 
                   {/* Shipment Date */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Shipment Date {formData.carrier_name && <span className="text-red-500">*</span>}
-                    </label>
-                    <DatePicker
-                      id="shipment_date"
+                    <DateInput
+                      label={<>Shipment Date {formData.carrier_name && <span className="text-red-500">*</span>}</>}
                       placeholder="Select date"
-                      mode="single"
-                      defaultDate={
-                        formData.shipment_date
-                          ? new Date(String(formData.shipment_date))
-                          : undefined
-                      }
-                      onChange={(selectedDates) => {
-                        if (selectedDates.length > 0) {
-                          const date = selectedDates[0];
+                      value={formData.shipment_date ? new Date(String(formData.shipment_date)) : undefined}
+                      disabled={isEditMode}
+                      onValueChange={(date) => {
+                        if (date) {
                           const year = date.getFullYear();
-                          const month = String(date.getMonth() + 1).padStart(2, "0");
-                          const day = String(date.getDate()).padStart(2, "0");
+                          const month = String(date.getMonth() + 1).padStart(2, '0');
+                          const day = String(date.getDate()).padStart(2, '0');
                           const formattedDate = `${year}-${month}-${day}`;
-                          handleInputChange("shipment_date", formattedDate);
+                          handleInputChange('shipment_date', formattedDate);
                           if (fieldErrors.shipment_date) {
                             setFieldErrors(prev => {
                               const newErrors = { ...prev };
@@ -1017,26 +1009,18 @@ function AddShipmentModalContent({
 
                   {/* Estimated Delivery Date */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Estimated Delivery Date {formData.carrier_name && <span className="text-red-500">*</span>}
-                    </label>
-                    <DatePicker
-                      id="estimated_delivery_date"
+                    <DateInput
+                      label={<>Estimated Delivery Date {formData.carrier_name && <span className="text-red-500">*</span>}</>}
                       placeholder="Select date"
-                      mode="single"
-                      defaultDate={
-                        formData.estimated_delivery_date
-                          ? new Date(String(formData.estimated_delivery_date))
-                          : undefined
-                      }
-                      onChange={(selectedDates) => {
-                        if (selectedDates.length > 0) {
-                          const date = selectedDates[0];
+                      value={formData.estimated_delivery_date ? new Date(String(formData.estimated_delivery_date)) : undefined}
+                      disabled={isEditMode}
+                      onValueChange={(date) => {
+                        if (date) {
                           const year = date.getFullYear();
-                          const month = String(date.getMonth() + 1).padStart(2, "0");
-                          const day = String(date.getDate()).padStart(2, "0");
+                          const month = String(date.getMonth() + 1).padStart(2, '0');
+                          const day = String(date.getDate()).padStart(2, '0');
                           const formattedDate = `${year}-${month}-${day}`;
-                          handleInputChange("estimated_delivery_date", formattedDate);
+                          handleInputChange('estimated_delivery_date', formattedDate);
                           if (fieldErrors.estimated_delivery_date) {
                             setFieldErrors(prev => {
                               const newErrors = { ...prev };
