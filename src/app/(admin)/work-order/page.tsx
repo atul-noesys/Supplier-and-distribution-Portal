@@ -239,6 +239,23 @@ export default observer(function WorkOrderPage() {
     enabled: !!authToken,
   });
 
+  // Function to get total steps for an item_code
+  const getTotalStepsForItemCode = useCallback(
+    (itemCode: string): number => {
+      const steps = Array.isArray(itemProcessSteps) ? itemProcessSteps : [];
+      const uniqueSequences = new Set<number>();
+      
+      steps.forEach((step: any) => {
+        if (String(step.item_code || "").toLowerCase() === String(itemCode || "").toLowerCase()) {
+          uniqueSequences.add(Number(step.sequence || 0));
+        }
+      });
+
+      return uniqueSequences.size;
+    },
+    [itemProcessSteps]
+  );
+
   // Transform work order data to KanbanItem format for the kanban view
   const kanbanItems = useMemo(() => {
     if (!filteredItems || filteredItems.length === 0) return [];
@@ -254,6 +271,7 @@ export default observer(function WorkOrderPage() {
     return filteredItems.map((item) => {
       const key = `${item.po_number}_${item.item_code}`;
       const poItem = poItemsMap.get(key);
+      const totalSteps = getTotalStepsForItemCode(String(item.item_code));
 
       return {
         po_number: String(item.po_number || ""),
@@ -262,6 +280,7 @@ export default observer(function WorkOrderPage() {
         unit_price: poItem?.unit_price || 0,
         quantity: poItem?.quantity || 0,
         status: String(item.step || "Step 1"),
+        stepCount: totalSteps,
         InfoveaveBatchId: Number(item.InfoveaveBatchId) || 0,
         po_status: poItem?.po_status || "Pending",
         supplier_id: String(item.supplier_id || ""),
@@ -274,7 +293,7 @@ export default observer(function WorkOrderPage() {
         ROWID: Number(item.ROWID) || 0,
       };
     });
-  }, [filteredItems, poItemsData]);
+  }, [filteredItems, poItemsData, getTotalStepsForItemCode]);
 
   const handleEditRow = async (item: RowData) => {
     const rowId = String(item.ROWID);
@@ -629,11 +648,16 @@ export default observer(function WorkOrderPage() {
       const today = new Date();
       const currentDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
+      // Check if current step is the final step for this item
+      const stepMatch = String(editFormData.step || "").match(/\d+/);
+      const currentStep = stepMatch ? parseInt(stepMatch[0], 10) : 0;
+      const totalSteps = getTotalStepsForItemCode(String(editFormData.item_code || ""));
+
       // Add end_date as current system date
       const dataToSave = {
         ...editFormData,
         end_date: currentDate,
-        wo_status: editFormData.step?.toString() === "Step 5" ? "Finished goods" : "Work in progress"
+        wo_status: currentStep === totalSteps ? "Finished goods" : "Work in progress"
       };
 
       console.log("Saving work order with data:", dataToSave);
@@ -687,13 +711,18 @@ export default observer(function WorkOrderPage() {
       // Get the new step name for the new step
       const newStepName = getStepNameForItemCodeAndStep(String(latestData.item_code), newStep);
 
+      // Check if new step is the final step for this item
+      const newStepMatch = String(newStep || "").match(/\d+/);
+      const newCurrentStep = newStepMatch ? parseInt(newStepMatch[0], 10) : 0;
+      const newTotalSteps = getTotalStepsForItemCode(String(latestData.item_code));
+
       // Prepare data with new step and current date
       const dataToSave = {
         ...latestData,
         step: newStep,
         step_name: newStepName,
         end_date: currentDate,
-        wo_status: newStep.toString() === "Step 5" ? "Finished goods" : "Work in progress"
+        wo_status: newCurrentStep === newTotalSteps ? "Finished goods" : "Work in progress"
       };
 
       console.log("Saving drag-drop change:", dataToSave);

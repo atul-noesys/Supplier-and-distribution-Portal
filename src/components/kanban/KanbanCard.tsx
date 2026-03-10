@@ -2,7 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { MdEdit } from "react-icons/md";
+import { MdEdit, MdCheckCircle } from "react-icons/md";
 import { KanbanItem } from "./KanbanBoard";
 import { useStore } from "@/store/store-context";
 import { useMemo } from "react";
@@ -26,6 +26,14 @@ export default function KanbanCard({ item, searchTerm = "", onEditClick }: Kanba
   };
 
   const totalPrice = item.unit_price * item.quantity;
+
+  // Check if card is completed
+  const isCardCompleted = (() => {
+    if (!item.stepCount || !item.status) return false;
+    const stepMatch = item.status.match(/\d+/);
+    const currentStep = stepMatch ? parseInt(stepMatch[0], 10) : 0;
+    return currentStep === item.stepCount;
+  })();
 
   // Function to highlight search term in text
   const highlightText = (text: string | null | undefined, highlight: string) => {
@@ -56,10 +64,14 @@ export default function KanbanCard({ item, searchTerm = "", onEditClick }: Kanba
       style={style}
       {...attributes}
       {...listeners}
-      className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 cursor-move hover:shadow-md transition-all"
+      className={`rounded-lg border p-4 cursor-move hover:shadow-md transition-all ${
+        isCardCompleted
+          ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700"
+          : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+      }`}
     >
       {/* Header */}
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-1.5">
         <div className="flex-1">
           <div className="flex items-center justify-between gap-2 mb-1">
             <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -85,12 +97,12 @@ export default function KanbanCard({ item, searchTerm = "", onEditClick }: Kanba
       </div>
 
       {/* Item Code */}
-      <p className="text-xs text-gray-600 dark:text-gray-400 mb-3 font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded inline-block">
+      <p className="text-xs text-gray-50 dark:text-gray-400 mb-2 font-mono bg-blue-700 dark:bg-gray-700 px-2 py-1 rounded inline-block">
         {searchTerm ? highlightText(item.item_code, searchTerm) : item.item_code}
       </p>
 
       {/* Details Grid */}
-      <div className="grid grid-cols-2 gap-3 mb-3 text-xs">
+      {/* <div className="grid grid-cols-2 gap-3 mb-3 text-xs">
         <div>
           <p className="text-gray-600 dark:text-gray-400">Unit Price</p>
           <p className="font-bold text-gray-900 dark:text-white">${item.unit_price}</p>
@@ -99,17 +111,23 @@ export default function KanbanCard({ item, searchTerm = "", onEditClick }: Kanba
           <p className="text-gray-600 dark:text-gray-400">Quantity</p>
           <p className="font-bold text-gray-900 dark:text-white">{item.quantity}</p>
         </div>
-      </div>
+      </div> */}
 
       {/* Total Price */}
-      <div className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded px-2 py-2 mb-3 flex items-center justify-between">
+      {/* <div className="bg-linear-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded px-2 py-2 mb-3 flex items-center justify-between">
         <p className="text-xs text-gray-600 dark:text-gray-400">Total</p>
         <p className="text-sm font-bold text-gray-900 dark:text-white">
           ${totalPrice.toLocaleString()}
         </p>
+      </div> */}
+
+      <div className="bg-linear-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded px-2 py-1 mb-3 flex items-center justify-between">
+        <p className="text-xs text-gray-600 dark:text-gray-400">Quantity</p>
+        <p className="text-sm font-bold text-gray-900 dark:text-white">
+          {item.quantity}
+        </p>
       </div>
 
-      {/* Footer */}
       <div className="flex items-center gap-1 flex-wrap">
         {item.vendor_name && (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
@@ -122,6 +140,43 @@ export default function KanbanCard({ item, searchTerm = "", onEditClick }: Kanba
           </span>
         )}
       </div>
+
+      {/* Step Progress Badge */}
+      {item.stepCount && item.status && (() => {
+        const stepMatch = item.status.match(/\d+/);
+        const currentStep = stepMatch ? parseInt(stepMatch[0], 10) : 0;
+        const progress = Math.round((currentStep / item.stepCount) * 100);
+
+        return (
+          <div className="mt-2 pt-1 border-t border-gray-200 dark:border-gray-700">
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  {item.status} of {item.stepCount}
+                </span>
+                {isCardCompleted ? (
+                  <span className="flex items-center gap-1 text-xs font-semibold text-green-600 dark:text-green-400">
+                    <MdCheckCircle className="w-3.5 h-3.5" />
+                    Completed
+                  </span>
+                ) : (
+                  <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">{progress}%</span>
+                )}
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-300 ${
+                    isCardCompleted
+                      ? "bg-green-500 dark:bg-green-400"
+                      : "bg-blue-500 dark:bg-blue-400"
+                  }`}
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
