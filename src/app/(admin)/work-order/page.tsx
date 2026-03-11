@@ -1069,7 +1069,7 @@ export default observer(function WorkOrderPage() {
         ) : (
           <div className="border-t border-gray-200 dark:border-white/5">
             <div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.7fr 1.3fr 0.9fr 0.6fr 70px 70px 80px', gap: '0', minWidth: '100%' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.6fr 1.2fr 0.9fr 0.6fr 100px', gap: '0', minWidth: '100%' }}>
                 {/* Table Header */}
                 {tableColumns.map((column) => (
                   <div
@@ -1079,22 +1079,14 @@ export default observer(function WorkOrderPage() {
                     {column.label}
                   </div>
                 ))}
-                {/* Details Header */}
-                <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 border-r border-blue-800 dark:border-blue-800">
-                  Details
-                </div>
-                {/* Timeline Header */}
-                <div className="bg-blue-800 dark:bg-blue-700 px-1 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 border-r border-blue-800 dark:border-blue-800">
-                  TimeLine
-                </div>
-                {/* Actions Header */}
+                {/* Actions Header (combined Details + Timeline + Actions) */}
                 <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 border-r border-blue-800 dark:border-blue-800">
                   Actions
                 </div>
               </div>
 
               {/* Table Body */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.7fr 1.3fr 0.9fr 0.6fr 70px 70px 80px', gap: '0', minWidth: '100%' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.6fr 1.2fr 0.9fr 0.6fr 100px', gap: '0', minWidth: '100%' }}>
                 {paginatedItems.length === 0 ? (
                   <div style={{ gridColumn: '1 / -1' }} className="py-8 text-center bg-white dark:bg-gray-800">
                     <p className="text-gray-500 dark:text-gray-400">No work orders found</p>
@@ -1130,18 +1122,20 @@ export default observer(function WorkOrderPage() {
                         // Render Badge for wo_status field
                         else if (column.key === "wo_status") {
                           const statusValue = String(value).toLowerCase();
-                          let statusColor: "blue" | "orange" | "green" | "warning" | "purple" = "orange";
+                          let statusColor: "blue" | "orange" | "green" | "warning" | "purple" | "info" = "orange";
 
                           if (statusValue.includes("work in progress")) {
                             statusColor = "warning";
                           } else if (statusValue.includes("in warehouse")) {
-                            statusColor = "blue";
+                            statusColor = "info";
                           } else if (statusValue.includes("ready to ship")) {
                             statusColor = "purple";
                           } else if (statusValue.includes("delivered")) {
                             statusColor = "green";
                           } else if (statusValue.includes("in transit")) {
                             statusColor = "orange";
+                          } else if (statusValue.includes("finished goods")) {
+                            statusColor = "blue";
                           }
 
                           cellContent = (
@@ -1180,41 +1174,39 @@ export default observer(function WorkOrderPage() {
                           </div>
                         );
                       })}
-                      {/* Details Cell */}
-                      <div className="px-2.5 py-3 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
-                        <button
-                          onClick={() => handleViewDetails(item)}
-                          className="flex justify-center items-center ml-4 text-blue-600 dark:text-blue-400 transition-colors"
-                          title="View Details"
-                        >
-                          <MdOpenInNew className="w-4 h-4" />
-                        </button>
-                      </div>
-                      {/* Timeline Cell */}
-                      <div className="px-2.5 py-3 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
-                        <button
-                          onClick={() => handleViewTimeline(item.step_history as string | null, `${item.po_number}${item.item_code}`)}
-                          disabled={!item.step_history}
-                          className={`flex justify-center items-center ml-4 transition-colors ${item.step_history
-                            ? "text-blue-600 dark:text-blue-400 cursor-pointer"
-                            : "text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50"
-                            }`}
-                          title={item.step_history ? "View Timeline" : "No timeline data"}
-                        >
-                          <MdDateRange className="w-5 h-5" />
-                        </button>
-                      </div>
-                      {/* Actions Cell */}
-                      <div className="px-2.5 py-3 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
-                        {user?.roleId !== 5 && !["delivered", "ready to ship", "in transit"].includes(String(item.wo_status || "").toLowerCase()) && (
+                      {/* Combined Actions Cell: Details, Timeline, Edit */}
+                      <div className="px-2.5 py-2 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
+                        <div className="flex items-center justify-start gap-1">
                           <button
-                            onClick={() => handleEditRow(item)}
-                            className="flex justify-center items-center ml-3 w-8 h-4 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
-                            title="Edit"
+                            onClick={() => handleViewDetails(item)}
+                            className="text-green-600 dark:text-green-400 transition-colors p-1 rounded"
+                            title="View Details"
                           >
-                            <MdEdit className="w-4 h-4" />
+                            <MdOpenInNew className="w-4 h-4" />
                           </button>
-                        )}
+
+                          <button
+                            onClick={() => handleViewTimeline(item.step_history as string | null, `${item.po_number}${item.item_code}`)}
+                            disabled={!item.step_history}
+                            className={`p-1 rounded transition-colors ${item.step_history
+                              ? "text-purple-600 dark:text-purple-400"
+                              : "text-gray-400 dark:text-gray-500 opacity-50 cursor-not-allowed"
+                              }`}
+                            title={item.step_history ? "View Timeline" : "No timeline data"}
+                          >
+                            <MdDateRange className="w-4 h-4" />
+                          </button>
+
+                          {user?.roleId !== 5 && !["delivered", "ready to ship", "in transit"].includes(String(item.wo_status || "").toLowerCase()) && (
+                            <button
+                              onClick={() => handleEditRow(item)}
+                              className="text-blue-600 dark:text-blue-400 transition-colors p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                              title="Edit"
+                            >
+                              <MdEdit className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </Fragment>
                   ))
