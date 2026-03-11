@@ -89,9 +89,13 @@ export default function KanbanBoard({ initialData, searchTerm = "", onEditClick,
         const activeItem = items.find((item) => item.ROWID === active.id);
         if (!activeItem) return;
 
-        // Prevent moving items from Step 5
-        if (activeItem.status === "Step 5") {
-            return;
+        // Prevent moving items that have completed all their steps
+        if (activeItem.stepCount && activeItem.status) {
+            const stepMatch = activeItem.status.match(/\d+/);
+            const currentStep = stepMatch ? parseInt(stepMatch[0], 10) : 0;
+            if (currentStep === activeItem.stepCount) {
+                return;
+            }
         }
 
         // Extract the step from over.id (format: "step-X" or just a ROWID for reordering)
@@ -104,6 +108,15 @@ export default function KanbanBoard({ initialData, searchTerm = "", onEditClick,
             // Dropped on another card - find which step it belongs to
             const overItem = items.find((item) => item.ROWID === over.id);
             newStep = overItem?.status || activeItem.status;
+        }
+
+        // Validate that the new step doesn't exceed the item's total steps
+        if (activeItem.stepCount && newStep) {
+            const newStepMatch = newStep.match(/\d+/);
+            const newStepNumber = newStepMatch ? parseInt(newStepMatch[0], 10) : 0;
+            if (newStepNumber > activeItem.stepCount) {
+                return;
+            }
         }
 
         // Only update if step actually changed
@@ -178,7 +191,7 @@ export default function KanbanBoard({ initialData, searchTerm = "", onEditClick,
                             </div>
                         </div>
 
-                        <div className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded px-2 py-1.5">
+                        <div className="bg-linear-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded px-2 py-1.5">
                             <p className="text-xs text-gray-600 dark:text-gray-400">Total</p>
                             <p className="text-xs font-bold text-gray-900 dark:text-white">
                                 ${(activeItem.unit_price * activeItem.quantity).toLocaleString()}

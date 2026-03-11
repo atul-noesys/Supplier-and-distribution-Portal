@@ -83,7 +83,7 @@ export default function KanbanCard({ item, searchTerm = "", onEditClick }: Kanba
                   e.stopPropagation();
                   onEditClick?.(item);
                 }}
-                className="ml-2 p-0.5 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors flex-shrink-0"
+                className="ml-2 p-0.5 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors shrink-0"
                 title="Edit"
               >
                 <MdEdit className="w-4 h-4" />
