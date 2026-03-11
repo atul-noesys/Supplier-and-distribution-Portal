@@ -11,21 +11,19 @@ import { WarehouseVisualization } from './WarehouseVisualization';
 export const WarehousePage: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<ItemData | null>(null);
   const selectedLocationCode = React.useMemo(() => {
-    return selectedItem ? (selectedItem as any).Location : undefined;
+    return selectedItem ? (selectedItem as any).location : undefined;
   }, [selectedItem]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const { nguageStore } = useStore();
 
-  // Fetch toy products via nguageStore.GetPaginationData
+  // Fetch item_warehouse data
   const {
-    data: itemsData = [],
-    isLoading: itemsLoading,
-    error: itemsQueryError,
+    data: warehouseData = [],
+    isLoading: warehouseLoading,
+    error: warehouseQueryError,
   } = useQuery({
-    queryKey: ['item_warehouse'],
-    queryFn: async (): Promise<ItemData[]> => {
+    queryKey: ['item_warehouse', '57'],
+    queryFn: async () => {
       const pagination = await nguageStore.GetPaginationData({
         table: 'item_warehouse',
         skip: 0,
@@ -33,11 +31,71 @@ export const WarehousePage: React.FC = () => {
         NGaugeId: '57',
       });
       const result = Array.isArray(pagination) ? pagination : pagination?.data || [];
-      return result as ItemData[];
+      return result;
     },
     enabled: !!nguageStore,
     staleTime: 0,
   });
+
+  // Fetch item descriptions from item table
+  const {
+    data: itemDescriptionsData = [],
+    isLoading: itemDescLoading,
+    error: itemDescQueryError,
+  } = useQuery({
+    queryKey: ['item', '33'],
+    queryFn: async () => {
+      const pagination = await nguageStore.GetPaginationData({
+        table: 'item',
+        skip: 0,
+        take: 200,
+        NGaugeId: '33',
+      });
+      const result = Array.isArray(pagination) ? pagination : pagination?.data || [];
+      return result;
+    },
+    enabled: !!nguageStore,
+    staleTime: Infinity,
+  });
+
+  // Merge warehouse and item description data
+  const itemsData: ItemData[] = React.useMemo(() => {
+    const itemDescMap = new Map(
+      (itemDescriptionsData as any[]).map((item) => {
+        // Handle various column name formats for item code and description
+        const code = (item.item_code || item.Item_code || item.ItemCode || item.CODE || '')
+          .toString()
+          .trim();
+        const desc = item.item_description || 
+                     item.Item_description || 
+                     item.Item_Description || 
+                     item.Description || 
+                     item.ItemDesc || 
+                     item.Desc || 
+                     '';
+        return [code.toLowerCase(), desc];
+      })
+    );
+
+    return (warehouseData as any[]).map((item) => {
+      // Get item_code from warehouse data, handling various column formats
+      const warehouseItemCode = (item.item_code || item.Item_code || item.ItemCode || item.CODE || '')
+        .toString()
+        .trim()
+        .toLowerCase();
+      
+      return {
+        item_code: item.item_code || item.Item_code || item.ItemCode || '',
+        item_description: itemDescMap.get(warehouseItemCode) || 'N/A',
+        location: item.location || item.Location || '',
+        quantity: item.quantity || item.Quantity || '',
+        last_updated_date: item.last_updated_date || item.Last_Updated_Date || '',
+      };
+    });
+  }, [warehouseData, itemDescriptionsData]);
+
+  const itemsLoading = warehouseLoading || itemDescLoading;
+  const itemsQueryError = warehouseQueryError || itemDescQueryError;
 
   // Fetch location master via nguageStore.GetPaginationData
   const {
@@ -45,7 +103,7 @@ export const WarehousePage: React.FC = () => {
     isLoading: locationsLoading,
     error: locationsQueryError,
   } = useQuery({
-    queryKey: ['location_master'],
+    queryKey: ['location_master', '55'],
     queryFn: async (): Promise<LocationData[]> => {
       const pagination = await nguageStore.GetPaginationData({
         table: 'location_master',
@@ -64,31 +122,22 @@ export const WarehousePage: React.FC = () => {
 
   const handleLocationClick = useCallback((locationCode: string) => {
     // Find the item with this location
-    const item = (itemsData as ItemData[]).find((i) => i.Location === locationCode);
+    const item = (itemsData as ItemData[]).find((i) => i.location === locationCode);
     if (item) {
       setSelectedItem(item);
     }
   }, [itemsData]);
 
   const isLoading = itemsLoading || locationsLoading;
+  const queryError = itemsQueryError || locationsQueryError;
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="text-center">
-          <div className="h-12 w-12 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
+  if (queryError) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
         <div className="bg-red-50 border border-red-200 rounded-lg p-8 max-w-md text-center">
           <AlertCircle className="w-12 h-12 text-red-600 mx-auto mb-4" />
           <h2 className="text-lg font-bold text-red-900 mb-2">Error Loading Data</h2>
-          <p className="text-red-700">{error}</p>
+          <p className="text-red-700">{String(queryError)}</p>
         </div>
       </div>
     );

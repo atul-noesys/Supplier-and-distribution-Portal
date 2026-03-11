@@ -260,8 +260,8 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
     if (!items) return new Map<string, ItemData>();
     const m = new Map<string, ItemData>();
     items.forEach((it) => {
-      if (it.Location && validLocationCodes.has(it.Location)) {
-        m.set(it.Location, it);
+      if (it.location && validLocationCodes.has(it.location)) {
+        m.set(it.location, it);
       }
     });
     return m;
@@ -849,7 +849,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                         {/* Selected slice shows qty in the center */}
                         {isSelected && isOccupied && (
                           <text x={x + cellWidth - 8} y={sliceY + sliceHeight / 2} fontSize="10" fill="#fff7cc" textAnchor="end" dominantBaseline="middle" fontWeight={700} pointerEvents="none">
-                            Qty: {itemAtCell?.Qty}
+                            Qty: {itemAtCell?.quantity}
                           </text>
                         )}
                       </g>
@@ -987,12 +987,12 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
         {tooltip.visible && (
           <div style={{ ...tooltipStyles.container, left: tooltip.x, top: tooltip.y }}>
             <div style={tooltipStyles.card}>
-              <div style={tooltipStyles.title}>{tooltip.item ? tooltip.item.Item_Code : tooltip.location?.LocationCode || tooltip.locationCode}</div>
+              <div style={tooltipStyles.title}>{tooltip.item ? tooltip.item.item_code : tooltip.location?.LocationCode || tooltip.locationCode}</div>
 
               {tooltip.item && (
                 <div>
-                  <div style={tooltipStyles.row}><div style={tooltipStyles.label}>Quantity</div><div style={tooltipStyles.value}>{tooltip.item.Qty}</div></div>
-                  <div style={tooltipStyles.row}><div style={tooltipStyles.label}>Location</div><div style={tooltipStyles.value}>{tooltip.item.Location}</div></div>
+                  <div style={tooltipStyles.row}><div style={tooltipStyles.label}>Quantity</div><div style={tooltipStyles.value}>{tooltip.item.quantity}</div></div>
+                  <div style={tooltipStyles.row}><div style={tooltipStyles.label}>Location</div><div style={tooltipStyles.value}>{tooltip.item.location}</div></div>
                 </div>
               )}
 

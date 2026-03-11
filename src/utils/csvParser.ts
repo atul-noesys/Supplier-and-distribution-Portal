@@ -1,9 +1,9 @@
 export interface ItemData {
-  Item_Code: string;
-  Item_Description: string;
-  Location: string;
-  Qty: string;
-  Last_Updated_Date: string;
+  item_code: string;
+  item_description: string;
+  location: string;
+  quantity: string;
+  last_updated_date: string;
 }
 
 export interface LocationData {

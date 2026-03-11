@@ -29,7 +29,7 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
 
   const selectedLocationData = useMemo(() => {
     if (!selectedItem) return null;
-    return locationMap.get(selectedItem.Location);
+    return locationMap.get(selectedItem.location);
   }, [selectedItem, locationMap]);
 
   return (
@@ -60,7 +60,7 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
         {selectedItem && (
           <div className="mt-1 bg-amber-50 p-1 rounded border border-amber-200">
             <p className="text-xs text-gray-700">
-              {selectedItem.Item_Description}
+              {selectedItem.item_description}
             </p>
           </div>
         )}
@@ -75,25 +75,25 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
             {/* Item Code */}
             <div className="bg-blue-50 p-1.5 rounded border border-blue-200 flex justify-between items-center">
               <p className="text-xs font-medium text-gray-500 uppercase">Item</p>
-              <p className="text-xs font-bold text-gray-800">{selectedItem.Item_Code}</p>
+              <p className="text-xs font-bold text-gray-800">{selectedItem.item_code}</p>
             </div>
 
             {/* Quantity */}
             <div className="bg-green-50 p-1.5 rounded border border-green-200 flex justify-between items-center">
               <p className="text-xs font-medium text-gray-500 uppercase">Qty</p>
-              <p className="text-xs font-bold text-green-600">{selectedItem.Qty}</p>
+              <p className="text-xs font-bold text-green-600">{selectedItem.quantity}</p>
             </div>
 
             {/* Location Code */}
             <div className="bg-purple-50 p-1.5 rounded border border-purple-200 flex justify-between items-center">
               <p className="text-xs font-medium text-gray-500 uppercase">Location</p>
-              <p className="text-xs font-bold text-purple-600">{selectedItem.Location}</p>
+              <p className="text-xs font-bold text-purple-600">{selectedItem.location}</p>
             </div>
 
             {/* Last Updated */}
             <div className="bg-gray-50 p-1.5 rounded border border-gray-200 flex justify-between items-center">
               <p className="text-xs font-medium text-gray-500 uppercase">Updated</p>
-              <p className="text-xs font-semibold text-gray-700">{selectedItem.Last_Updated_Date.slice(0,10)}</p>
+              <p className="text-xs font-semibold text-gray-700">{selectedItem.last_updated_date.slice(0,10)}</p>
             </div>
           </div>
 
@@ -199,8 +199,8 @@ const SearchableItemSelect: React.FC<SearchableItemSelectProps> = ({ items, sele
     const res: typeof items = [] as any;
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
-      const code = it.Item_Code && it.Item_Code.toLowerCase();
-      const desc = (it.Item_Description || '').toLowerCase();
+      const code = it.item_code && it.item_code.toLowerCase();
+      const desc = (it.item_description || '').toLowerCase();
       if ((code && code.includes(q)) || (desc && desc.includes(q))) {
         res.push(it);
         if (res.length >= 100) break;
@@ -248,7 +248,7 @@ const SearchableItemSelect: React.FC<SearchableItemSelectProps> = ({ items, sele
         <input
           ref={inputRef}
           type="text"
-          value={open ? query : (selectedItem?.Item_Code ?? query)}
+          value={open ? query : (selectedItem?.item_code ?? query)}
           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
           placeholder="Search by code or description"
@@ -277,15 +277,15 @@ const SearchableItemSelect: React.FC<SearchableItemSelectProps> = ({ items, sele
             <>
               {(filtered.slice(0, visibleCount)).map((it) => (
                 <button
-                  key={it.Item_Code}
+                  key={it.item_code}
                   type="button"
                   className="w-full text-left px-3 py-2 hover:bg-slate-50"
                   onClick={() => { onItemSelect(it); setQuery(''); setOpen(false); }}
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-sm font-semibold text-gray-800">{highlightText(it.Item_Code)}</div>
-                      <div className="text-xs text-gray-500">{highlightText(it.Item_Description)}</div>
+                      <div className="text-sm font-semibold text-gray-800">{highlightText(it.item_code)}</div>
+                      <div className="text-xs text-gray-500">{highlightText(it.item_description)}</div>
                     </div>
                   </div>
                 </button>
