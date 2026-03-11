@@ -13,6 +13,7 @@ import {
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useEffect, useMemo, useState } from "react";
 import KanbanColumn from "./KanbanColumn";
+import KanbanCard from "./KanbanCard";
 
 export interface KanbanItem {
     po_number: string;
@@ -162,44 +163,7 @@ export default function KanbanBoard({ initialData, searchTerm = "", onEditClick,
                 </div>
             </SortableContext>
 
-            <DragOverlay>
-                {activeItem ? (
-                    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 shadow-2xl ring-2 ring-blue-500 scale-100 w-64">
-                        <div className="flex items-start justify-between mb-2">
-                            <div>
-                                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                    {activeItem.po_number}
-                                </p>
-                                <p className="text-xs font-bold text-gray-900 dark:text-white mt-1 line-clamp-2">
-                                    {activeItem.item}
-                                </p>
-                            </div>
-                        </div>
-
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 font-mono bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded inline-block">
-                            {activeItem.item_code}
-                        </p>
-
-                        <div className="grid grid-cols-2 gap-2 mb-2 text-xs">
-                            <div>
-                                <p className="text-gray-600 dark:text-gray-400 text-xs">Price</p>
-                                <p className="font-bold text-gray-900 dark:text-white text-xs">${activeItem.unit_price}</p>
-                            </div>
-                            <div>
-                                <p className="text-gray-600 dark:text-gray-400 text-xs">Qty</p>
-                                <p className="font-bold text-gray-900 dark:text-white text-xs">{activeItem.quantity}</p>
-                            </div>
-                        </div>
-
-                        <div className="bg-linear-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded px-2 py-1.5">
-                            <p className="text-xs text-gray-600 dark:text-gray-400">Total</p>
-                            <p className="text-xs font-bold text-gray-900 dark:text-white">
-                                ${(activeItem.unit_price * activeItem.quantity).toLocaleString()}
-                            </p>
-                        </div>
-                    </div>
-                ) : null}
-            </DragOverlay>
+            <DragOverlay>{activeItem ? <KanbanCard item={activeItem} searchTerm={searchTerm} onEditClick={onEditClick} /> : null}</DragOverlay>
         </DndContext>
     );
 }

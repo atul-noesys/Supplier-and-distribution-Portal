@@ -25,8 +25,6 @@ export default function KanbanCard({ item, searchTerm = "", onEditClick }: Kanba
     transition,
   };
 
-  const totalPrice = item.unit_price * item.quantity;
-
   // Check if card is completed
   const isCardCompleted = (() => {
     if (!item.stepCount || !item.status) return false;
