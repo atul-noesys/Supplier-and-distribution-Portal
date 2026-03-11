@@ -33,7 +33,7 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
   }, [selectedItem, locationMap]);
 
   return (
-    <div className="flex flex-col lg:flex-row gap-5">
+    <div className="flex flex-col lg:flex-row gap-2">
       {isLoading ? (
         <div className="w-full bg-white rounded shadow-sm p-9 border border-gray-200 flex items-center justify-center">
           <div className="text-center">
@@ -69,29 +69,29 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
       {/* Selected Item Details */}
       {selectedItem && (
         <div className="lg:w-[75%] bg-white rounded shadow-sm p-2 border border-gray-200">
-          <h3 className="text-xs font-bold text-gray-900 mb-2">Item Details</h3>
+          <h3 className="text-xs font-bold text-gray-900 mb-2.5">Item Details</h3>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
             {/* Item Code */}
-            <div className="bg-blue-50 p-1.5 rounded border border-blue-200 flex justify-between items-center">
+            <div className="bg-blue-50 px-1.5 py-1.75 rounded border border-blue-200 flex justify-between items-center">
               <p className="text-xs font-medium text-gray-500 uppercase">Item</p>
               <p className="text-xs font-bold text-gray-800">{selectedItem.item_code}</p>
             </div>
 
             {/* Quantity */}
-            <div className="bg-green-50 p-1.5 rounded border border-green-200 flex justify-between items-center">
+            <div className="bg-green-50 px-1.5 py-1.75 rounded border border-green-200 flex justify-between items-center">
               <p className="text-xs font-medium text-gray-500 uppercase">Qty</p>
               <p className="text-xs font-bold text-green-600">{selectedItem.quantity}</p>
             </div>
 
             {/* Location Code */}
-            <div className="bg-purple-50 p-1.5 rounded border border-purple-200 flex justify-between items-center">
+            <div className="bg-purple-50 px-1.5 py-1.75 rounded border border-purple-200 flex justify-between items-center">
               <p className="text-xs font-medium text-gray-500 uppercase">Location</p>
               <p className="text-xs font-bold text-purple-600">{selectedItem.location}</p>
             </div>
 
             {/* Last Updated */}
-            <div className="bg-gray-50 p-1.5 rounded border border-gray-200 flex justify-between items-center">
+            <div className="bg-gray-50 px-1.5 py-1.75 rounded border border-gray-200 flex justify-between items-center">
               <p className="text-xs font-medium text-gray-500 uppercase">Updated</p>
               <p className="text-xs font-semibold text-gray-700">{selectedItem.last_updated_date.slice(0,10)}</p>
             </div>
@@ -100,25 +100,25 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
           {/* Location Details */}
           {selectedLocationData && (
             <div className="mt-1 grid grid-cols-2 md:grid-cols-4 gap-1">
-              <div className="bg-blue-50 p-1.5 rounded border border-blue-200 flex justify-between items-center">
+              <div className="bg-blue-50 px-1.5 py-1.75 rounded border border-blue-200 flex justify-between items-center">
                 <p className="text-xs font-medium text-gray-500 uppercase">Warehouse</p>
                 <p className="text-xs font-bold text-gray-800">
                   {selectedLocationData.WarehouseName}
                 </p>
               </div>
-              <div className="bg-orange-50 p-1.5 rounded border border-orange-200 flex justify-between items-center">
+              <div className="bg-orange-50 px-1.5 py-1.75 rounded border border-orange-200 flex justify-between items-center">
                 <p className="text-xs font-medium text-gray-500 uppercase">Row</p>
                 <p className="text-xs font-bold text-orange-600">
                   {selectedLocationData['RowNumber*']}
                 </p>
               </div>
-              <div className="bg-red-50 p-1.5 rounded border border-red-200 flex justify-between items-center">
+              <div className="bg-red-50 px-1.5 py-1.75 rounded border border-red-200 flex justify-between items-center">
                 <p className="text-xs font-medium text-gray-500 uppercase">Bay</p>
                 <p className="text-xs font-bold text-red-600">
                   {selectedLocationData.BayNumber}
                 </p>
               </div>
-              <div className="bg-indigo-50 p-1.5 rounded border border-indigo-200 flex justify-between items-center">
+              <div className="bg-indigo-50 px-1.5 py-1.75 rounded border border-indigo-200 flex justify-between items-center">
                 <p className="text-xs font-medium text-gray-500 uppercase">Level</p>
                 <p className="text-xs font-bold text-indigo-600">
                   {selectedLocationData['LevelNumber*']}
