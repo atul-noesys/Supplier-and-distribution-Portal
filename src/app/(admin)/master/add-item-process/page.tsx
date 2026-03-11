@@ -52,13 +52,13 @@ export default observer(function AddItemProcessPage() {
   // Modal states for Add Item Process
   const [showAddItemModal, setShowAddItemModal] = useState(false);
   const [addItemModalLoading, setAddItemModalLoading] = useState(false);
-  const [addItemModalError, setAddItemModalError] = useState<string | null>(null);
+
   const [addItemProcessName, setAddItemProcessName] = useState<string>("");
   const [addItemProcessDescription, setAddItemProcessDescription] = useState<string>("");
   const [addItemProcessRemarks, setAddItemProcessRemarks] = useState<string>("");
   const [addItemProcessDocuments, setAddItemProcessDocuments] = useState<string[]>([]);
   const [isUploadingDocument, setIsUploadingDocument] = useState(false);
-  const [uploadMessage, setUploadMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
 
   const { data: authToken = null } = useQuery({
     queryKey: ["authToken"],
@@ -165,24 +165,20 @@ export default observer(function AddItemProcessPage() {
 
   // Open Add Item Process Modal
   const openAddItemModal = () => {
-    setAddItemModalError(null);
     setAddItemProcessName("");
     setAddItemProcessDescription("");
     setAddItemProcessRemarks("");
     setAddItemProcessDocuments([]);
-    setUploadMessage(null);
     setShowAddItemModal(true);
   };
 
   // Close Add Item Process Modal
   const closeAddItemModal = () => {
     setShowAddItemModal(false);
-    setAddItemModalError(null);
     setAddItemProcessName("");
     setAddItemProcessDescription("");
     setAddItemProcessRemarks("");
     setAddItemProcessDocuments([]);
-    setUploadMessage(null);
     setIsUploadingDocument(false);
   };
 
@@ -191,38 +187,54 @@ export default observer(function AddItemProcessPage() {
     if (!files || files.length === 0) return;
 
     setIsUploadingDocument(true);
-    setUploadMessage(null);
 
     try {
+      // Parse existing document paths
+      let existingDocPaths: string[] = [];
+      if (addItemProcessDocuments.length > 0) {
+        try {
+          const parsed = JSON.parse(JSON.stringify(addItemProcessDocuments));
+          if (Array.isArray(parsed)) {
+            existingDocPaths = parsed.map((d: any) => String(d));
+          } else if (parsed) {
+            existingDocPaths = [String(parsed)];
+          }
+        } catch {
+          existingDocPaths = addItemProcessDocuments.map((d) => String(d));
+        }
+      }
+
       // Normalize incoming values to File objects (some components pass { file } wrappers)
       const filesToUpload: File[] = files
         .map((fileItem: any) => (fileItem?.file ? fileItem.file : fileItem))
-        .filter((file: File) => file instanceof File);
+        .filter((file: File) => {
+          if (!file || !file.name) return false;
+          return !existingDocPaths.some((docPath) => docPath.includes(file.name));
+        });
 
       if (filesToUpload.length === 0) {
-        setUploadMessage({ type: "error", text: "No valid files selected" });
+        toast.error('No new files to upload');
         return;
       }
 
       const uploadResult = await nguageStore.UploadMultipleMedia(filesToUpload);
       console.log("Upload result:", uploadResult);
 
-      if (uploadResult && Array.isArray(uploadResult) && uploadResult.length > 0) {
-        const uploadedPaths = uploadResult.filter((path) => path);
-        setAddItemProcessDocuments(uploadedPaths);
-        setUploadMessage({
-          type: "success",
-          text: `Successfully uploaded ${uploadedPaths.length} file(s)`,
-        });
+      if (uploadResult) {
+        // Normalize new upload result to an array of strings
+        const newDocs: string[] = Array.isArray(uploadResult)
+          ? uploadResult.map((d: any) => String(d))
+          : [String(uploadResult)];
+
+        const merged = [...existingDocPaths, ...newDocs];
+        setAddItemProcessDocuments(merged);
+        toast.success('File uploaded successfully');
       } else {
-        setUploadMessage({ type: "error", text: "Upload failed. Please try again." });
+        toast.error('File upload failed');
       }
     } catch (error) {
-      console.error("Error uploading files:", error);
-      setUploadMessage({
-        type: "error",
-        text: error instanceof Error ? error.message : "Failed to upload files",
-      });
+      console.error("Upload error:", error);
+      toast.error('An error occurred while uploading the file');
     } finally {
       setIsUploadingDocument(false);
     }
@@ -231,12 +243,12 @@ export default observer(function AddItemProcessPage() {
   // Handle submit Add Item Process
   const handleSubmitAddItemProcess = async () => {
     if (!addItemProcessName.trim()) {
-      setAddItemModalError("Item Process Name is required");
+      toast.error("Item Process Name is required");
       return;
     }
 
     if (!addItemProcessDescription.trim()) {
-      setAddItemModalError("Item Process Description is required");
+      toast.error("Item Process Description is required");
       return;
     }
 
@@ -248,7 +260,7 @@ export default observer(function AddItemProcessPage() {
         item_process_name: addItemProcessName,
         item_process_description: addItemProcessDescription,
         remarks: addItemProcessRemarks,
-        document: addItemProcessDocuments.length > 0 ? addItemProcessDocuments[0] : null,
+        document: addItemProcessDocuments.length > 0 ? JSON.stringify(addItemProcessDocuments) : null,
       };
 
       // Call the store method to add new item process
@@ -267,7 +279,6 @@ export default observer(function AddItemProcessPage() {
     } catch (error) {
       console.error("Error adding item process:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to add item process";
-      setAddItemModalError(errorMessage);
       toast.error(errorMessage);
     } finally {
       setAddItemModalLoading(false);
@@ -403,33 +414,15 @@ export default observer(function AddItemProcessPage() {
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6">
-              {addItemModalError && (
-                <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                  <p className="text-error-600 dark:text-error-400">
-                    {addItemModalError}
-                  </p>
-                </div>
-              )}
-
-              {uploadMessage && (
-                <div className={`mb-4 p-4 rounded-lg border ${uploadMessage.type === "success"
-                    ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
-                    : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
-                  }`}>
-                  <p className={uploadMessage.type === "success" ? "text-green-600 dark:text-green-400" : "text-error-600 dark:text-error-400"}>
-                    {uploadMessage.text}
-                  </p>
-                </div>
-              )}
 
               <div className="grid grid-cols-2 gap-4">
                 {/* Item Process ID - Disabled */}
                 <TextInput
                   label="Item Process ID"
                   type="text"
-                  value="Auto Generated"
+                  value="IT-PRO-****"
                   disabled={true}
-                  placeholder="Auto generated"
+                  placeholder="IT-PRO-****"
                   onValueChange={() => { }}
                 />
 
@@ -449,11 +442,33 @@ export default observer(function AddItemProcessPage() {
                   onValueChange={(v) => setAddItemProcessDescription(v ?? "")}
                   placeholder="Enter detailed description"
                 />
-
-                <MultiFileInput
-                  label="Document"
-                  onValueChange={handleDocumentUpload}
-                />
+                <div>
+                  <MultiFileInput
+                    label="Document"
+                    maxFiles={5}
+                    accept=".pdf"
+                    multiple={true}
+                    className="w-full"
+                    onValueChange={handleDocumentUpload}
+                  />
+                  {addItemProcessDocuments.length > 0 && (
+                    <p className="text-xs text-green-600 dark:text-gray-400 mt-1">
+                      <span className="text-blue-600 dark:text-blue-400">Current:</span> {(() => {
+                        try {
+                          if (Array.isArray(addItemProcessDocuments)) {
+                            return addItemProcessDocuments
+                              .map((f: string) => (f ? f.split("/").pop() : ""))
+                              .filter(Boolean)
+                              .join(", ");
+                          }
+                          return String(addItemProcessDocuments).split("/").pop() || String(addItemProcessDocuments);
+                        } catch {
+                          return addItemProcessDocuments.join(", ");
+                        }
+                      })()}
+                    </p>
+                  )}
+                </div>
 
                 <TextInput
                   label="Remarks"
@@ -476,7 +491,7 @@ export default observer(function AddItemProcessPage() {
               <button
                 onClick={handleSubmitAddItemProcess}
                 disabled={addItemModalLoading || isUploadingDocument}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors flex items-center gap-2 justify-center"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-500 disabled:cursor-not-allowed disabled:opacity-60 text-white font-medium rounded-lg transition-colors flex items-center gap-2 justify-center"
               >
                 {addItemModalLoading ? (
                   <>
