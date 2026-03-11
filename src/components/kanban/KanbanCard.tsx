@@ -62,7 +62,7 @@ export default function KanbanCard({ item, searchTerm = "", onEditClick }: Kanba
       style={style}
       {...attributes}
       {...listeners}
-      className={`rounded-lg border p-4 cursor-move hover:shadow-md transition-all ${
+      className={`rounded-lg border p-3 cursor-move hover:shadow-md transition-all ${
         isCardCompleted
           ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700"
           : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
@@ -95,7 +95,7 @@ export default function KanbanCard({ item, searchTerm = "", onEditClick }: Kanba
       </div>
 
       {/* Item Code */}
-      <p className="text-xs text-gray-50 dark:text-gray-400 mb-2 font-mono bg-blue-700 dark:bg-gray-700 px-2 py-1 rounded inline-block">
+      <p className="text-xs text-gray-50 dark:text-gray-400 mb-2 font-mono bg-blue-700 dark:bg-gray-700 px-2 py-0.75 rounded inline-block">
         {searchTerm ? highlightText(item.item_code, searchTerm) : item.item_code}
       </p>
 
@@ -119,8 +119,8 @@ export default function KanbanCard({ item, searchTerm = "", onEditClick }: Kanba
         </p>
       </div> */}
 
-      <div className="bg-linear-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-800 rounded px-2 py-1 mb-3 flex items-center justify-between">
-        <p className="text-xs text-gray-600 dark:text-gray-400">Quantity</p>
+      <div className="bg-linear-to-r from-gray-100 to-gray-100 dark:from-gray-700 dark:to-gray-800 rounded px-2 py-1 mb-3 flex items-center justify-between">
+        <p className="text-xs text-gray-700 dark:text-gray-400">Quantity</p>
         <p className="text-sm font-bold text-gray-900 dark:text-white">
           {item.quantity}
         </p>

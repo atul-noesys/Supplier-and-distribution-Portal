@@ -38,9 +38,34 @@ const stepColors: Record<string, { bg: string; border: string; text: string }> =
       border: "border-green-200 dark:border-green-700",
       text: "text-green-700 dark:text-green-300",
     },
+    "Step 6": {
+      bg: "bg-teal-50 dark:bg-teal-950",
+      border: "border-teal-200 dark:border-teal-700",
+      text: "text-teal-700 dark:text-teal-300",
+    },
+    "Step 7": {
+      bg: "bg-orange-50 dark:bg-orange-950",
+      border: "border-orange-200 dark:border-orange-700",
+      text: "text-orange-700 dark:text-orange-300",
+    },
+    "Step 8": {
+      bg: "bg-rose-50 dark:bg-rose-950",
+      border: "border-rose-200 dark:border-rose-700",
+      text: "text-rose-700 dark:text-rose-300",
+    },
+    "Step 9": {
+      bg: "bg-indigo-50 dark:bg-indigo-950",
+      border: "border-indigo-200 dark:border-indigo-700",
+      text: "text-indigo-700 dark:text-indigo-300",
+    },
+    "Step 10": {
+      bg: "bg-lime-50 dark:bg-lime-950",
+      border: "border-lime-200 dark:border-lime-700",
+      text: "text-lime-700 dark:text-lime-300",
+    },
   };
 
-export default function KanbanColumn({ step, items, searchTerm = "", onEditClick }: KanbanColumnProps) {
+export default function KanbanColumn({ step, items = [], searchTerm = "", onEditClick }: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({
     id: `${step.toLowerCase().replace(" ", "-")}`,
   });

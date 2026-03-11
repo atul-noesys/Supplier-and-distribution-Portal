@@ -36,11 +36,23 @@ interface KanbanBoardProps {
     disabled?: boolean;
 }
 
-const STEPS = ["Step 1", "Step 2", "Step 3", "Step 4", "Step 5"];
-
 export default function KanbanBoard({ initialData, searchTerm = "", onEditClick, onDragDropSave, disabled = false }: KanbanBoardProps) {
     const [items, setItems] = useState<KanbanItem[]>(initialData);
     const [activeId, setActiveId] = useState<number | null>(null);
+
+    // Generate STEPS dynamically based on max stepCount from initialData
+    const STEPS = useMemo(() => {
+        // Find the maximum stepCount from initialData
+        const maxSteps = initialData.reduce((max, item) => {
+            return Math.max(max, item.stepCount || 0);
+        }, 0);
+
+        // Generate steps array dynamically, ensuring at least 1 step and capping at 10
+        const stepsCount = Math.max(1, Math.min(maxSteps, 10));
+        const generatedSteps = Array.from({ length: stepsCount }, (_, i) => `Step ${i + 1}`);
+
+        return generatedSteps;
+    }, [initialData]);
 
     // Sync items with initialData when it changes (e.g., on search/filter)
     useEffect(() => {
