@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { MdClose } from 'react-icons/md';
 import { toast } from 'react-toastify';
 import { Select, TextInput } from "@/components/ui";
+import MultiFileInput from '@/components/ui/infoveave-components/MultiFileInput';
 
 /**
  * Convert KeyValueRecord to RowData for API submission
@@ -52,6 +53,7 @@ function AddPOItemModalContent({
     const editingItem = poStore.getEditingItem();
 
     const [isUploadingDocument, setIsUploadingDocument] = useState(false);
+    const [uploadMessage, setUploadMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
     // Fetch pagination data using TanStack Query
     const { data: paginationData, isLoading, error } = useQuery({
@@ -129,58 +131,68 @@ function AddPOItemModalContent({
         onUserEdit?.();
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files;
-        if (files && files.length > 0) {
-            const fileArray = Array.from(files);
+    // Mirror WorkOrder MultiFileInput handler: accept array of files or file-like objects
+    const handleEditDocumentChange = async (files: any[] | undefined) => {
+        if (!files || files.length === 0) return;
 
-            setIsUploadingDocument(true);
+        setIsUploadingDocument(true);
 
-            try {
-                const uploadFiles = async () => {
-                    const uploadResult = await nguageStore.UploadMultipleMedia(fileArray);
-                    console.log("Upload result:", uploadResult);
-
-                    if (uploadResult) {
-                        setFormData((prev) => {
-                            // Normalize new upload result to an array of strings
-                            const newDocs: string[] = Array.isArray(uploadResult)
-                                ? uploadResult.map((d: any) => String(d))
-                                : [String(uploadResult)];
-
-                            let existingDocs: string[] = [];
-                            try {
-                                if (prev.document) {
-                                    const parsed = JSON.parse(String(prev.document));
-                                    if (Array.isArray(parsed)) {
-                                        existingDocs = parsed.map((d: any) => String(d));
-                                    } else if (parsed) {
-                                        existingDocs = [String(parsed)];
-                                    }
-                                }
-                            } catch {
-                                if (prev.document) {
-                                    existingDocs = [String(prev.document)];
-                                }
-                            }
-
-                            const merged = [...existingDocs, ...newDocs];
-
-                            return {
-                                ...prev,
-                                document: JSON.stringify(merged),
-                            };
-                        });
+        try {
+            // Parse existing document paths from formData
+            let existingDocPaths: string[] = [];
+            if (formData?.document) {
+                try {
+                    const parsed = JSON.parse(String(formData.document));
+                    if (Array.isArray(parsed)) {
+                        existingDocPaths = parsed.map((d: any) => String(d));
+                    } else if (parsed) {
+                        existingDocPaths = [String(parsed)];
                     }
-                };
-
-                uploadFiles();
-            } catch (error) {
-                console.error("Upload error:", error);
-            } finally {
-                setIsUploadingDocument(false);
-                onUserEdit?.();
+                } catch {
+                    existingDocPaths = [String(formData.document)];
+                }
             }
+
+            // Normalize incoming values to File objects (some components pass { file } wrappers)
+            const filesToUpload: File[] = files
+                .map((fileItem: any) => (fileItem?.file ? fileItem.file : fileItem))
+                .filter((file: File) => {
+                    if (!file || !file.name) return false;
+                    return !existingDocPaths.some((docPath) => docPath.includes(file.name));
+                });
+
+            if (filesToUpload.length === 0) {
+                toast.error('No new files to upload');
+                return;
+            }
+
+            const uploadResult = await nguageStore.UploadMultipleMedia(filesToUpload);
+            if (uploadResult) {
+                setFormData((prev) => {
+                    const prevState = prev || {};
+
+                    const newDocs: string[] = Array.isArray(uploadResult)
+                        ? uploadResult.map((d: any) => String(d))
+                        : [String(uploadResult)];
+
+                    const merged = [...existingDocPaths, ...newDocs];
+
+                    return {
+                        ...prevState,
+                        document: JSON.stringify(merged),
+                    };
+                });
+
+                toast.success('File(s) uploaded successfully');
+                onUserEdit?.();
+            } else {
+                toast.error('File upload failed');
+            }
+        } catch (error) {
+            console.error('Upload error:', error);
+            toast.error('An error occurred while uploading the file');
+        } finally {
+            setIsUploadingDocument(false);
         }
     };
 
@@ -423,19 +435,17 @@ function AddPOItemModalContent({
 
                                 {/* Document */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Document
-                                    </label>
-                                    <input
-                                        type="file"
-                                        multiple
-                                        onChange={handleFileChange}
-                                        disabled={isUploadingDocument}
-                                        className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        accept=".pdf,.doc,.docx,.jpg,.png"
+                                    <MultiFileInput
+                                        label="Document"
+                                        maxFiles={5}
+                                        accept=".pdf"
+                                        multiple={true}
+                                        className="w-full"
+                                        onValueChange={handleEditDocumentChange}
+                                        error={uploadMessage?.type === "error" ? uploadMessage.text : undefined}
                                     />
                                     {formData.document && (
-                                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                                        <p className="text-xs text-green-600 dark:text-gray-400 mt-1">
                                             <span className="text-blue-600 dark:text-blue-400">Current:</span> {(() => {
                                                 try {
                                                     const parsed = JSON.parse(formData.document as string);
@@ -477,8 +487,9 @@ function AddPOItemModalContent({
                         Cancel
                     </button>
                     <button
+                        disabled={isUploadingDocument}
                         onClick={poStore.editingItemIndex !== null ? handleUpdateItem : handleSubmit}
-                        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                        className="px-4 py-2 bg-blue-500 disabled:bg-gray-500 text-white rounded hover:bg-blue-600 disabled:hover:bg-gray-500 disabled:cursor-not-allowed disabled:opacity-70 transition-colors"
                     >
                         {poStore.editingItemIndex !== null ? 'Update Item' : 'Add Item'}
                     </button>

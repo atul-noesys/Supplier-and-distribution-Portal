@@ -1,12 +1,12 @@
 "use client";
 
-import { ShipmentItem } from "@/types/nguage-rowdata";
-import { useStore } from "@/store/store-context";
 import { TextInput } from "@/components/ui";
+import { useStore } from "@/store/store-context";
+import { ShipmentItem } from "@/types/nguage-rowdata";
 import React, { useState } from "react";
 import { MdClose } from "react-icons/md";
+import MultiFileInput from '@/components/ui/infoveave-components/MultiFileInput';
 import { toast } from "react-toastify";
-import { v4 as uuidv4 } from "uuid";
 
 interface EditShipmentItemModalProps {
   isOpen: boolean;
@@ -36,41 +36,42 @@ export function EditShipmentItemModal({
     }
   }, [item, isOpen]);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const files = Array.from(e.target.files);
+  // Handler for MultiFileInput which provides an array of files or file-like objects
+  const handleDocumentChange = async (files: any[] | undefined) => {
+    if (!files || files.length === 0) return;
 
-      setIsUploadingDocument(true);
+    setIsUploadingDocument(true);
 
-      try {
-        const uploadResult = await nguageStore.UploadMultipleMedia(files);
-        console.log("Upload result:", uploadResult);
+    try {
+      const fileArray: File[] = files.map((f: any) => (f?.file ? f.file : f)).filter(Boolean);
 
-        if (uploadResult) {
-          // Merge with any previously stored documents instead of overwriting
-          let existing: any[] = [];
-          try {
-            const raw = String(document || "[]");
-            const parsed = JSON.parse(raw);
-            existing = Array.isArray(parsed) ? parsed : [parsed];
-          } catch (err) {
-            existing = [];
-          }
+      const uploadResult = await nguageStore.UploadMultipleMedia(fileArray);
+      console.log("Upload result:", uploadResult);
 
-          const newFiles = Array.isArray(uploadResult) ? uploadResult : [uploadResult];
-          const merged = [...existing, ...newFiles];
-
-          setDocument(JSON.stringify(merged));
-          toast.success("File uploaded successfully!");
-        } else {
-          toast.error("File upload failed");
+      if (uploadResult) {
+        // Merge with any previously stored documents instead of overwriting
+        let existing: any[] = [];
+        try {
+          const raw = String(document || "[]");
+          const parsed = JSON.parse(raw);
+          existing = Array.isArray(parsed) ? parsed : [parsed];
+        } catch (err) {
+          existing = [];
         }
-      } catch (error) {
-        console.error("Upload error:", error);
-        toast.error("An error occurred while uploading the file");
-      } finally {
-        setIsUploadingDocument(false);
+
+        const newFiles = Array.isArray(uploadResult) ? uploadResult : [uploadResult];
+        const merged = [...existing, ...newFiles];
+
+        setDocument(JSON.stringify(merged));
+        toast.success("File uploaded successfully!");
+      } else {
+        toast.error("File upload failed");
       }
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("An error occurred while uploading the file");
+    } finally {
+      setIsUploadingDocument(false);
     }
   };
 
@@ -231,16 +232,17 @@ export function EditShipmentItemModal({
                   Document
                 </label>
                 <div className="space-y-2">
-                  <input
-                    type="file"
-                    multiple
-                    onChange={handleFileChange}
-                    disabled={isUploadingDocument}
-                    className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  <MultiFileInput
+                    label={null}
                     accept=".pdf,.doc,.docx,.jpg,.png"
+                    multiple
+                    maxFiles={5}
+                    onValueChange={handleDocumentChange}
+                    className=""
                   />
+
                   {document && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                    <p className="text-xs text-green-600 dark:text-gray-400 truncate">
                       <span className="text-blue-600">Current:</span> {(() => {
                         try {
                           const parsed = JSON.parse(document as string);

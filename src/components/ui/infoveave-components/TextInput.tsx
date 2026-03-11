@@ -1,5 +1,6 @@
 import { TextInput as InfoveaveTextInput } from "@infoveave/ui-components";
 import React from "react";
+import { cn } from "../../../lib/utils";
 
 interface TextInputProps {
   label?: string | React.ReactNode;
@@ -13,11 +14,6 @@ interface TextInputProps {
   error?: string;
 }
 
-/**
- * Reusable TextInput wrapper component
- * Wraps @infoveave/ui-components TextInput with customizable styling
- * Allows global override of disabled state styling and other visual properties
- */
 export const TextInput = ({
   label,
   type = "text",
@@ -29,10 +25,11 @@ export const TextInput = ({
   containerClassName,
   error,
 }: TextInputProps) => {
-  // Merge className with disabled state styling
-  const mergedClassName = disabled 
-    ? `${className || ''} text-black dark:text-black`
-    : className;
+  // Merge className with disabled state styling using `cn`
+  const mergedClassName = cn(
+    className,
+    disabled && "text-black dark:text-black"
+  );
 
   return (
     <div className={containerClassName}>

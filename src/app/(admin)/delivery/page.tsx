@@ -2,6 +2,7 @@
 
 import PDFViewerModal from "@/components/common/PDFViewerModal";
 import Badge from "@/components/ui/badge/Badge";
+import { MultiFileInput } from "@/components/ui/infoveave-components/MultiFileInput";
 import { TextInput } from "@/components/ui/infoveave-components/TextInput";
 import { useStore } from "@/store/store-context";
 import { RowData } from "@/types/nguage-rowdata";
@@ -458,7 +459,7 @@ export default observer(function DeliveryPage() {
                 }
 
                 if (successCount > 0) {
-                    toast.success(`${successCount} work order(s) updated to "Delivered"`);
+                    toast.success(`${successCount} work order updated to "Delivered"`);
                 }
                 if (failureCount > 0) {
                     toast.error(`Failed to update ${failureCount} work order(s)`);
@@ -485,63 +486,73 @@ export default observer(function DeliveryPage() {
     };
 
     // Handle document upload
-    const handleEditDocumentChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            const files = Array.from(e.target.files);
+    const handleEditDocumentChange = async (files: any[] | undefined) => {
+        if (!files || files.length === 0) return;
 
-            setIsUploadingDocument(true);
-            setUploadMessage(null);
+        setIsUploadingDocument(true);
+        setUploadMessage(null);
 
-            try {
-                const uploadResult = await nguageStore.UploadMultipleMedia(files);
-                console.log("Upload result:", uploadResult);
-
-                if (uploadResult) {
-                    setAcceptModalEdited(true);
-                    acceptModalEditedRef.current = true;
-                    setAcceptModalData((prev) => {
-                        if (!prev) return null;
-
-                        // Normalize new upload result to an array of strings
-                        const newDocs: string[] = Array.isArray(uploadResult)
-                            ? uploadResult.map((d: any) => String(d))
-                            : [String(uploadResult)];
-
-                        // Parse existing documents if present, supporting both JSON arrays and plain strings
-                        let existingDocs: string[] = [];
-                        try {
-                            if (prev.document) {
-                                const parsed = JSON.parse(String(prev.document));
-                                if (Array.isArray(parsed)) {
-                                    existingDocs = parsed.map((d: any) => String(d));
-                                } else if (parsed) {
-                                    existingDocs = [String(parsed)];
-                                }
-                            }
-                        } catch {
-                            // If parsing fails, treat the existing value as a single string
-                            if (prev.document) {
-                                existingDocs = [String(prev.document)];
-                            }
-                        }
-
-                        const merged = [...existingDocs, ...newDocs];
-
-                        return {
-                            ...prev,
-                            document: JSON.stringify(merged),
-                        };
-                    });
-                    setUploadMessage({ type: "success", text: "File uploaded successfully!" });
-                } else {
-                    setUploadMessage({ type: "error", text: "File upload failed" });
+        try {
+            // Parse existing document paths from acceptModalData
+            let existingDocPaths: string[] = [];
+            if (acceptModalData?.document) {
+                try {
+                    const parsed = JSON.parse(String(acceptModalData.document));
+                    if (Array.isArray(parsed)) {
+                        existingDocPaths = parsed.map((d: any) => String(d));
+                    } else if (parsed) {
+                        existingDocPaths = [String(parsed)];
+                    }
+                } catch {
+                    existingDocPaths = [String(acceptModalData.document)];
                 }
-            } catch (error) {
-                console.error("Upload error:", error);
-                setUploadMessage({ type: "error", text: "An error occurred while uploading the file" });
-            } finally {
-                setIsUploadingDocument(false);
             }
+
+            // Normalize incoming values to File objects (some components pass { file } wrappers)
+            const filesToUpload: File[] = files
+                .map((fileItem: any) => (fileItem?.file ? fileItem.file : fileItem))
+                .filter((file: File) => {
+                    if (!file || !file.name) return false;
+                    return !existingDocPaths.some((docPath) => docPath.includes(file.name));
+                });
+
+            if (filesToUpload.length === 0) {
+                toast.error('No new files to upload');
+                return;
+            }
+
+            const uploadResult = await nguageStore.UploadMultipleMedia(filesToUpload);
+            console.log("Upload result:", uploadResult);
+
+            if (uploadResult) {
+                setAcceptModalEdited(true);
+                acceptModalEditedRef.current = true;
+                setAcceptModalData((prev) => {
+                    if (!prev) return null;
+
+                    // Normalize new upload result to an array of strings
+                    const newDocs: string[] = Array.isArray(uploadResult)
+                        ? uploadResult.map((d: any) => String(d))
+                        : [String(uploadResult)];
+
+                    const merged = [...existingDocPaths, ...newDocs];
+
+                    return {
+                        ...prev,
+                        document: JSON.stringify(merged),
+                    };
+                });
+                toast.success('File uploaded successfully');
+            } else {
+                setUploadMessage({ type: "error", text: "File upload failed" });
+                toast.error('File upload failed');
+            }
+        } catch (error) {
+            console.error("Upload error:", error);
+            setUploadMessage({ type: "error", text: "An error occurred while uploading the file" });
+            toast.error('An error occurred while uploading the file');
+        } finally {
+            setIsUploadingDocument(false);
         }
     };
 
@@ -807,16 +818,18 @@ export default observer(function DeliveryPage() {
                                             <div key={key}>
                                                 {isDocument ? (
                                                     <div>
-                                                        <input
-                                                            type="file"
-                                                            multiple
-                                                            onChange={handleEditDocumentChange}
-                                                            disabled={isUploadingDocument}
-                                                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50"
+                                                        <MultiFileInput
+                                                            label="Document"
+                                                            maxFiles={5}
+                                                            accept=".pdf"
+                                                            multiple={true}
+                                                            className="w-full"
+                                                            onValueChange={handleEditDocumentChange}
+                                                            error={uploadMessage?.type === "error" ? uploadMessage.text : undefined}
                                                         />
                                                         {acceptModalData.document && (
-                                                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                                                                <span className="text-blue-600">Current:</span> {(() => {
+                                                            <p className="text-xs text-green-600 dark:text-gray-400 mt-1">
+                                                                <span className="text-blue-600 dark:text-blue-400">Current:</span> {(() => {
                                                                     try {
                                                                         const parsed = JSON.parse(acceptModalData.document as string);
                                                                         if (Array.isArray(parsed)) {
@@ -830,11 +843,6 @@ export default observer(function DeliveryPage() {
                                                                         return String(acceptModalData.document);
                                                                     }
                                                                 })()}
-                                                            </p>
-                                                        )}
-                                                        {uploadMessage && (
-                                                            <p className={`text-xs font-medium mt-2 ${uploadMessage.type === "success" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                                                                {uploadMessage.text}
                                                             </p>
                                                         )}
                                                     </div>
@@ -887,7 +895,7 @@ export default observer(function DeliveryPage() {
                             </button>
                             <button
                                 onClick={handleSubmitAcceptDelivery}
-                                disabled={acceptModalLoading}
+                                disabled={acceptModalLoading || isUploadingDocument}
                                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium rounded-lg transition-colors flex items-center gap-2 justify-center"
                             >
                                 {acceptModalLoading ? (

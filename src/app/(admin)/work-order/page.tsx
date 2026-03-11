@@ -6,6 +6,7 @@ import KanbanBoard from "@/components/kanban/KanbanBoard";
 import { TimelineLayout } from "@/components/timeline/timeline-layout";
 import { useStore } from "@/store/store-context";
 import { TextInput, Select } from "@/components/ui";
+import { MultiFileInput } from "@/components/ui/infoveave-components/MultiFileInput";
 import { RowData } from "@/types/nguage-rowdata";
 import { TimelineElement } from "@/types/timeline";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -244,7 +245,7 @@ export default observer(function WorkOrderPage() {
     (itemCode: string): number => {
       const steps = Array.isArray(itemProcessSteps) ? itemProcessSteps : [];
       const uniqueSequences = new Set<number>();
-      
+
       steps.forEach((step: any) => {
         if (String(step.item_code || "").toLowerCase() === String(itemCode || "").toLowerCase()) {
           uniqueSequences.add(Number(step.sequence || 0));
@@ -574,61 +575,81 @@ export default observer(function WorkOrderPage() {
     });
   };
 
-  const handleEditDocumentChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const files = Array.from(e.target.files);
+  const handleEditDocumentChange = async (files: any[] | undefined) => {
+    if (!files || files.length === 0) {
+      return;
+    }
 
-      setIsUploadingDocument(true);
-      setUploadMessage(null);
-      setHasEditFormChanged(true);
-      hasEditFormChangedRef.current = true;
+    setIsUploadingDocument(true);
+    setUploadMessage(null);
+    setHasEditFormChanged(true);
+    hasEditFormChangedRef.current = true;
 
-      try {
-        const uploadResult = await nguageStore.UploadMultipleMedia(files);
-        console.log("Upload result:", uploadResult);
-
-        if (uploadResult) {
-          setEditFormData((prev) => {
-            if (!prev) return null;
-
-            // Normalize new upload result to an array of strings
-            const newDocs: string[] = Array.isArray(uploadResult)
-              ? uploadResult.map((d: any) => String(d))
-              : [String(uploadResult)];
-
-            let existingDocs: string[] = [];
-            try {
-              if (prev.document) {
-                const parsed = JSON.parse(String(prev.document));
-                if (Array.isArray(parsed)) {
-                  existingDocs = parsed.map((d: any) => String(d));
-                } else if (parsed) {
-                  existingDocs = [String(parsed)];
-                }
-              }
-            } catch {
-              if (prev.document) {
-                existingDocs = [String(prev.document)];
-              }
-            }
-
-            const merged = [...existingDocs, ...newDocs];
-
-            return {
-              ...prev,
-              document: JSON.stringify(merged),
-            };
-          });
-          setUploadMessage({ type: "success", text: "File uploaded successfully!" });
-        } else {
-          setUploadMessage({ type: "error", text: "File upload failed" });
+    try {
+      // Get existing document paths for comparison
+      let existingDocPaths: string[] = [];
+      if (editFormData?.document) {
+        try {
+          const parsed = JSON.parse(String(editFormData.document));
+          if (Array.isArray(parsed)) {
+            existingDocPaths = parsed.map((d: any) => String(d));
+          } else if (parsed) {
+            existingDocPaths = [String(parsed)];
+          }
+        } catch {
+          existingDocPaths = [String(editFormData.document)];
         }
-      } catch (error) {
-        console.error("Upload error:", error);
-        setUploadMessage({ type: "error", text: "An error occurred while uploading the file" });
-      } finally {
-        setIsUploadingDocument(false);
       }
+
+      // Extract File objects and filter out duplicates (files that already exist)
+      const filesToUpload = files
+        .map((fileItem: any) => {
+          return fileItem.file ? fileItem.file : fileItem;
+        })
+        .filter((file: File) => {
+          // Exclude files that already exist in the documents
+          return !existingDocPaths.some((docPath) =>
+            docPath.includes(file.name)
+          );
+        });
+
+      console.log("Files to upload:", filesToUpload);
+
+      // Only upload if there are new files
+      if (filesToUpload.length === 0) {
+        setUploadMessage({ type: "error", text: "No new files to upload" });
+        setIsUploadingDocument(false);
+        return;
+      }
+
+      const uploadResult = await nguageStore.UploadMultipleMedia(filesToUpload);
+      console.log("Upload result:", uploadResult);
+
+      if (uploadResult) {
+        setEditFormData((prev) => {
+          if (!prev) return null;
+
+          // Normalize new upload result to an array of strings
+          const newDocs: string[] = Array.isArray(uploadResult)
+            ? uploadResult.map((d: any) => String(d))
+            : [String(uploadResult)];
+
+          const merged = [...existingDocPaths, ...newDocs];
+
+          return {
+            ...prev,
+            document: JSON.stringify(merged),
+          };
+        });
+        setUploadMessage({ type: "success", text: "File uploaded successfully!" });
+      } else {
+        setUploadMessage({ type: "error", text: "File upload failed" });
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      setUploadMessage({ type: "error", text: "An error occurred while uploading the file" });
+    } finally {
+      setIsUploadingDocument(false);
     }
   };
 
@@ -859,7 +880,7 @@ export default observer(function WorkOrderPage() {
   const processNameMap = useMemo(() => {
     const map = new Map<string, string>();
     const processes = Array.isArray(itemProcesses) ? itemProcesses : [];
-    
+
     processes.forEach((proc: any) => {
       if (proc.item_process_id && proc.item_process_name) {
         map.set(String(proc.item_process_id), String(proc.item_process_name));
@@ -888,7 +909,7 @@ export default observer(function WorkOrderPage() {
     availableSteps.forEach((step: any) => {
       const processId = String(step.item_process_id || "");
       const stepName = processNameMap.get(processId);
-      
+
       if (stepName) {
         nameSet.add(stepName);
       }
@@ -1175,8 +1196,8 @@ export default observer(function WorkOrderPage() {
                           onClick={() => handleViewTimeline(item.step_history as string | null, `${item.po_number}${item.item_code}`)}
                           disabled={!item.step_history}
                           className={`flex justify-center items-center ml-4 transition-colors ${item.step_history
-                              ? "text-blue-600 dark:text-blue-400 cursor-pointer"
-                              : "text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50"
+                            ? "text-blue-600 dark:text-blue-400 cursor-pointer"
+                            : "text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50"
                             }`}
                           title={item.step_history ? "View Timeline" : "No timeline data"}
                         >
@@ -1450,33 +1471,37 @@ export default observer(function WorkOrderPage() {
 
                 {/* Document - File Upload */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Document
-                  </label>
-                  <input
-                    type="file"
-                    multiple
-                    onChange={handleEditDocumentChange}
-                    disabled={isUploadingDocument}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50"
+                  <MultiFileInput
+                    label="Document"
+                    maxFiles={5}
+                    accept=".pdf"
+                    multiple={true}
+                    className="w-full"
+                    onValueChange={handleEditDocumentChange}
+                    error={uploadMessage?.type === "error" ? uploadMessage.text : undefined}
                   />
-                  {editFormData.document && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                      <span className="text-blue-600">Current:</span> {(() => {
-                        try {
-                          const parsed = JSON.parse(editFormData.document as string);
-                          if (Array.isArray(parsed)) {
-                            return parsed
-                              .map((f: string) => (f ? f.split("/").pop() : ""))
-                              .filter(Boolean)
-                              .join(", ");
-                          }
-                          return String(parsed).split("/").pop() || String(parsed);
-                        } catch {
-                          return String(editFormData.document);
-                        }
-                      })()}
-                    </p>
+                  {uploadMessage && uploadMessage.type === "success" && (
+                    <div className="text-xs text-green-600 dark:text-green-400 mt-0.5">
+                      <p className="font-semibold">✓ {uploadMessage.text}</p>
+                      {editFormData.document && (
+                        <p className="text-xs text-green-600 dark:text-gray-400 mt-1">
+                          <span className="text-blue-600 dark:text-blue-400">Current:</span> {(() => {
+                            try {
+                              const parsed = JSON.parse(editFormData.document as string);
+                              if (Array.isArray(parsed)) {
+                                return parsed
+                                  .map((f: string) => (f ? f.split("/").pop() : ""))
+                                  .filter(Boolean)
+                                  .join(", ");
+                              }
+                              return String(parsed).split("/").pop() || String(parsed);
+                            } catch {
+                              return String(editFormData.document);
+                            }
+                          })()}
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -1504,8 +1529,8 @@ export default observer(function WorkOrderPage() {
               </button>
               <button
                 onClick={handleEditWorkOrder}
-                disabled={isSavingWorkOrder}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                disabled={isSavingWorkOrder || isUploadingDocument}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
               >
                 {isSavingWorkOrder ? (
                   <>

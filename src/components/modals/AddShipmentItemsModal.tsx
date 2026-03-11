@@ -1,14 +1,14 @@
 'use client';
 
+import MultiFileInput from '@/components/ui/infoveave-components/MultiFileInput';
 import { useStore } from '@/store/store-context';
-import { KeyValueRecord, ShipmentItem, RowData } from '@/types/nguage-rowdata';
+import { KeyValueRecord, RowData, ShipmentItem } from '@/types/nguage-rowdata';
 import { useQuery } from '@tanstack/react-query';
 import { observer } from 'mobx-react-lite';
 import * as React from 'react';
 import { useState } from 'react';
 import { MdClose } from 'react-icons/md';
 import { toast } from 'react-toastify';
-import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Convert KeyValueRecord to RowData for API submission
@@ -147,28 +147,30 @@ function AddShipmentItemsModalContent({
         }
     }, [isOpen, editingItem, editingItemIndex, getDefaultFormData]);
 
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            const files = Array.from(e.target.files);
+    // Handler for MultiFileInput (array of files or file-like objects)
+    const handleEditDocumentChange = async (files: any[] | undefined) => {
+        if (!files || files.length === 0) return;
 
-            setIsUploadingDocument(true);
+        setIsUploadingDocument(true);
 
-            try {
-                const uploadResult = await nguageStore.UploadMultipleMedia(files);
-                console.log("Upload result:", uploadResult);
+        try {
+            const fileArray: File[] = files.map((f: any) => (f?.file ? f.file : f)).filter(Boolean);
 
-                if (uploadResult) {
-                    handleInputChange("document", JSON.stringify(uploadResult));
-                    toast.success("File uploaded successfully!");
-                } else {
-                    toast.error("File upload failed");
-                }
-            } catch (error) {
-                console.error("Upload error:", error);
-                toast.error("An error occurred while uploading the file");
-            } finally {
-                setIsUploadingDocument(false);
+            const uploadResult = await nguageStore.UploadMultipleMedia(fileArray);
+            console.log("Upload result:", uploadResult);
+
+            if (uploadResult) {
+                const newFiles = Array.isArray(uploadResult) ? uploadResult : [uploadResult];
+                handleInputChange("document", JSON.stringify(newFiles));
+                toast.success("File uploaded successfully!");
+            } else {
+                toast.error("File upload failed");
             }
+        } catch (error) {
+            console.error("Upload error:", error);
+            toast.error("An error occurred while uploading the file");
+        } finally {
+            setIsUploadingDocument(false);
         }
     };
 
@@ -493,16 +495,13 @@ function AddShipmentItemsModalContent({
 
                                 {/* Document */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        Document
-                                    </label>
-                                    <input
-                                        type="file"
-                                        multiple
-                                        onChange={handleFileChange}
-                                        disabled={isUploadingDocument}
-                                        className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        accept=".pdf,.doc,.docx,.jpg,.png"
+                                    <MultiFileInput
+                                        label="Document"
+                                        maxFiles={5}
+                                        accept=".pdf"
+                                        multiple={true}
+                                        className="w-full"
+                                        onValueChange={handleEditDocumentChange}
                                     />
                                 </div>
 

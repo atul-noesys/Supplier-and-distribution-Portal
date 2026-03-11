@@ -13,6 +13,7 @@ import { MdAdd, MdClose, MdDelete, MdEdit } from "react-icons/md";
 import { toast } from "react-toastify";
 import { AddItemFromWorkOrderModal } from "./AddItemFromWorkOrderModal";
 import { EditShipmentItemModal } from "./EditShipmentItemModal";
+import MultiFileInput from '@/components/ui/infoveave-components/MultiFileInput';
 
 /**
  * Convert KeyValueRecord to RowData for API submission
@@ -311,41 +312,43 @@ function AddShipmentModalContent({
     }));
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const files = Array.from(e.target.files);
+  // Accept array of File or file-like objects from MultiFileInput
+  const handleEditDocumentChange = async (files: any[] | undefined) => {
+    if (!files || files.length === 0) return;
 
-      setIsUploadingDocument(true);
+    setIsUploadingDocument(true);
 
-      try {
-        const uploadResult = await nguageStore.UploadMultipleMedia(files);
-        console.log("Upload result:", uploadResult);
+    try {
+      // Normalize incoming values to File objects
+      const fileArray: File[] = files.map((f: any) => (f?.file ? f.file : f)).filter(Boolean);
 
-        if (uploadResult) {
-          // Merge with any previously stored documents instead of overwriting
-          let existing: any[] = [];
-          try {
-            const raw = String(formData.document || "[]");
-            const parsed = JSON.parse(raw);
-            existing = Array.isArray(parsed) ? parsed : [parsed];
-          } catch (err) {
-            existing = [];
-          }
+      const uploadResult = await nguageStore.UploadMultipleMedia(fileArray);
+      console.log("Upload result:", uploadResult);
 
-          const newFiles = Array.isArray(uploadResult) ? uploadResult : [uploadResult];
-          const merged = [...existing, ...newFiles];
-
-          handleInputChange("document", JSON.stringify(merged));
-          toast.success("File uploaded successfully!");
-        } else {
-          toast.error("File upload failed");
+      if (uploadResult) {
+        // Merge with any previously stored documents instead of overwriting
+        let existing: any[] = [];
+        try {
+          const raw = String(formData.document || "[]");
+          const parsed = JSON.parse(raw);
+          existing = Array.isArray(parsed) ? parsed : [parsed];
+        } catch (err) {
+          existing = [];
         }
-      } catch (error) {
-        console.error("Upload error:", error);
-        toast.error("An error occurred while uploading the file");
-      } finally {
-        setIsUploadingDocument(false);
+
+        const newFiles = Array.isArray(uploadResult) ? uploadResult : [uploadResult];
+        const merged = [...existing, ...newFiles];
+
+        handleInputChange("document", JSON.stringify(merged));
+        toast.success("File uploaded successfully!");
+      } else {
+        toast.error("File upload failed");
       }
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("An error occurred while uploading the file");
+    } finally {
+      setIsUploadingDocument(false);
     }
   };
 
@@ -929,19 +932,16 @@ function AddShipmentModalContent({
 
                   {/* Document */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Document
-                    </label>
-                    <input
-                      type="file"
-                      multiple
-                      onChange={handleFileChange}
-                      disabled={isUploadingDocument}
-                      className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-1.5 file:px-4 file:rounded-sm file:border-0 file:text-sm file:font-medium file:bg-blue-500 file:text-white hover:file:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                    <MultiFileInput
+                      label="Document"
+                      maxFiles={5}
                       accept=".pdf,.doc,.docx,.jpg,.png"
+                      multiple={true}
+                      className="w-full"
+                      onValueChange={handleEditDocumentChange}
                     />
                     {formData.document && (
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                      <p className="text-xs text-green-600 dark:text-gray-400 mt-1">
                         <span className="text-blue-600">Current:</span> {(() => {
                           try {
                             const parsed = JSON.parse(formData.document as string);
@@ -982,7 +982,6 @@ function AddShipmentModalContent({
                       label={<>Shipment Date {formData.carrier_name && <span className="text-red-500">*</span>}</>}
                       placeholder="Select date"
                       value={formData.shipment_date ? new Date(String(formData.shipment_date)) : undefined}
-                      disabled={isEditMode}
                       onValueChange={(date) => {
                         if (date) {
                           const year = date.getFullYear();
@@ -1013,7 +1012,6 @@ function AddShipmentModalContent({
                       label={<>Estimated Delivery Date {formData.carrier_name && <span className="text-red-500">*</span>}</>}
                       placeholder="Select date"
                       value={formData.estimated_delivery_date ? new Date(String(formData.estimated_delivery_date)) : undefined}
-                      disabled={isEditMode}
                       onValueChange={(date) => {
                         if (date) {
                           const year = date.getFullYear();
@@ -1251,7 +1249,7 @@ function AddShipmentModalContent({
                 // Edit mode: Show Update Shipment button
                 <button
                   type="button"
-                  disabled={isSaving}
+                  disabled={isSaving || isUploadingDocument}
                   onClick={handleSaveShipment}
                   className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
                 >
@@ -1268,7 +1266,7 @@ function AddShipmentModalContent({
                 // Create mode: Save the shipment master record and items
                 <button
                   type="button"
-                  disabled={isSaving || shipmentStore.shipmentItems.length === 0}
+                  disabled={isSaving || shipmentStore.shipmentItems.length === 0 || isUploadingDocument}
                   onClick={handleSaveShipment}
                   className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
                 >
