@@ -6,6 +6,7 @@ import { Loader, X } from 'lucide-react';
 import Badge from '@/components/ui/badge/Badge';
 import { useStore } from '@/store/store-context';
 import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
 
 // Add pulse animation styles
 const pulseStyles = `
@@ -320,6 +321,60 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
     enabled: isModalOpen && !!nguageStore,
     staleTime: 0,
   });
+
+  // Fetch PO items for mapping quantity, unit_price, and total (used to enrich finished work orders)
+  const { data: poItems = [] } = useQuery({
+    queryKey: ['poItems', isModalOpen],
+    queryFn: async (): Promise<any[]> => {
+      try {
+        const authToken = localStorage.getItem('access_token');
+        const response = await axios.post(
+          '/api/GetPOItems',
+          {
+            table: 'PurchaseOrder',
+            skip: 0,
+            take: 500,
+            NGaugeId: undefined,
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              ...(authToken && { Authorization: `Bearer ${authToken}` }),
+            },
+          }
+        );
+        const items = response.data?.data || [];
+        return Array.isArray(items) ? items : [];
+      } catch (error) {
+        console.error('Error fetching PO items:', error);
+        return [];
+      }
+    },
+    enabled: isModalOpen,
+    staleTime: 0,
+  });
+
+  // Enrich finished work orders with PO item data when available
+  const enrichedFinishedWorkOrders = useMemo(() => {
+    return (finishedWorkOrders || []).map((wo: any) => {
+      const matchingPoItem = (poItems || []).find(
+        (poItem: any) =>
+          String(poItem.po_number).trim() === String(wo.po_number).trim() &&
+          String(poItem.item_code).trim() === String(wo.item_code).trim()
+      );
+
+      const quantity = matchingPoItem?.quantity ? Number(matchingPoItem.quantity) : getQuantity(wo);
+      const unit_price = matchingPoItem?.unit_price ? Number(matchingPoItem.unit_price) : getUnitPrice(wo);
+      const total = matchingPoItem ? quantity * unit_price : getTotalFromWorkOrder(wo);
+
+      return {
+        ...wo,
+        _computed_quantity: quantity,
+        _computed_unit_price: unit_price,
+        _computed_total: total,
+      };
+    });
+  }, [finishedWorkOrders, poItems]);
 
   // Tooltip styles (small modern card)
   const tooltipStyles = {
@@ -949,8 +1004,8 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
             </div>
           </div>
         )}
-        
-        {/* Simple Modal (controlled by Open modal button) */}
+
+        {/* Finished Goods Work Orders Modal (controlled by Open modal button) */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl w-4/5 h-[90vh] flex flex-col overflow-hidden">
@@ -958,7 +1013,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
               <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-5 py-3">
                 <div>
                   <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
-                    Finished Goods Work Orders
+                    Add to Warehouse
                   </h2>
                 </div>
                 <button
@@ -971,11 +1026,17 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
               </div>
 
               {/* Content */}
-              <div className="flex-1 overflow-y-auto px-5 py-3">
+              <div className="flex-1 overflow-y-auto px-5 py-3 space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    List of Finished Goods Work Orders
+                  </h3>
+                </div>
+
                 {finishedWorkOrdersLoading ? (
                   <div className="flex items-center justify-center py-12">
-                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                      <Loader className="w-4 h-4 animate-spin" /> Loading work orders...
+                    <div className="animate-spin">
+                      <div className="h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
                     </div>
                   </div>
                 ) : finishedWorkOrders.length === 0 ? (
@@ -994,15 +1055,13 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                             <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">WO ID</th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Item Code</th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Item Name</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">PO #</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">PO Number</th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Qty</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Unit Price</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Total</th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Status</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                          {finishedWorkOrders.map((wo: any, idx: number) => (
+                          {enrichedFinishedWorkOrders.map((wo: any, idx: number) => (
                             <tr key={wo.ROWID || wo.rowid || `${getWorkOrderId(wo)}-${idx}`} className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                               <td className="px-4 py-3">
                                 <input type="checkbox" className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer" aria-label={`select-${idx}`} />
@@ -1011,9 +1070,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                               <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{wo.item_code || '-'}</td>
                               <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 max-w-xs truncate">{wo.item || '-'}</td>
                               <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{wo.po_number || '-'}</td>
-                              <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{Number(getQuantity(wo) || 0)}</td>
-                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">${Number(getUnitPrice(wo) || 0).toFixed(2)}</td>
-                              <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">${Number(getTotalFromWorkOrder(wo) || 0).toFixed(2)}</td>
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{Number(wo._computed_quantity || 0)}</td>
                               <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
                                 <Badge color={getStatusColor(wo.wo_status)} variant="solid">
                                   {wo.wo_status || '-'}

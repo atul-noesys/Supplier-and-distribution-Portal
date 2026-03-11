@@ -786,7 +786,7 @@ function AddShipmentModalContent({
         <div className="flex-1 overflow-y-auto px-5 py-3">
           {step === 1 ? (
             // Work Order Selection Step
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                   Available Work Orders
@@ -830,10 +830,7 @@ function AddShipmentModalContent({
                           <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Item Name</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">PO #</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Qty</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Unit Price</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Total</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Supplier</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Step</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">WO Status</th>
                         </tr>
                       </thead>
@@ -862,16 +859,7 @@ function AddShipmentModalContent({
                               <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 max-w-xs truncate">{workOrder.item || '-'}</td>
                               <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{workOrder.po_number || '-'}</td>
                               <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{workOrder.quantity || 0}</td>
-                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">${Number(workOrder.unit_price || 0).toFixed(2)}</td>
-                              <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
-                                ${(Number(workOrder.unit_price || 0) * Number(workOrder.quantity || 0)).toFixed(2)}
-                              </td>
-                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{workOrder.vendor_name || '-'}</td>
-                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                                <Badge color={getStatusColor("Completed")} variant="solid">
-                                  {workOrder.step || '-'}
-                                </Badge>
-                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{workOrder.supplier_name || '-'}</td>
                               <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
                                 <Badge color={getStatusColor(workOrder.wo_status)} variant="solid">
                                   {workOrder.wo_status || '-'}
