@@ -733,22 +733,22 @@ export default observer(function AddItemProcessStepsPage() {
             <div className="p-4">
               <div className="space-y-2">
                 {/* Item Code Badge */}
-                <div className="flex items-center gap-1">
-                  <div className="flex-1">
+                <div className="flex items-center gap-5">
+                  <div className="flex-1 flex items-center justify-between">
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">
                       Item Code
                     </p>
-                    <div className="inline-block bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-lg font-semibold">
+                    <div className="text-xs inline-block bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-lg font-semibold">
                       {selectedItemCodeForStep}
                     </div>
                   </div>
 
                   {/* Total Steps Info */}
-                  <div className="flex-1">
+                  <div className="flex-1 flex items-center justify-between">
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">
                       Total Steps
                     </p>
-                    <div className="inline-block bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-lg font-semibold">
+                    <div className="text-xs inline-block bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-lg font-semibold">
                       {groupedItems.find((g) => g.item_code === selectedItemCodeForStep)?.processes.length || 0}
                     </div>
                   </div>
@@ -759,18 +759,15 @@ export default observer(function AddItemProcessStepsPage() {
 
                 {/* Sequence Select - Choose position to insert */}
                 <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-3">
-                    Insert Position <span className="text-red-500">*</span>
-                  </p>
                   <Select
-                    label={null}
+                    label={<>Insert Position <span className="text-red-500">*</span></>}
                     value={selectedSequenceForStep}
                     onValueChange={(v) => setSelectedSequenceForStep(v ?? "")}
                     placeholder="Select position to insert step..."
                     data={availableSequenceOptions}
                     className="max-w-full"
                   />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  <p className="text-xs text-gray-400 dark:text-gray-400 mt-2">
                     Selecting a position in the middle will shift existing steps down.
                   </p>
                 </div>
@@ -780,11 +777,8 @@ export default observer(function AddItemProcessStepsPage() {
 
                 {/* Item Process Select - Large and prominent */}
                 <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-3">
-                    Select Process <span className="text-red-500">*</span>
-                  </p>
                   <Select
-                    label={null}
+                    label={<>Select Process <span className="text-red-500">*</span></>}
                     value={selectedItemProcessId}
                     onValueChange={(v) => setSelectedItemProcessId(v ?? "")}
                     placeholder="Choose an item process..."
@@ -819,17 +813,17 @@ export default observer(function AddItemProcessStepsPage() {
             </div>
 
             {/* Footer */}
-            <div className="border-t border-gray-200 dark:border-gray-700 px-6 py-4 bg-gray-50 dark:bg-gray-800/50 flex justify-end gap-3">
+            <div className="border-t border-gray-200 dark:border-gray-700 px-5 py-3 bg-gray-50 dark:bg-gray-800/50 flex justify-end gap-3">
               <button
                 onClick={closeAddStepModal}
-                className="px-5 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 font-medium rounded-lg transition-colors"
+                className="px-4 py-1.5 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 font-medium rounded-lg transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmitAddStep}
                 disabled={addStepModalLoading || !selectedItemProcessId || !selectedSequenceForStep}
-                className="px-6 py-2 bg-linear-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-none flex items-center gap-2 justify-center"
+                className="px-4 py-1.5 bg-linear-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-none flex items-center gap-2 justify-center"
               >
                 {addStepModalLoading ? (
                   <>
