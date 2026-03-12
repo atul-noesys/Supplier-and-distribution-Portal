@@ -48,7 +48,7 @@ export const WarehousePage: React.FC = () => {
       const pagination = await nguageStore.GetPaginationData({
         table: 'item',
         skip: 0,
-        take: 200,
+        take: 30000,
         NGaugeId: '33',
       });
       const result = Array.isArray(pagination) ? pagination : pagination?.data || [];
@@ -63,16 +63,9 @@ export const WarehousePage: React.FC = () => {
     const itemDescMap = new Map(
       (itemDescriptionsData as any[]).map((item) => {
         // Handle various column name formats for item code and description
-        const code = (item.item_code || item.Item_code || item.ItemCode || item.CODE || '')
-          .toString()
-          .trim();
-        const desc = item.item_description || 
-                     item.Item_description || 
-                     item.Item_Description || 
-                     item.Description || 
-                     item.ItemDesc || 
-                     item.Desc || 
-                     '';
+        const code = item.Item_code;
+        const desc = item.item_description;
+
         return [code.toLowerCase(), desc];
       })
     );
