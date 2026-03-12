@@ -80,6 +80,7 @@ export default observer(function AddItemProcessStepsPage() {
   const [addStepModalLoading, setAddStepModalLoading] = useState(false);
   const [selectedItemCodeForStep, setSelectedItemCodeForStep] = useState<string>("");
   const [selectedItemProcessId, setSelectedItemProcessId] = useState<string>("");
+  const [selectedSequenceForStep, setSelectedSequenceForStep] = useState<string>("");
 
   const [addItemStepName, setAddItemStepName] = useState<string>("");
   const [addItemStepDescription, setAddItemStepDescription] = useState<string>("");
@@ -235,6 +236,7 @@ export default observer(function AddItemProcessStepsPage() {
   const openAddStepModal = (itemCode: string, totalSteps: number) => {
     setSelectedItemCodeForStep(itemCode);
     setSelectedItemProcessId("");
+    setSelectedSequenceForStep("");
     setShowAddStepModal(true);
   };
 
@@ -249,11 +251,36 @@ export default observer(function AddItemProcessStepsPage() {
     });
   }, [groupedItems, selectedItemCodeForStep, itemProcessOptions]);
 
+  // Get available sequence options for inserting step
+  const availableSequenceOptions = useMemo(() => {
+    const itemGroup = groupedItems.find((g) => g.item_code === selectedItemCodeForStep);
+    const totalSteps = itemGroup?.processes.length || 0;
+    const options = [];
+    
+    // Create options for each position (1 to totalSteps + 1)
+    for (let i = 1; i <= totalSteps + 1; i++) {
+      if (i === totalSteps + 1) {
+        options.push({
+          value: String(i),
+          label: `Step ${i} (Last)`,
+        });
+      } else {
+        options.push({
+          value: String(i),
+          label: `Step ${i} (Insert before current Step ${i})`,
+        });
+      }
+    }
+    
+    return options;
+  }, [groupedItems, selectedItemCodeForStep]);
+
   // Close Add Step Modal
   const closeAddStepModal = () => {
     setShowAddStepModal(false);
     setSelectedItemCodeForStep("");
     setSelectedItemProcessId("");
+    setSelectedSequenceForStep("");
   };
 
   // Handle submit Add Step
@@ -268,18 +295,60 @@ export default observer(function AddItemProcessStepsPage() {
       return;
     }
 
+    if (!selectedSequenceForStep) {
+      toast.error("Sequence position is required");
+      return;
+    }
+
     setAddStepModalLoading(true);
 
     try {
-      // Get the next sequence number (current total + 1)
+      const selectedSequenceNumber = parseInt(selectedSequenceForStep, 10);
       const itemGroup = groupedItems.find((g) => g.item_code === selectedItemCodeForStep);
-      const nextSequence = (itemGroup?.processes.length || 0) + 1;
+      const totalSteps = itemGroup?.processes.length || 0;
 
-      // Prepare data for submission
+      // If inserting in the middle (not at the end), shift existing steps
+      if (selectedSequenceNumber <= totalSteps) {
+        // Find all processes that need to be updated (sequence >= selectedSequence)
+        const processesToUpdate = itemGroup?.processes.filter(
+          (p) => p.sequence >= selectedSequenceNumber
+        ) || [];
+
+        // Update each process with incremented sequence
+        for (const process of processesToUpdate) {
+          const newSequence = process.sequence + 1;
+          
+          // Fetch complete row data
+          const completeRowData = await nguageStore.GetRowData(60, process.ROWID, "item_process_steps");
+          
+          if (!completeRowData) {
+            throw new Error(`Failed to fetch complete data for step ${process.sequence}`);
+          }
+
+          // Prepare complete payload with updated sequence
+          const updatePayload = {
+            ...completeRowData,
+            sequence: newSequence,
+          };
+
+          const updateResult = await nguageStore.UpdateRowDataDynamic(
+            updatePayload,
+            String(process.ROWID),
+            60,
+            "item_process_steps"
+          );
+
+          if (!updateResult.result) {
+            throw new Error(`Failed to update step ${process.sequence}: ${updateResult.error}`);
+          }
+        }
+      }
+
+      // Prepare data for submission - add new step with selected sequence
       const newStep = {
         item_code: selectedItemCodeForStep,
         item_process_id: selectedItemProcessId,
-        sequence: nextSequence,
+        sequence: selectedSequenceNumber,
       };
 
       // Call the store method to add new step
@@ -674,15 +743,36 @@ export default observer(function AddItemProcessStepsPage() {
                     </div>
                   </div>
 
-                  {/* Next Sequence Badge */}
+                  {/* Total Steps Info */}
                   <div className="flex-1">
                     <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">
-                      Sequence
+                      Total Steps
                     </p>
                     <div className="inline-block bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-lg font-semibold">
-                      Step {(groupedItems.find((g) => g.item_code === selectedItemCodeForStep)?.processes.length || 0) + 1}
+                      {groupedItems.find((g) => g.item_code === selectedItemCodeForStep)?.processes.length || 0}
                     </div>
                   </div>
+                </div>
+
+                {/* Divider */}
+                <div className="h-px bg-gray-200 dark:bg-gray-700"></div>
+
+                {/* Sequence Select - Choose position to insert */}
+                <div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-3">
+                    Insert Position <span className="text-red-500">*</span>
+                  </p>
+                  <Select
+                    label={null}
+                    value={selectedSequenceForStep}
+                    onValueChange={(v) => setSelectedSequenceForStep(v ?? "")}
+                    placeholder="Select position to insert step..."
+                    data={availableSequenceOptions}
+                    className="max-w-full"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    Selecting a position in the middle will shift existing steps down.
+                  </p>
                 </div>
 
                 {/* Divider */}
@@ -710,7 +800,7 @@ export default observer(function AddItemProcessStepsPage() {
                 </div>
 
                 {/* Selected item preview */}
-                {selectedItemProcessId && (
+                {selectedItemProcessId && selectedSequenceForStep && (
                   <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg p-4">
                     <div className="flex items-start gap-3">
                       <MdCheckCircle className="w-6 h-6 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
@@ -719,7 +809,7 @@ export default observer(function AddItemProcessStepsPage() {
                           {selectedItemProcessId}
                         </p>
                         <p className="text-xs text-green-700 dark:text-green-400 mt-1">
-                          Ready to be added as Step {(groupedItems.find((g) => g.item_code === selectedItemCodeForStep)?.processes.length || 0) + 1}
+                          Ready to be added as Step {selectedSequenceForStep}
                         </p>
                       </div>
                     </div>
@@ -738,7 +828,7 @@ export default observer(function AddItemProcessStepsPage() {
               </button>
               <button
                 onClick={handleSubmitAddStep}
-                disabled={addStepModalLoading || !selectedItemProcessId}
+                disabled={addStepModalLoading || !selectedItemProcessId || !selectedSequenceForStep}
                 className="px-6 py-2 bg-linear-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-none flex items-center gap-2 justify-center"
               >
                 {addStepModalLoading ? (
