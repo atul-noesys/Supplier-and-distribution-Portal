@@ -101,7 +101,7 @@ export const WarehousePage: React.FC = () => {
       const pagination = await nguageStore.GetPaginationData({
         table: 'location_master',
         skip: 0,
-        take: 55000,
+        take: 26000,
         NGaugeId: '55',
       });
       const result = Array.isArray(pagination) ? pagination : pagination?.data || [];
