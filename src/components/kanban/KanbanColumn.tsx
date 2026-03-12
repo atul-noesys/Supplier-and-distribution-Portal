@@ -11,7 +11,7 @@ interface KanbanColumnProps {
   onEditClick?: (item: KanbanItem) => void;
 }
 
-const stepColors: Record<string, { bg: string; border: string; text: string }> =
+export const stepColors: Record<string, { bg: string; border: string; text: string }> =
   {
     "Step 1": {
       bg: "bg-blue-50 dark:bg-blue-950",
