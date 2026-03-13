@@ -5,6 +5,7 @@ import AddShipmentModal from "@/components/modals/AddShipmentModal";
 import Badge from "@/components/ui/badge/Badge";
 import { useStore } from "@/store/store-context";
 import { RowData } from "@/types/nguage-rowdata";
+import { QueryKeys } from "@/types/query-keys";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { observer } from "mobx-react-lite";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -65,7 +66,7 @@ export default observer(function ShipmentPage() {
 
   // Fetch auth token
   const { data: authToken = null } = useQuery({
-    queryKey: ["authToken"],
+    queryKey: [QueryKeys.AuthToken],
     queryFn: () => localStorage.getItem("access_token"),
     staleTime: 0,
     gcTime: 0,

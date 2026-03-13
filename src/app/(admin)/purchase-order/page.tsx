@@ -5,6 +5,7 @@ import AddPOModal from "@/components/modals/AddPOModal";
 import Badge from "@/components/ui/badge/Badge";
 import { useTranslation } from "@/i18n";
 import { useStore } from "@/store/store-context";
+import { QueryKeys } from "@/types/query-keys";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { observer } from "mobx-react-lite";
@@ -90,7 +91,7 @@ export default observer(function PurchaseOrderPage() {
 
   // Fetch auth token - refresh on component mount
   const { data: authToken = null } = useQuery({
-    queryKey: ["authToken"],
+    queryKey: [QueryKeys.AuthToken],
     queryFn: () => localStorage.getItem("access_token"),
     staleTime: 0,
     gcTime: 0,

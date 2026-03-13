@@ -67,10 +67,10 @@ export function useAuth(): UseAuthReturn {
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ["auth"],
     queryFn: checkAuthStatus,
-    staleTime: 0, // Immediately stale - always validate token
-    gcTime: 30 * 1000, // 30 seconds - clear unused data quickly
-    refetchOnWindowFocus: true, // Refetch when user returns to tab
-    refetchOnMount: true, // Refetch on component mount
+    staleTime: 0, 
+    gcTime: 30 * 1000, 
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   // Listen for storage changes (e.g., manual deletion or logout from another tab)

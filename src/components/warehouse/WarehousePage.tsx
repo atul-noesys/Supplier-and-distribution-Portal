@@ -7,6 +7,7 @@ import { AlertCircle } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
 import { ItemSelector } from './ItemSelector';
 import { WarehouseVisualization } from './WarehouseVisualization';
+import { QueryKeys } from '@/types/query-keys';
 
 export const WarehousePage: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<ItemData | null>(null);
@@ -22,7 +23,7 @@ export const WarehousePage: React.FC = () => {
     isLoading: warehouseLoading,
     error: warehouseQueryError,
   } = useQuery({
-    queryKey: ['item_warehouse', '57'],
+    queryKey: [QueryKeys.ItemWarehouse],
     queryFn: async () => {
       const pagination = await nguageStore.GetPaginationData({
         table: 'item_warehouse',
@@ -43,7 +44,7 @@ export const WarehousePage: React.FC = () => {
     isLoading: itemDescLoading,
     error: itemDescQueryError,
   } = useQuery({
-    queryKey: ['item', '33'],
+    queryKey: [ QueryKeys.ItemMaster ],
     queryFn: async () => {
       const pagination = await nguageStore.GetPaginationData({
         table: 'item',
@@ -96,7 +97,7 @@ export const WarehousePage: React.FC = () => {
     isLoading: locationsLoading,
     error: locationsQueryError,
   } = useQuery({
-    queryKey: ['location_master', '55'],
+    queryKey: [ QueryKeys.LocationMaster ],
     queryFn: async (): Promise<LocationData[]> => {
       const pagination = await nguageStore.GetPaginationData({
         table: 'location_master',

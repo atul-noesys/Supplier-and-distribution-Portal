@@ -5,9 +5,10 @@ import { MultiFileInput } from "@/components/ui/infoveave-components/MultiFileIn
 import { TextInput } from "@/components/ui/infoveave-components/TextInput";
 import { useStore } from "@/store/store-context";
 import { RowData } from "@/types/nguage-rowdata";
+import { QueryKeys } from "@/types/query-keys";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { observer } from "mobx-react-lite";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { MdClose } from "react-icons/md";
 import { toast } from "react-toastify";
@@ -46,7 +47,6 @@ export default observer(function AddItemProcessPage() {
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [stepHistory, setStepHistory] = useState<string | null>(null);
-  const [headerName, setHeaderName] = useState<string>("");
   const previousUrlRef = useRef<string | null>(null);
 
   // Modal states for Add Item Process
@@ -61,14 +61,14 @@ export default observer(function AddItemProcessPage() {
 
 
   const { data: authToken = null } = useQuery({
-    queryKey: ["authToken"],
+    queryKey: [QueryKeys.AuthToken],
     queryFn: () => localStorage.getItem("access_token"),
     staleTime: 0,
     gcTime: 0,
   });
 
   const { data: items = [], isLoading, error } = useQuery({
-    queryKey: ["itemProcess", authToken],
+    queryKey: [QueryKeys.ItemProcess, authToken],
     queryFn: async (): Promise<RowData[]> => {
       const paginationData = await nguageStore.GetPaginationData({
         table: "item_process",
@@ -141,12 +141,10 @@ export default observer(function AddItemProcessPage() {
       setOpenDocumentsString(null);
       setSelectedDocument(null);
       setStepHistory(null);
-      setHeaderName("");
       return;
     }
     setOpenDocumentsString(docName);
     setStepHistory(null);
-    setHeaderName("");
     setSelectedDocument(null);
   };
 
@@ -155,7 +153,6 @@ export default observer(function AddItemProcessPage() {
     setSelectedDocument(null);
     setOpenDocumentsString(null);
     setStepHistory(null);
-    setHeaderName("");
     if (previousUrlRef.current) {
       URL.revokeObjectURL(previousUrlRef.current);
       previousUrlRef.current = null;
@@ -270,7 +267,7 @@ export default observer(function AddItemProcessPage() {
         toast.success("Item Process added successfully!");
         // Invalidate the itemProcess query to refresh the data
         await queryClient.invalidateQueries({
-          queryKey: ["itemProcess"],
+          queryKey: [QueryKeys.ItemProcess],
         });
         closeAddItemModal();
       } else {
@@ -392,7 +389,7 @@ export default observer(function AddItemProcessPage() {
         onRetry={(doc: string) => setSelectedDocument(doc)}
         onDocumentSelect={(doc: string) => setSelectedDocument(doc)}
         stepHistory={stepHistory}
-        headerName={headerName}
+        headerName=""
       />
 
       {/* Add Item Process Modal */}

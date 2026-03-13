@@ -4,6 +4,7 @@ import { useStore } from "@/store/store-context";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo, useCallback } from "react";
 import Tabs from "@/components/ui/Tabs";
+import { QueryKeys } from "@/types/query-keys";
 
 // 1. Extract Iframe to a sub-component for isolation
 const DashboardIframe = ({ id }: { id: string | number }) => {
@@ -32,13 +33,13 @@ export default function Dashboard() {
   const [tab, setTab] = useState(0);
 
   const { data: authToken } = useQuery({
-    queryKey: ["authToken"],
+    queryKey: [QueryKeys.AuthToken],
     queryFn: () => localStorage.getItem("access_token"),
     staleTime: Infinity, // Auth tokens don't usually change mid-session
   });
 
   const { data: infoboards } = useQuery({
-    queryKey: ['infoboards'],
+    queryKey: [QueryKeys.Infoboard],
     queryFn: () => nguageStore.GetInfoboards(),
     enabled: !!authToken,
   });

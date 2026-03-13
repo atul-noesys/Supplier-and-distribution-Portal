@@ -18,6 +18,7 @@ import { MdViewAgenda, MdViewWeek } from "react-icons/md";
 import { MdDateRange } from "react-icons/md";
 import { toast } from "react-toastify";
 import axios from "axios";
+import { QueryKeys } from "@/types/query-keys";
 
 
 // Keys to exclude from display
@@ -114,10 +115,7 @@ export default observer(function WorkOrderPage() {
   const previousUrlRef = useRef<string | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "kanban">("kanban");
   const [isSavingWorkOrder, setIsSavingWorkOrder] = useState(false);
-  const [isFetchingLatestRow, setIsFetchingLatestRow] = useState(false);
-  const [hasEditFormChanged, setHasEditFormChanged] = useState(false);
   const hasEditFormChangedRef = useRef(false);
-  const [isFetchingDetailRow, setIsFetchingDetailRow] = useState(false);
   const [isTimelineModalOpen, setIsTimelineModalOpen] = useState(false);
   const [timelineData, setTimelineData] = useState<TimelineElement[]>([]);
   const [timelineHeader, setTimelineHeader] = useState<string>("");
@@ -125,7 +123,7 @@ export default observer(function WorkOrderPage() {
 
   // Fetch auth token
   const { data: authToken = null } = useQuery({
-    queryKey: ["authToken"],
+    queryKey: [QueryKeys.AuthToken],
     queryFn: () => localStorage.getItem("access_token"),
     staleTime: 0,
     gcTime: 0,
@@ -310,12 +308,10 @@ export default observer(function WorkOrderPage() {
     };
     setSelectedWorkOrder(dataWithRowId as RowData);
     setEditFormData(dataWithRowId as RowData);
-    setHasEditFormChanged(false);
     hasEditFormChangedRef.current = false;
     setIsModalOpen(true);
 
     // Fetch latest in background and update if user hasn't started editing
-    setIsFetchingLatestRow(true);
     try {
       const latestData = await nguageStore.GetRowData(44, rowId, 'work_order');
 
@@ -337,7 +333,6 @@ export default observer(function WorkOrderPage() {
     } catch (error) {
       console.error("Error fetching work order data:", error);
     } finally {
-      setIsFetchingLatestRow(false);
     }
   };
 
@@ -357,7 +352,6 @@ export default observer(function WorkOrderPage() {
     setIsDetailModalOpen(true);
 
     // Fetch latest in background and update the displayed details
-    setIsFetchingDetailRow(true);
     try {
       const latestData = await nguageStore.GetRowData(44, rowId, 'work_order');
       if (latestData) {
@@ -372,14 +366,12 @@ export default observer(function WorkOrderPage() {
     } catch (error) {
       console.error("Error fetching work order data:", error);
     } finally {
-      setIsFetchingDetailRow(false);
     }
   };
 
   const handleCloseDetailModal = () => {
     setIsDetailModalOpen(false);
     setSelectedWorkOrder(null);
-    setIsFetchingDetailRow(false);
   };
 
   const fetchPdf = useCallback(async (docName: string | null) => {
@@ -564,7 +556,6 @@ export default observer(function WorkOrderPage() {
   };
 
   const handleEditFormChange = (field: string, value: string) => {
-    setHasEditFormChanged(true);
     hasEditFormChangedRef.current = true;
     setEditFormData((prev) => {
       if (!prev) return null;
@@ -582,7 +573,6 @@ export default observer(function WorkOrderPage() {
 
     setIsUploadingDocument(true);
     setUploadMessage(null);
-    setHasEditFormChanged(true);
     hasEditFormChangedRef.current = true;
 
     try {
@@ -772,8 +762,6 @@ export default observer(function WorkOrderPage() {
     setSelectedWorkOrder(null);
     setEditFormData(null);
     setUploadMessage(null);
-    setIsFetchingLatestRow(false);
-    setHasEditFormChanged(false);
     hasEditFormChangedRef.current = false;
   };
 

@@ -7,6 +7,7 @@ import Badge from '@/components/ui/badge/Badge';
 import { useStore } from '@/store/store-context';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
+import { QueryKeys } from '@/types/query-keys';
 
 // Add pulse animation styles
 const pulseStyles = `
@@ -306,7 +307,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
 
   // Fetch work orders with status "Finished goods" when modal is open
   const { data: finishedWorkOrders = [], isLoading: finishedWorkOrdersLoading } = useQuery({
-    queryKey: ['warehouseFinishedWorkOrders'],
+    queryKey: [ QueryKeys.WorkOrder ],
     queryFn: async (): Promise<any[]> => {
       if (!nguageStore) return [];
       const resp = await nguageStore.GetPaginationData({
@@ -324,7 +325,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
 
   // Fetch PO items for mapping quantity, unit_price, and total (used to enrich finished work orders)
   const { data: poItems = [] } = useQuery({
-    queryKey: ['poItems', isModalOpen],
+    queryKey: [ QueryKeys.PurchaseOrder ],
     queryFn: async (): Promise<any[]> => {
       try {
         const authToken = localStorage.getItem('access_token');

@@ -1,16 +1,15 @@
 "use client";
 
 import { stepColors } from "@/components/kanban/KanbanColumn";
-import { MultiFileInput } from "@/components/ui/infoveave-components/MultiFileInput";
-import { TextInput } from "@/components/ui/infoveave-components/TextInput";
 import { Select } from "@/components/ui/infoveave-components/Select";
 import { useStore } from "@/store/store-context";
 import { RowData } from "@/types/nguage-rowdata";
+import { QueryKeys } from "@/types/query-keys";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { observer } from "mobx-react-lite";
 import React, { useMemo, useState } from "react";
-import { MdClose, MdCheckCircle } from "react-icons/md";
 import { IoAdd } from "react-icons/io5";
+import { MdCheckCircle, MdClose } from "react-icons/md";
 import { toast } from "react-toastify";
 
 const HIDDEN_COLUMNS = ["ROWID", "InfoveaveBatchId"];
@@ -62,10 +61,6 @@ export default observer(function AddItemProcessStepsPage() {
   const { nguageStore } = useStore();
   const queryClient = useQueryClient();
 
-  // Modal states for Add Item Process Step
-  const [showAddItemStepModal, setShowAddItemStepModal] = useState<boolean>(false);
-  const [addItemStepModalLoading, setAddItemStepModalLoading] = useState<boolean>(false);
-
   // Modal states for Add Step within Item Process
   const [showAddStepModal, setShowAddStepModal] = useState<boolean>(false);
   const [addStepModalLoading, setAddStepModalLoading] = useState<boolean>(false);
@@ -73,21 +68,15 @@ export default observer(function AddItemProcessStepsPage() {
   const [selectedItemProcessId, setSelectedItemProcessId] = useState<string>("");
   const [selectedSequenceForStep, setSelectedSequenceForStep] = useState<string>("");
 
-  const [addItemStepName, setAddItemStepName] = useState<string>("");
-  const [addItemStepDescription, setAddItemStepDescription] = useState<string>("");
-  const [addItemStepRemarks, setAddItemStepRemarks] = useState<string>("");
-  const [addItemStepDocuments, setAddItemStepDocuments] = useState<string[]>([]);
-  const [isUploadingDocument, setIsUploadingDocument] = useState<boolean>(false);
-
   const { data: authToken = null } = useQuery({
-    queryKey: ["authToken"],
+    queryKey: [QueryKeys.AuthToken],
     queryFn: () => localStorage.getItem("access_token"),
     staleTime: 0,
     gcTime: 0,
   });
 
   const { data: itemProcessOptions = [] } = useQuery({
-    queryKey: ["itemProcess", authToken],
+    queryKey: [QueryKeys.ItemProcess, authToken],
     queryFn: async (): Promise<any[]> => {
       const paginationData = await nguageStore.GetPaginationData({
         table: "item_process",
@@ -120,25 +109,6 @@ export default observer(function AddItemProcessStepsPage() {
 
   // Group items by item_code
   const groupedItems = useMemo(() => groupItemsByCode(items), [items]);
-
-  // Open Add Item Process Step Modal
-  const openAddItemStepModal = () => {
-    setAddItemStepName("");
-    setAddItemStepDescription("");
-    setAddItemStepRemarks("");
-    setAddItemStepDocuments([]);
-    setShowAddItemStepModal(true);
-  };
-
-  // Close Add Item Process Step Modal
-  const closeAddItemStepModal = () => {
-    setShowAddItemStepModal(false);
-    setAddItemStepName("");
-    setAddItemStepDescription("");
-    setAddItemStepRemarks("");
-    setAddItemStepDocuments([]);
-    setIsUploadingDocument(false);
-  };
 
   // Open Add Step Modal
   const openAddStepModal = (itemCode: string, totalSteps: number) => {
@@ -281,121 +251,12 @@ export default observer(function AddItemProcessStepsPage() {
     }
   };
 
-  // Handle document upload
-  const handleDocumentUpload = async (files: any[] | undefined) => {
-    if (!files || files.length === 0) return;
-
-    setIsUploadingDocument(true);
-
-    try {
-      // Parse existing document paths
-      let existingDocPaths: string[] = [];
-      if (addItemStepDocuments.length > 0) {
-        try {
-          const parsed = JSON.parse(JSON.stringify(addItemStepDocuments));
-          if (Array.isArray(parsed)) {
-            existingDocPaths = parsed.map((d: any) => String(d));
-          } else if (parsed) {
-            existingDocPaths = [String(parsed)];
-          }
-        } catch {
-          existingDocPaths = addItemStepDocuments.map((d) => String(d));
-        }
-      }
-
-      // Normalize incoming values to File objects (some components pass { file } wrappers)
-      const filesToUpload: File[] = files
-        .map((fileItem: any) => (fileItem?.file ? fileItem.file : fileItem))
-        .filter((file: File) => {
-          if (!file || !file.name) return false;
-          return !existingDocPaths.some((docPath) => docPath.includes(file.name));
-        });
-
-      if (filesToUpload.length === 0) {
-        toast.error('No new files to upload');
-        return;
-      }
-
-      const uploadResult = await nguageStore.UploadMultipleMedia(filesToUpload);
-      console.log("Upload result:", uploadResult);
-
-      if (uploadResult) {
-        // Normalize new upload result to an array of strings
-        const newDocs: string[] = Array.isArray(uploadResult)
-          ? uploadResult.map((d: any) => String(d))
-          : [String(uploadResult)];
-
-        const merged = [...existingDocPaths, ...newDocs];
-        setAddItemStepDocuments(merged);
-        toast.success('File uploaded successfully');
-      } else {
-        toast.error('File upload failed');
-      }
-    } catch (error) {
-      console.error("Upload error:", error);
-      toast.error('An error occurred while uploading the file');
-    } finally {
-      setIsUploadingDocument(false);
-    }
-  };
-
-  // Handle submit Add Item Process Step
-  const handleSubmitAddItemStep = async () => {
-    if (!addItemStepName.trim()) {
-      toast.error("Item Process Step Name is required");
-      return;
-    }
-
-    if (!addItemStepDescription.trim()) {
-      toast.error("Item Process Step Description is required");
-      return;
-    }
-
-    setAddItemStepModalLoading(true);
-
-    try {
-      // Prepare data for submission
-      const newItemProcessStep = {
-        item_process_step_name: addItemStepName,
-        item_process_step_description: addItemStepDescription,
-        remarks: addItemStepRemarks,
-        document: addItemStepDocuments.length > 0 ? JSON.stringify(addItemStepDocuments) : null,
-      };
-
-      // Call the store method to add new item process step
-      const result = await nguageStore.AddRowData(newItemProcessStep, 60, "item_process_steps");
-
-      if (result?.result) {
-        toast.success("Item Process Step added successfully!");
-        // Invalidate the itemProcessSteps query to refresh the data
-        await queryClient.invalidateQueries({
-          queryKey: ["itemProcessSteps"],
-        });
-        closeAddItemStepModal();
-      } else {
-        throw new Error(result?.error || "Failed to add item process step");
-      }
-    } catch (error) {
-      console.error("Error adding item process step:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to add item process step";
-      toast.error(errorMessage);
-    } finally {
-      setAddItemStepModalLoading(false);
-    }
-  };
-
   return (
     <div>
       <div className="rounded-lg border border-gray-200 dark:border-white/5 bg-white dark:bg-white/3 overflow-hidden">
         <div className="border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/5 px-3 py-3">
           <div className="flex justify-between items-center gap-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Item Process Steps List</h2>
-            {/* <button
-              onClick={openAddItemStepModal}
-              className="px-4 py-2 bg-blue-800 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors"
-            >
-              Add Item Process Step
-            </button> */}
           </div>
         </div>
 
@@ -491,120 +352,6 @@ export default observer(function AddItemProcessStepsPage() {
           )}
         </div>
       </div>
-
-      {/* Add Item Process Step Modal */}
-      {showAddItemStepModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-1/2 max-h-5/6 flex flex-col overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-5 py-3 bg-gray-50 dark:bg-white/5">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Add Item Process Step
-              </h2>
-              <button
-                onClick={closeAddItemStepModal}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              >
-                <MdClose className="w-6 h-6" />
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-6">
-
-              <div className="grid grid-cols-2 gap-4">
-                {/* Item Process Step ID - Disabled */}
-                <TextInput
-                  label="Item Process Step ID"
-                  type="text"
-                  value="IT-STEP-****"
-                  disabled={true}
-                  placeholder="IT-STEP-****"
-                  onValueChange={() => { }}
-                />
-
-                {/* Item Process Step Name */}
-                <TextInput
-                  label="Item Process Step Name"
-                  type="text"
-                  value={addItemStepName}
-                  onValueChange={(v) => setAddItemStepName(v ?? "")}
-                  placeholder="Enter item process step name"
-                />
-
-                <TextInput
-                  label="Item Process Step Description"
-                  type="text"
-                  value={addItemStepDescription}
-                  onValueChange={(v) => setAddItemStepDescription(v ?? "")}
-                  placeholder="Enter detailed description"
-                />
-                <div>
-                  <MultiFileInput
-                    label="Document"
-                    maxFiles={5}
-                    accept=".pdf"
-                    multiple={true}
-                    className="w-full"
-                    onValueChange={handleDocumentUpload}
-                  />
-                  {addItemStepDocuments.length > 0 && (
-                    <p className="text-xs text-green-600 dark:text-gray-400 mt-1">
-                      <span className="text-blue-600 dark:text-blue-400">Current:</span> {(() => {
-                        try {
-                          if (Array.isArray(addItemStepDocuments)) {
-                            return addItemStepDocuments
-                              .map((f: string) => (f ? f.split("/").pop() : ""))
-                              .filter(Boolean)
-                              .join(", ");
-                          }
-                          return String(addItemStepDocuments).split("/").pop() || String(addItemStepDocuments);
-                        } catch {
-                          return addItemStepDocuments.join(", ");
-                        }
-                      })()}
-                    </p>
-                  )}
-                </div>
-
-                <TextInput
-                  label="Remarks"
-                  type="text"
-                  value={addItemStepRemarks}
-                  onValueChange={(v) => setAddItemStepRemarks(v ?? "")}
-                  placeholder="Add any remarks (optional)"
-                />
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="border-t border-gray-200 dark:border-gray-700 px-5 py-3 bg-gray-50 dark:bg-white/5 flex justify-end gap-3">
-              <button
-                onClick={closeAddItemStepModal}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmitAddItemStep}
-                disabled={addItemStepModalLoading || isUploadingDocument}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-500 disabled:cursor-not-allowed disabled:opacity-60 text-white font-medium rounded-lg transition-colors flex items-center gap-2 justify-center"
-              >
-                {addItemStepModalLoading ? (
-                  <>
-                    <div className="animate-spin">
-                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                    </div>
-                    Adding...
-                  </>
-                ) : (
-                  "Add Item Process Step"
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Add Step Modal */}
       {showAddStepModal && (
