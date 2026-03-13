@@ -1,6 +1,5 @@
 "use client";
 
-import PDFViewerModal from "@/components/common/PDFViewerModal";
 import { stepColors } from "@/components/kanban/KanbanColumn";
 import { MultiFileInput } from "@/components/ui/infoveave-components/MultiFileInput";
 import { TextInput } from "@/components/ui/infoveave-components/TextInput";
@@ -9,7 +8,7 @@ import { useStore } from "@/store/store-context";
 import { RowData } from "@/types/nguage-rowdata";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { observer } from "mobx-react-lite";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { MdClose, MdCheckCircle } from "react-icons/md";
 import { IoAdd } from "react-icons/io5";
 import { toast } from "react-toastify";
@@ -62,22 +61,14 @@ const groupItemsByCode = (items: RowData[]): ItemProcessGroup[] => {
 export default observer(function AddItemProcessStepsPage() {
   const { nguageStore } = useStore();
   const queryClient = useQueryClient();
-  const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
-  const [openDocumentsString, setOpenDocumentsString] = useState<string | null>(null);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [loadingPdf, setLoadingPdf] = useState(false);
-  const [pdfError, setPdfError] = useState<string | null>(null);
-  const [stepHistory, setStepHistory] = useState<string | null>(null);
-  const [headerName, setHeaderName] = useState<string>("");
-  const previousUrlRef = useRef<string | null>(null);
 
   // Modal states for Add Item Process Step
-  const [showAddItemStepModal, setShowAddItemStepModal] = useState(false);
-  const [addItemStepModalLoading, setAddItemStepModalLoading] = useState(false);
+  const [showAddItemStepModal, setShowAddItemStepModal] = useState<boolean>(false);
+  const [addItemStepModalLoading, setAddItemStepModalLoading] = useState<boolean>(false);
 
   // Modal states for Add Step within Item Process
-  const [showAddStepModal, setShowAddStepModal] = useState(false);
-  const [addStepModalLoading, setAddStepModalLoading] = useState(false);
+  const [showAddStepModal, setShowAddStepModal] = useState<boolean>(false);
+  const [addStepModalLoading, setAddStepModalLoading] = useState<boolean>(false);
   const [selectedItemCodeForStep, setSelectedItemCodeForStep] = useState<string>("");
   const [selectedItemProcessId, setSelectedItemProcessId] = useState<string>("");
   const [selectedSequenceForStep, setSelectedSequenceForStep] = useState<string>("");
@@ -86,7 +77,7 @@ export default observer(function AddItemProcessStepsPage() {
   const [addItemStepDescription, setAddItemStepDescription] = useState<string>("");
   const [addItemStepRemarks, setAddItemStepRemarks] = useState<string>("");
   const [addItemStepDocuments, setAddItemStepDocuments] = useState<string[]>([]);
-  const [isUploadingDocument, setIsUploadingDocument] = useState(false);
+  const [isUploadingDocument, setIsUploadingDocument] = useState<boolean>(false);
 
   const { data: authToken = null } = useQuery({
     queryKey: ["authToken"],
@@ -127,91 +118,8 @@ export default observer(function AddItemProcessStepsPage() {
     staleTime: 0,
   });
 
-  const allColumns = useMemo(
-    () => items && items.length > 0 ? Object.keys(items[0]) : [],
-    [items]
-  );
-  const columns = useMemo(
-    () => allColumns.filter((col) => !HIDDEN_COLUMNS.includes(col)),
-    [allColumns]
-  );
-
   // Group items by item_code
   const groupedItems = useMemo(() => groupItemsByCode(items), [items]);
-
-  // Fetch PDF document
-  const fetchPdf = useCallback(async (docName: string | null) => {
-    if (!docName) {
-      setPdfUrl(null);
-      return;
-    }
-
-    setLoadingPdf(true);
-    setPdfError(null);
-
-    try {
-      const apiUrl = `/api/GetPdfUrl?attachment=${encodeURIComponent(docName)}`;
-
-      const pdfResponse = await fetch(apiUrl, {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      });
-
-      if (!pdfResponse.ok) {
-        throw new Error(
-          `Failed to fetch PDF: ${pdfResponse.status} ${pdfResponse.statusText}`,
-        );
-      }
-
-      const pdfBlob = await pdfResponse.blob();
-      const blobUrl = URL.createObjectURL(pdfBlob);
-      if (previousUrlRef.current) {
-        URL.revokeObjectURL(previousUrlRef.current);
-      }
-      previousUrlRef.current = blobUrl;
-      setPdfUrl(blobUrl);
-    } catch (err) {
-      console.error("Failed to fetch PDF:", err);
-      setPdfError(err instanceof Error ? err.message : "Failed to load PDF");
-      setPdfUrl(null);
-    } finally {
-      setLoadingPdf(false);
-    }
-  }, [authToken]);
-
-  // Handle PDF fetching when document selection changes
-  useEffect(() => {
-    fetchPdf(selectedDocument);
-  }, [selectedDocument, fetchPdf]);
-
-  // Handle viewing document
-  const handleViewDocument = (docName: string | null) => {
-    if (!docName) {
-      setOpenDocumentsString(null);
-      setSelectedDocument(null);
-      setStepHistory(null);
-      setHeaderName("");
-      return;
-    }
-    setOpenDocumentsString(docName);
-    setStepHistory(null);
-    setHeaderName("");
-    setSelectedDocument(null);
-  };
-
-  // Close PDF viewer
-  const closePdfViewer = () => {
-    setSelectedDocument(null);
-    setOpenDocumentsString(null);
-    setStepHistory(null);
-    setHeaderName("");
-    if (previousUrlRef.current) {
-      URL.revokeObjectURL(previousUrlRef.current);
-      previousUrlRef.current = null;
-    }
-    setPdfUrl(null);
-  };
 
   // Open Add Item Process Step Modal
   const openAddItemStepModal = () => {
@@ -476,9 +384,6 @@ export default observer(function AddItemProcessStepsPage() {
     }
   };
 
-  // Normalize documents prop for PDFViewerModal
-  const documentsProp: string | string[] | undefined = openDocumentsString || undefined;
-
   return (
     <div>
       <div className="rounded-lg border border-gray-200 dark:border-white/5 bg-white dark:bg-white/3 overflow-hidden">
@@ -586,19 +491,6 @@ export default observer(function AddItemProcessStepsPage() {
           )}
         </div>
       </div>
-
-      {/* PDF Viewer Modal */}
-      <PDFViewerModal
-        documents={documentsProp}
-        pdfUrl={pdfUrl}
-        loadingPdf={loadingPdf}
-        pdfError={pdfError}
-        onClose={closePdfViewer}
-        onRetry={(doc: string) => setSelectedDocument(doc)}
-        onDocumentSelect={(doc: string) => setSelectedDocument(doc)}
-        stepHistory={stepHistory}
-        headerName={headerName}
-      />
 
       {/* Add Item Process Step Modal */}
       {showAddItemStepModal && (

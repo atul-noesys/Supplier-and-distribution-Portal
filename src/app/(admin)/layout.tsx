@@ -1,44 +1,33 @@
 "use client";
 
 import { useSidebar } from "@/context/SidebarContext";
-import { useProtectedRoute } from "@/hooks/useAuth";
 import { usePageTransition } from "@/context/PageTransitionContext";
 import AppHeader from "@/layout/AppHeader";
 import AppSidebar from "@/layout/AppSidebar";
 import Backdrop from "@/layout/Backdrop";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import React, { useEffect } from "react";
 
-export default function AdminLayout({
+function AdminLayoutContent({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
-  const { isLoading } = useProtectedRoute();
   const { isTransitioning, endTransition } = usePageTransition();
 
   useEffect(() => {
-    if (!isLoading && isTransitioning) {
+    if (isTransitioning) {
       endTransition();
       return;
     }
-  }, [isLoading, isTransitioning, endTransition]);
+  }, [isTransitioning, endTransition]);
 
   const mainContentMargin = isMobileOpen
     ? "ml-0"
     : isExpanded || isHovered
     ? "lg:ml-[260px]"
     : "lg:ml-[90px]";
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin">
-          <div className="h-12 w-12 border-4 border-brand-500 border-t-transparent rounded-full"></div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen xl:flex">
@@ -55,5 +44,17 @@ export default function AdminLayout({
         <div className="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">{children}</div>
       </div>
     </div>
+  );
+}
+
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <ProtectedRoute>
+      <AdminLayoutContent>{children}</AdminLayoutContent>
+    </ProtectedRoute>
   );
 }

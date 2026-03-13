@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -8,46 +9,13 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const router = useRouter();
-  const [isAuthorized, setIsAuthorized] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const { isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
-    const checkAuth = () => {
-      try {
-        const token = localStorage.getItem("access_token");
-        const tokenExpiry = localStorage.getItem("token_expiry");
-
-        // Check if token exists
-        if (!token) {
-          router.push("/login");
-          return;
-        }
-
-        // Check if token is expired
-        if (tokenExpiry) {
-          const expiryTime = parseInt(tokenExpiry, 10);
-          const currentTime = Math.floor(Date.now() / 1000); 
-
-          if (currentTime >= expiryTime) {
-            localStorage.removeItem("access_token");
-            localStorage.removeItem("token_expiry");
-            router.push("/login");
-            return;
-          }
-        }
-
-        // Token is valid
-        setIsAuthorized(true);
-      } catch (error) {
-        console.error("Auth check error:", error);
-        router.push("/login");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, [router]);
+    if (!isLoading && !isAuthenticated) {
+      router.push("/login");
+    }
+  }, [isAuthenticated, isLoading, router]);
 
   if (isLoading) {
     return (
@@ -59,5 +27,5 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  return isAuthorized ? <>{children}</> : null;
+  return isAuthenticated ? <>{children}</> : null;
 }

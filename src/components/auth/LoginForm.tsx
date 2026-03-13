@@ -2,13 +2,12 @@
 import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
-import Button from "@/components/ui/button/Button";
-import { ChevronLeftIcon, EyeCloseIcon, EyeIcon } from "@/icons";
+import { usePageTransition } from "@/context/PageTransitionContext";
+import { EyeCloseIcon, EyeIcon } from "@/icons";
+import { useStore } from "@/store/store-context";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
-import { useStore } from "@/store/store-context";
-import { usePageTransition } from "@/context/PageTransitionContext";
 
 export default function LogInForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -57,19 +56,14 @@ export default function LogInForm() {
 
       // Extract token from OAuth response structure: result.data.data.access_token
       const accessToken = result.data?.data?.access_token;
-      const expiresIn = result.data?.data?.expires_in;
 
       if (!accessToken) {
         console.error("Response structure:", result);
         throw new Error("No access token received from login");
       }
 
-      // Store token and expiry
+      // Store token (expiry is encoded in JWT)
       localStorage.setItem("access_token", accessToken);
-      if (expiresIn) {
-        const expiryTimestamp = Math.floor(Date.now() / 1000) + expiresIn;
-        localStorage.setItem("token_expiry", expiryTimestamp.toString());
-      }
 
       await nguageStore.GetCurrentUser();
 

@@ -75,7 +75,7 @@ const AppSidebar: React.FC = () => {
     navItems: NavItem[],
     menuType: "main" | "others"
   ) => (
-    <ul className="flex flex-col gap-4">
+    <ul className="flex flex-col gap-3">
       {navItems.map((nav, index) => (
         <li key={nav.name}>
           {nav.subItems ? (
@@ -145,7 +145,7 @@ const AppSidebar: React.FC = () => {
                     : "0px",
               }}
             >
-              <ul className="mt-2 space-y-1 ml-9">
+              <ul className="mt-2 space-y-1 ml-3">
                 {nav.subItems.map((subItem) => (
                   <li key={subItem.name}>
                     <Link
@@ -249,7 +249,7 @@ const AppSidebar: React.FC = () => {
 
   return (
     <aside
-      className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
+      className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-3 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
         ${isExpanded || isMobileOpen
           ? "w-65"
           : isHovered
@@ -291,7 +291,7 @@ const AppSidebar: React.FC = () => {
           <div className="flex flex-col gap-4">
             <div>
               <h2
-                className={`mb-4 text-xs uppercase flex leading-5 text-gray-400 ${!isExpanded && !isHovered
+                className={`ml-3 mb-4 text-xs uppercase flex leading-5 text-gray-400 ${!isExpanded && !isHovered
                   ? "lg:justify-center"
                   : "justify-start"
                   }`}

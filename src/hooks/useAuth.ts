@@ -1,6 +1,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { jwtDecode } from "jwt-decode";
 
 interface UseAuthReturn {
   isAuthenticated: boolean;
@@ -11,7 +12,6 @@ interface UseAuthReturn {
 const checkAuthStatus = async (): Promise<UseAuthReturn> => {
   try {
     const accessToken = localStorage.getItem("access_token");
-    const tokenExpiry = localStorage.getItem("token_expiry");
 
     // No token
     if (!accessToken) {
@@ -22,21 +22,28 @@ const checkAuthStatus = async (): Promise<UseAuthReturn> => {
       };
     }
 
-    // Check expiry
-    if (tokenExpiry) {
-      const expiryTime = parseInt(tokenExpiry, 10);
+    // Decode and check expiry
+    try {
+      const decoded = jwtDecode<{ exp: number }>(accessToken);
       const currentTime = Math.floor(Date.now() / 1000);
 
-      if (currentTime >= expiryTime) {
+      if (currentTime >= decoded.exp) {
         // Expired - clear storage
         localStorage.removeItem("access_token");
-        localStorage.removeItem("token_expiry");
         return {
           isAuthenticated: false,
           token: null,
           isLoading: false,
         };
       }
+    } catch (decodeError) {
+      console.error("Token decode error:", decodeError);
+      localStorage.removeItem("access_token");
+      return {
+        isAuthenticated: false,
+        token: null,
+        isLoading: false,
+      };
     }
 
     // Valid

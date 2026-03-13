@@ -79,7 +79,7 @@ export const WarehousePage: React.FC = () => {
       
       return {
         item_code: item.item_code || item.Item_code || item.ItemCode || '',
-        item_description: itemDescMap.get(warehouseItemCode) || 'N/A',
+        item_description: itemDescMap.get(warehouseItemCode) || '',
         location: item.location || item.Location || '',
         quantity: item.quantity || item.Quantity || '',
         last_updated_date: item.last_updated_date || item.Last_Updated_Date || '',
