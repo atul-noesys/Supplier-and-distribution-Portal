@@ -12,8 +12,6 @@ import { IoAdd } from "react-icons/io5";
 import { MdCheckCircle, MdClose } from "react-icons/md";
 import { toast } from "react-toastify";
 
-const HIDDEN_COLUMNS = ["ROWID", "InfoveaveBatchId"];
-
 // Helper function to get step colors by sequence
 const getStepColors = (sequence: number) => {
   const stepKey = `Step ${sequence}`;
@@ -67,6 +65,8 @@ export default observer(function AddItemProcessStepsPage() {
   const [selectedItemCodeForStep, setSelectedItemCodeForStep] = useState<string>("");
   const [selectedItemProcessId, setSelectedItemProcessId] = useState<string>("");
   const [selectedSequenceForStep, setSelectedSequenceForStep] = useState<string>("");
+  const [isDeleteMode, setIsDeleteMode] = useState<boolean>(false);
+  const [deleteLoading, setDeleteLoading] = useState<boolean>(false);
 
   const { data: authToken = null } = useQuery({
     queryKey: [QueryKeys.AuthToken],
@@ -115,6 +115,16 @@ export default observer(function AddItemProcessStepsPage() {
     setSelectedItemCodeForStep(itemCode);
     setSelectedItemProcessId("");
     setSelectedSequenceForStep("");
+    setIsDeleteMode(false);
+    setShowAddStepModal(true);
+  };
+
+  // Open Delete Step Modal (uses same modal UI but in delete mode)
+  const openDeleteStepModal = (itemCode: string, totalSteps: number) => {
+    setSelectedItemCodeForStep(itemCode);
+    setSelectedItemProcessId("");
+    setSelectedSequenceForStep("");
+    setIsDeleteMode(true);
     setShowAddStepModal(true);
   };
 
@@ -153,12 +163,32 @@ export default observer(function AddItemProcessStepsPage() {
     return options;
   }, [groupedItems, selectedItemCodeForStep]);
 
+  // Sequence options for delete mode (only existing steps)
+  const deleteSequenceOptions = useMemo(() => {
+    const itemGroup = groupedItems.find((g) => g.item_code === selectedItemCodeForStep);
+    const totalSteps = itemGroup?.processes.length || 0;
+    const options = [];
+    for (let i = 1; i <= totalSteps; i++) {
+      options.push({ value: String(i), label: `Step ${i}` });
+    }
+    return options;
+  }, [groupedItems, selectedItemCodeForStep]);
+
+  // Preview data for delete mode (shows which process id will be deleted)
+  const deleteTargetPreview = useMemo(() => {
+    if (!selectedSequenceForStep) return null;
+    const itemGroup = groupedItems.find((g) => g.item_code === selectedItemCodeForStep);
+    return itemGroup?.processes.find((p) => String(p.sequence) === selectedSequenceForStep) || null;
+  }, [groupedItems, selectedItemCodeForStep, selectedSequenceForStep]);
+
   // Close Add Step Modal
   const closeAddStepModal = () => {
     setShowAddStepModal(false);
     setSelectedItemCodeForStep("");
     setSelectedItemProcessId("");
     setSelectedSequenceForStep("");
+    setIsDeleteMode(false);
+    setDeleteLoading(false);
   };
 
   // Handle submit Add Step
@@ -251,6 +281,84 @@ export default observer(function AddItemProcessStepsPage() {
     }
   };
 
+  // Handle delete step submit (uses same shift logic but in reverse)
+  const handleSubmitDeleteStep = async () => {
+    if (!selectedItemCodeForStep) {
+      toast.error("Item code is required");
+      return;
+    }
+
+    if (!selectedSequenceForStep) {
+      toast.error("Sequence position to delete is required");
+      return;
+    }
+
+    setDeleteLoading(true);
+
+    try {
+      const selectedSequenceNumber = parseInt(selectedSequenceForStep, 10);
+      const itemGroup = groupedItems.find((g) => g.item_code === selectedItemCodeForStep);
+      const totalSteps = itemGroup?.processes.length || 0;
+
+      // Find the process node to delete
+      const nodeToDelete = itemGroup?.processes.find((p) => p.sequence === selectedSequenceNumber);
+      if (!nodeToDelete) {
+        throw new Error("Selected step not found");
+      }
+
+      // Call delete API (store method expects tableName, rowId, formId)
+      const deleteResult = await nguageStore.DeleteRowDataDynamic(
+        "item_process_steps",
+        String(nodeToDelete.ROWID),
+        60,
+      );
+
+      if (!deleteResult.result) {
+        throw new Error(deleteResult.error || "Failed to delete step");
+      }
+
+      // If deleted not the last one, shift subsequent steps up (sequence - 1)
+      if (selectedSequenceNumber < totalSteps) {
+        const processesToUpdate = itemGroup?.processes.filter((p) => p.sequence > selectedSequenceNumber) || [];
+
+        for (const process of processesToUpdate) {
+          const newSequence = process.sequence - 1;
+          const completeRowData = await nguageStore.GetRowData(60, process.ROWID, "item_process_steps");
+
+          if (!completeRowData) {
+            throw new Error(`Failed to fetch complete data for step ${process.sequence}`);
+          }
+
+          const updatePayload = {
+            ...completeRowData,
+            sequence: newSequence,
+          };
+
+          const updateResult = await nguageStore.UpdateRowDataDynamic(
+            updatePayload,
+            String(process.ROWID),
+            60,
+            "item_process_steps",
+          );
+
+          if (!updateResult.result) {
+            throw new Error(`Failed to update step ${process.sequence}: ${updateResult.error}`);
+          }
+        }
+      }
+
+      toast.success("Step deleted successfully");
+      await queryClient.invalidateQueries({ queryKey: ["itemProcessSteps"] });
+      closeAddStepModal();
+    } catch (error) {
+      console.error("Error deleting step:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete step";
+      toast.error(errorMessage);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   return (
     <div>
       <div className="rounded-lg border border-gray-200 dark:border-white/5 bg-white dark:bg-white/3 overflow-hidden">
@@ -334,14 +442,23 @@ export default observer(function AddItemProcessStepsPage() {
                           </span>
                         </td>
                         <td className="w-28 px-2 py-2 text-center">
-                          <button
-                            onClick={() => openAddStepModal(group.item_code, group.processes.length)}
-                            className="inline-flex items-center px-2 py-1.5 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white text-sm font-medium rounded-lg transition-colors"
-                            title="Add new step"
-                          >
-                            <IoAdd className="w-4 h-4" />
-                            Add Step
-                          </button>
+                          <div className="flex items-center justify-center gap-2.5">
+                            <button
+                              onClick={() => openAddStepModal(group.item_code, group.processes.length)}
+                              className="inline-flex items-center justify-center w-5 h-5 hover:bg-blue-100 text-blue-700 rounded-sm transition-colors"
+                              title="Add new step"
+                            >
+                              <IoAdd className="w-5 h-5" />
+                            </button>
+
+                            <button
+                              onClick={() => openDeleteStepModal(group.item_code, group.processes.length)}
+                              className="inline-flex items-center justify-center w-5 h-5 hover:bg-red-100 text-red-700 rounded-sm transition-colors"
+                              title="Delete step"
+                            >
+                              <MdClose className="w-5 h-5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -358,8 +475,8 @@ export default observer(function AddItemProcessStepsPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg w-full max-w-md overflow-hidden">
             {/* Header with gradient */}
-            <div className="flex items-center justify-between bg-linear-to-r from-green-600 to-green-700 dark:from-green-700 dark:to-green-800 px-4 py-3">
-              <h2 className="text-2xl font-bold text-white">Add New Step</h2>
+            <div className="flex items-center justify-between bg-linear-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 px-4 py-3 rounded-t-sm">
+              <h2 className="text-2xl font-bold text-white">{isDeleteMode ? "Delete Step" : "Add New Step"}</h2>
               <button
                 onClick={closeAddStepModal}
                 className="text-white hover:text-gray-100 dark:hover:text-gray-200 transition-colors"
@@ -399,42 +516,44 @@ export default observer(function AddItemProcessStepsPage() {
                 {/* Sequence Select - Choose position to insert */}
                 <div>
                   <Select
-                    label={<>Insert Position <span className="text-red-500">*</span></>}
+                    label={isDeleteMode ? <>Select Step to Delete <span className="text-red-500">*</span></> : <>Insert Position <span className="text-red-500">*</span></>}
                     value={selectedSequenceForStep}
                     onValueChange={(v) => setSelectedSequenceForStep(v ?? "")}
-                    placeholder="Select position to insert step..."
-                    data={availableSequenceOptions}
+                    placeholder={isDeleteMode ? "Select step to delete..." : "Select position to insert step..."}
+                    data={isDeleteMode ? deleteSequenceOptions : availableSequenceOptions}
                     className="max-w-full"
                   />
                   <p className="text-xs text-gray-400 dark:text-gray-400 mt-2">
-                    Selecting a position in the middle will shift existing steps down.
+                    {isDeleteMode ? "Select the step to delete. Deleting a middle step will shift subsequent steps up." : "Selecting a position in the middle will shift existing steps down."}
                   </p>
                 </div>
 
                 {/* Divider */}
                 <div className="h-px bg-gray-200 dark:bg-gray-700"></div>
 
-                {/* Item Process Select - Large and prominent */}
-                <div>
-                  <Select
-                    label={<>Select Process <span className="text-red-500">*</span></>}
-                    value={selectedItemProcessId}
-                    onValueChange={(v) => setSelectedItemProcessId(v ?? "")}
-                    placeholder="Choose an item process..."
-                    data={availableItemProcessOptions.map((option: any) => ({
-                      value: option.id || option.item_process_id || option.item_process_name,
-                      label: option.item_process_name || option.name || option.item_process_id,
-                    }))}
-                    className="max-w-full"
-                  />
-                  {availableItemProcessOptions.length === 0 && (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">No available item processes (all processes already assigned)</p>
-                  )}
-                </div>
+                {/* Item Process Select - hidden in delete mode */}
+                {!isDeleteMode && (
+                  <div>
+                    <Select
+                      label={<>Select Process <span className="text-red-500">*</span></>}
+                      value={selectedItemProcessId}
+                      onValueChange={(v) => setSelectedItemProcessId(v ?? "")}
+                      placeholder="Choose an item process..."
+                      data={availableItemProcessOptions.map((option: any) => ({
+                        value: option.id || option.item_process_id || option.item_process_name,
+                        label: option.item_process_name || option.name || option.item_process_id,
+                      }))}
+                      className="max-w-full"
+                    />
+                    {availableItemProcessOptions.length === 0 && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">No available item processes (all processes already assigned)</p>
+                    )}
+                  </div>
+                )}
 
-                {/* Selected item preview */}
-                {selectedItemProcessId && selectedSequenceForStep && (
-                  <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                {/* Selected item preview (add mode) or delete preview (delete mode) */}
+                {!isDeleteMode && selectedItemProcessId && selectedSequenceForStep && (
+                  <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-md p-2">
                     <div className="flex items-start gap-3">
                       <MdCheckCircle className="w-6 h-6 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
                       <div>
@@ -448,36 +567,75 @@ export default observer(function AddItemProcessStepsPage() {
                     </div>
                   </div>
                 )}
+
+                {isDeleteMode && selectedSequenceForStep && (
+                  <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-md p-2">
+                    <div className="flex items-start gap-3">
+                      <MdClose className="w-6 h-6 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-red-900 dark:text-red-300">
+                          {deleteTargetPreview ? deleteTargetPreview.item_process_id : `Step ${selectedSequenceForStep}`}
+                        </p>
+                        <p className="text-xs text-red-700 dark:text-red-400 mt-1">
+                          This will delete Step {selectedSequenceForStep}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Footer */}
-            <div className="border-t border-gray-200 dark:border-gray-700 px-5 py-3 bg-gray-50 dark:bg-gray-800/50 flex justify-end gap-3">
+              <div className="border-t border-gray-200 dark:border-gray-700 px-5 py-3 bg-gray-50 dark:bg-gray-800/50 flex justify-end gap-3">
               <button
                 onClick={closeAddStepModal}
-                className="px-4 py-1.5 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 font-medium rounded-lg transition-colors"
+                className="px-3 py-1 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 font-medium rounded-lg transition-colors"
               >
                 Cancel
               </button>
-              <button
-                onClick={handleSubmitAddStep}
-                disabled={addStepModalLoading || !selectedItemProcessId || !selectedSequenceForStep}
-                className="px-4 py-1.5 bg-linear-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl disabled:shadow-none flex items-center gap-2 justify-center"
-              >
-                {addStepModalLoading ? (
-                  <>
-                    <div className="animate-spin">
-                      <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                    </div>
-                    Adding...
-                  </>
-                ) : (
-                  <>
-                    <IoAdd className="w-5 h-5" />
-                    Add Step
-                  </>
-                )}
-              </button>
+
+              {isDeleteMode ? (
+                <button
+                  onClick={handleSubmitDeleteStep}
+                  disabled={deleteLoading || !selectedSequenceForStep}
+                  className="inline-flex items-center px-3 py-1 bg-linear-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all duration-200 shadow-sm hover:shadow-md disabled:shadow-none gap-2 justify-center"
+                >
+                  {deleteLoading ? (
+                    <>
+                      <div className="animate-spin">
+                        <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                      </div>
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <MdClose className="w-4 h-4" />
+                      Delete
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={handleSubmitAddStep}
+                  disabled={addStepModalLoading || !selectedItemProcessId || !selectedSequenceForStep}
+                  className="inline-flex items-center px-3 py-1 bg-linear-to-r from-blue-700 to-blue-800 hover:from-blue-800 hover:to-blue-900 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-all duration-200 shadow-sm hover:shadow-md disabled:shadow-none gap-2 justify-center"
+                >
+                  {addStepModalLoading ? (
+                    <>
+                      <div className="animate-spin">
+                        <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                      </div>
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <IoAdd className="w-4 h-4" />
+                      Add
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
