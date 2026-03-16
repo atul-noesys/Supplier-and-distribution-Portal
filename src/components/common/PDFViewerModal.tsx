@@ -1,7 +1,7 @@
 "use client";
 
 import { MdClose, MdHistory, MdExpandLess, MdExpandMore } from "react-icons/md";
-import { FaFilePdf  } from "react-icons/fa";
+import { FaFilePdf } from "react-icons/fa";
 import { PDFPreview } from "@/components/pdf-preview";
 import { PdfViewer } from "@infoveave/document-viewers";
 import { useState, useEffect } from "react";
@@ -42,7 +42,7 @@ export default function PDFViewerModal({
   const [internalSelectedDocument, setInternalSelectedDocument] = useState<string | null>(null);
   const [selectedVersionIndex, setSelectedVersionIndex] = useState<number>(-1); // -1 represents "All documents"
   const [isVersionCollapsed, setIsVersionCollapsed] = useState(false);
-  
+
   // Parse step history versions
   const stepHistoryVersions: StepHistoryVersion[] = (() => {
     if (!stepHistory) return [];
@@ -95,14 +95,14 @@ export default function PDFViewerModal({
   // Calculate new documents for a selected version
   const getNewDocumentsForVersion = (versionIndex: number): string[] => {
     if (versionIndex < 0 || !stepHistoryVersions[versionIndex]) return [];
-    
+
     const version = stepHistoryVersions[versionIndex];
     const documentChange = version.values.find(v => v.key === 'document');
     if (!documentChange) return [];
 
     try {
       const newDocs = JSON.parse(documentChange.newValue);
-      
+
       // Handle empty or invalid old value
       let oldDocs;
       try {
@@ -111,15 +111,15 @@ export default function PDFViewerModal({
         // If oldValue is empty or invalid, treat as empty array
         oldDocs = documentChange.oldValue === '' || documentChange.oldValue === 'null' ? [] : [documentChange.oldValue];
       }
-      
-      const newDocsArray = Array.isArray(newDocs) 
+
+      const newDocsArray = Array.isArray(newDocs)
         ? newDocs.map(doc => (typeof doc === 'string' ? doc : String(doc)))
         : [newDocs];
-      
+
       const oldDocsArray = Array.isArray(oldDocs)
         ? oldDocs.map(doc => (typeof doc === 'string' ? doc : String(doc)))
         : (oldDocs ? [oldDocs] : []);
-      
+
       return newDocsArray.filter(doc => !oldDocsArray.includes(doc));
     } catch (e) {
       return [];
@@ -127,7 +127,7 @@ export default function PDFViewerModal({
   };
 
   // Documents to show in tabs based on version selection
-  const documentsForDisplay: string[] = selectedVersionIndex >= 0 
+  const documentsForDisplay: string[] = selectedVersionIndex >= 0
     ? getNewDocumentsForVersion(selectedVersionIndex)
     : allDocuments;
 
@@ -204,11 +204,10 @@ export default function PDFViewerModal({
                   {/* Default "All documents" version */}
                   <button
                     onClick={() => handleVersionClick(-1)}
-                    className={`w-full group relative overflow-hidden rounded-lg transition-all duration-200 ${
-                      selectedVersionIndex === -1
+                    className={`w-full group relative overflow-hidden rounded-lg transition-all duration-200 ${selectedVersionIndex === -1
                         ? "bg-linear-to-r from-blue-100 to-blue-100"
                         : "bg-white dark:bg-gray-700 shadow-sm hover:shadow-md dark:shadow-gray-900/50"
-                    }`}
+                      }`}
                   >
                     {/* Background accent for active state */}
                     {selectedVersionIndex === -1 && (
@@ -224,11 +223,10 @@ export default function PDFViewerModal({
 
                       {/* Text content */}
                       <div className="flex-1 text-left min-w-0">
-                        <p className={`text-sm font-medium truncate transition-colors ${
-                          selectedVersionIndex === -1
+                        <p className={`text-sm font-medium truncate transition-colors ${selectedVersionIndex === -1
                             ? "text-blue-800"
                             : "text-gray-700 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400"
-                        }`}>
+                          }`}>
                           All documents
                         </p>
                         <p className={"text-xs mt-1 truncate text-gray-600 dark:text-gray-400 font-normal"}>
@@ -243,19 +241,18 @@ export default function PDFViewerModal({
                     )}
                   </button>
 
-                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 px-3 pt-3">
+                  {stepHistoryVersions.length > 0 && <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 px-3 pt-3">
                     Versions ({stepHistoryVersions.length})
-                  </h3>
+                  </h3>}
 
                   {stepHistoryVersions.map((version, index) => (
                     <button
                       key={index}
                       onClick={() => handleVersionClick(index)}
-                      className={`w-full group relative overflow-hidden rounded-lg transition-all duration-200 ${
-                        selectedVersionIndex === index
+                      className={`w-full group relative overflow-hidden rounded-lg transition-all duration-200 ${selectedVersionIndex === index
                           ? "bg-linear-to-r from-blue-100 to-blue-100"
                           : "bg-white dark:bg-gray-700 shadow-sm hover:shadow-md dark:shadow-gray-900/50"
-                      }`}
+                        }`}
                     >
                       {/* Background accent for active state */}
                       {selectedVersionIndex === index && (
@@ -271,15 +268,14 @@ export default function PDFViewerModal({
 
                         {/* Text content */}
                         <div className="flex-1 text-left min-w-0">
-                          <p className={`text-sm font-medium truncate transition-colors ${
-                            selectedVersionIndex === index
+                          <p className={`text-sm font-medium truncate transition-colors ${selectedVersionIndex === index
                               ? "text-blue-800"
                               : "text-gray-700 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400"
-                          }`}>
+                            }`}>
                             Version {index + 1}
                           </p>
                           <p className={"flex justify-between text-xs mt-1 truncate text-gray-600 dark:text-gray-400 font-normal"}>
-                            <span>{new Date(version.updatedOn).toLocaleDateString()}</span> 
+                            <span>{new Date(version.updatedOn).toLocaleDateString()}</span>
                             <span>{new Date(version.updatedOn).toLocaleTimeString()}</span>
                           </p>
                         </div>
@@ -308,11 +304,10 @@ export default function PDFViewerModal({
                       <button
                         key={index}
                         onClick={() => handleDocumentClick(doc)}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-t transition-colors whitespace-nowrap ${
-                          currentDocument === doc
+                        className={`px-3 py-1.5 text-sm font-medium rounded-t transition-colors whitespace-nowrap ${currentDocument === doc
                             ? "bg-blue-50 dark:bg-gray-800 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400"
                             : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300"
-                        }`}
+                          }`}
                       >
                         {doc.split('/').pop()}
                       </button>
@@ -366,9 +361,8 @@ export default function PDFViewerModal({
 
             {/* Version Details Section - Below PDF */}
             {stepHistoryVersions.length > 0 && selectedVersionIndex >= 0 && stepHistoryVersions[selectedVersionIndex] && (
-              <div className={`border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 overflow-hidden flex flex-col rounded-b-lg transition-all duration-300 ease-in-out ${
-                isVersionCollapsed ? 'h-8' : (documentsForDisplay.length > 0 ? 'flex-[0.35]' : 'flex-1')
-              }`}>
+              <div className={`border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 overflow-hidden flex flex-col rounded-b-lg transition-all duration-300 ease-in-out ${isVersionCollapsed ? 'h-8' : (documentsForDisplay.length > 0 ? 'flex-[0.35]' : 'flex-1')
+                }`}>
                 <div className={`flex justify-between items-center px-4 ${documentsForDisplay.length > 0 ? 'py-1' : 'py-3'} border-b border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors shrink-0`} onClick={() => setIsVersionCollapsed(!isVersionCollapsed)}>
                   <h3 className="text-md font-semibold text-blue-800 dark:text-gray-300">
                     Version {selectedVersionIndex + 1}
@@ -386,9 +380,8 @@ export default function PDFViewerModal({
                     </button>
                   )}
                 </div>
-                <div className={`flex-1 flex flex-col min-h-0 p-4 transition-opacity ${
-                  isVersionCollapsed ? 'opacity-0 duration-0' : 'opacity-100 duration-300 delay-300'
-                }`}>
+                <div className={`flex-1 flex flex-col min-h-0 p-4 transition-opacity ${isVersionCollapsed ? 'opacity-0 duration-0' : 'opacity-100 duration-300 delay-300'
+                  }`}>
                   <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden flex flex-col min-h-0">
                     {/* Header */}
                     <div className="sticky top-0 bg-linear-to-r from-blue-700 to-blue-800 dark:from-blue-800 dark:to-blue-900 z-10 flex shrink-0">
@@ -407,14 +400,14 @@ export default function PDFViewerModal({
                             // Parse only if not empty
                             const newDocs = value.newValue && value.newValue.trim() !== '' ? JSON.parse(value.newValue) : null;
                             const oldDocs = value.oldValue && value.oldValue.trim() !== '' ? JSON.parse(value.oldValue) : null;
-                            
+
                             // Process newValue
                             if (newDocs !== null) {
                               displayNewValue = Array.isArray(newDocs)
                                 ? newDocs.map(doc => (typeof doc === 'string' ? (doc.split('/').pop() ?? doc) : JSON.stringify(doc))).join(', ')
                                 : (typeof newDocs === 'string' ? (newDocs.split('/').pop() ?? newDocs) : JSON.stringify(newDocs));
                             }
-                            
+
                             // Process oldValue
                             if (oldDocs !== null) {
                               displayOldValue = Array.isArray(oldDocs)
@@ -425,16 +418,16 @@ export default function PDFViewerModal({
                             // If parsing fails, use original values
                           }
                         }
-                        
+
                         const isOldEmpty = !displayOldValue || displayOldValue === '' || displayOldValue === 'null';
-                        
+
                         // Parse documents for clickable rendering
                         let newDocArray: string[] = [];
                         if (value.key === 'document') {
                           try {
                             const newDocs = value.newValue && value.newValue.trim() !== '' ? JSON.parse(value.newValue) : null;
                             if (newDocs !== null) {
-                              newDocArray = Array.isArray(newDocs) 
+                              newDocArray = Array.isArray(newDocs)
                                 ? newDocs.map(doc => typeof doc === 'string' ? doc : String(doc))
                                 : [String(newDocs)];
                             }
@@ -442,7 +435,7 @@ export default function PDFViewerModal({
                             // If parsing fails, use empty array
                           }
                         }
-                        
+
                         return (
                           <div key={idx} className={`flex ${idx % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-700/50'} hover:bg-blue-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-300 dark:border-gray-600`}>
                             <div className="px-2 py-3 text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide w-40 shrink-0 wrap-break-word border-r border-gray-300 dark:border-gray-600">
@@ -465,11 +458,10 @@ export default function PDFViewerModal({
                                       <button
                                         key={docIdx}
                                         onClick={() => handleDocumentClick(doc)}
-                                        className={`px-2 py-1 rounded text-xs transition-colors font-medium ${
-                                          currentDocument === doc
+                                        className={`px-2 py-1 rounded text-xs transition-colors font-medium ${currentDocument === doc
                                             ? "bg-blue-500 text-white"
                                             : "bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 hover:bg-blue-400 dark:hover:bg-blue-500"
-                                        }`}
+                                          }`}
                                       >
                                         {doc.split('/').pop()}
                                       </button>

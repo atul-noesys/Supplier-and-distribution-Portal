@@ -111,9 +111,9 @@ export const TimelineLayout = ({
                                   </span>
                                 </td>
                                 <td className="px-4 py-3">
-                                  <div className="flex items-center justify-between gap-3 text-xs">
+                                  <div className="flex items-start justify-between gap-3 text-xs">
                                     <div className="flex-1 min-w-0">
-                                      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 p-2 rounded">
+                                      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-2 py-1 rounded">
                                         {change.oldVal === "(empty)" ? (
                                           <span className="italic text-gray-500 dark:text-gray-400">Empty</span>
                                         ) : (
@@ -121,9 +121,9 @@ export const TimelineLayout = ({
                                         )}
                                       </div>
                                     </div>
-                                    <MdArrowForward className="w-5 h-5 text-gray-400 dark:text-gray-500 shrink-0" />
+                                    <MdArrowForward className="mt-1 w-5 h-5 text-gray-400 dark:text-gray-500 shrink-0" />
                                     <div className="flex-1 min-w-0">
-                                      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 p-2 rounded">
+                                      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-2 py-1 rounded">
                                         {change.newVal === "(empty)" ? (
                                           <span className="italic text-gray-500 dark:text-gray-400">Empty</span>
                                         ) : (
