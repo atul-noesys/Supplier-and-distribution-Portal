@@ -597,6 +597,8 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                 if (woUpdateResult.result) {
                   // Invalidate work orders query to refresh the list
                   await queryClient.invalidateQueries({ queryKey: [QueryKeys.WorkOrder] });
+                  await queryClient.invalidateQueries({ queryKey: [QueryKeys.ItemWarehouse] });
+                  await queryClient.invalidateQueries({ queryKey: [QueryKeys.LocationMaster] });
                   toast.success('Item Added to Warehouse successfully!');
                 } else {
                   toast.error('Failed to Add Item in the Warehouse');
