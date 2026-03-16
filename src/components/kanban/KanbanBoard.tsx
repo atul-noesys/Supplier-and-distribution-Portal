@@ -34,25 +34,29 @@ interface KanbanBoardProps {
     onEditClick?: (item: KanbanItem) => void;
     onDragDropSave?: (item: KanbanItem, newStep: string) => Promise<void>;
     disabled?: boolean;
+    maxStepCount?: number;
 }
 
-export default function KanbanBoard({ initialData, searchTerm = "", onEditClick, onDragDropSave, disabled = false }: KanbanBoardProps) {
+export default function KanbanBoard({ initialData, searchTerm = "", onEditClick, onDragDropSave, disabled = false, maxStepCount = 0 }: KanbanBoardProps) {
     const [items, setItems] = useState<KanbanItem[]>(initialData);
     const [activeId, setActiveId] = useState<number | null>(null);
 
-    // Generate STEPS dynamically based on max stepCount from initialData
+    // Generate STEPS dynamically based on max stepCount from initialData or prop
     const STEPS = useMemo(() => {
-        // Find the maximum stepCount from initialData
-        const maxSteps = initialData.reduce((max, item) => {
-            return Math.max(max, item.stepCount || 0);
-        }, 0);
+        // Use maxStepCount prop if provided, otherwise find from initialData
+        let maxSteps = maxStepCount;
+        if (maxSteps === 0) {
+            maxSteps = initialData.reduce((max, item) => {
+                return Math.max(max, item.stepCount || 0);
+            }, 0);
+        }
 
         // Generate steps array dynamically, ensuring at least 1 step and capping at 10
         const stepsCount = Math.max(1, Math.min(maxSteps, 10));
         const generatedSteps = Array.from({ length: stepsCount }, (_, i) => `Step ${i + 1}`);
 
         return generatedSteps;
-    }, [initialData]);
+    }, [initialData, maxStepCount]);
 
     // Sync items with initialData when it changes (e.g., on search/filter)
     useEffect(() => {

@@ -178,7 +178,7 @@ export default observer(function WorkOrderPage() {
     setCurrentPage(1);
   };
 
-  const { data: itemProcesses = [] } = useQuery({
+  const { data: itemProcesses = [], isLoading: isLoadingItemProcesses } = useQuery({
     queryKey: ["itemProcesses", authToken],
     queryFn: async () => {
       try {
@@ -198,7 +198,7 @@ export default observer(function WorkOrderPage() {
     enabled: !!authToken,
   });
 
-  const { data: itemProcessSteps = [] } = useQuery({
+  const { data: itemProcessSteps = [], isLoading: isLoadingItemProcessSteps } = useQuery({
     queryKey: ["itemProcessSteps", authToken],
     queryFn: async () => {
       try {
@@ -254,6 +254,15 @@ export default observer(function WorkOrderPage() {
     },
     [itemProcessSteps]
   );
+
+  // Calculate max step count from itemProcessSteps to prevent column layout shift on load
+  const maxStepCount = useMemo(() => {
+    const steps = Array.isArray(itemProcessSteps) ? itemProcessSteps : [];
+    if (steps.length === 0) return 0;
+
+    const maxSequence = Math.max(...steps.map((step: any) => Number(step.sequence || 0)));
+    return maxSequence;
+  }, [itemProcessSteps]);
 
   // Transform work order data to KanbanItem format for the kanban view
   const kanbanItems = useMemo(() => {
@@ -1046,13 +1055,13 @@ export default observer(function WorkOrderPage() {
           </div>
         </div>
 
-        {isLoading ? (
+        {isLoading || isLoadingItemProcessSteps ? (
           <div className="flex justify-center py-10">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
           </div>
         ) : viewMode === "kanban" ? (
           <div className="pt-4 px-0">
-            <KanbanBoard initialData={kanbanItems} searchTerm={searchTerm} onEditClick={user?.roleId !== 5 ? handleEditRow : undefined} onDragDropSave={user?.roleId !== 5 ? handleDragDropSave : undefined} disabled={user?.roleId === 5} />
+            <KanbanBoard initialData={kanbanItems} searchTerm={searchTerm} onEditClick={user?.roleId !== 5 ? handleEditRow : undefined} onDragDropSave={user?.roleId !== 5 ? handleDragDropSave : undefined} disabled={user?.roleId === 5} maxStepCount={maxStepCount} />
           </div>
         ) : (
           <div className="border-t border-gray-200 dark:border-white/5">
