@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from '@/lib/utils';
 import { ItemData, LocationData } from '@/utils/csvParser';
 import { Package, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -77,7 +78,7 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
       {/* Selected Item Details */}
       {selectedItem && (
         <div className="lg:w-[75%] bg-white rounded shadow-sm p-2 border border-gray-200">
-          <div className="flex items-center justify-between">
+          <div className={cn("flex items-center justify-between", itemInstances.length > 1 ? "" : "mb-2.5")}>
             <h3 className="text-xs font-bold text-gray-900">Item Details</h3>
             {itemInstances && itemInstances.length > 1 && (
               <div className="flex items-center gap-2">
