@@ -1,11 +1,6 @@
 import { Select as InfoveaveSelect } from "@infoveave/ui-components";
 import React from "react";
 
-interface SelectOption {
-  label: string;
-  value: string;
-}
-
 interface SelectProps {
   label?: string | React.ReactNode;
   value?: string | null;

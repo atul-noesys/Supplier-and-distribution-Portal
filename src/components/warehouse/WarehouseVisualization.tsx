@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useMemo, useRef, useEffect, useState } from 'react';
-import { LocationData, ItemData } from '@/utils/csvParser';
-import { Loader, X } from 'lucide-react';
+import { Select } from '@/components/ui';
 import Badge from '@/components/ui/badge/Badge';
 import { useStore } from '@/store/store-context';
-import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
 import { QueryKeys } from '@/types/query-keys';
+import { ItemData, LocationData } from '@/utils/csvParser';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
+import { Check, X } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'react-toastify';
 
 // Add pulse animation styles
 const pulseStyles = `
@@ -171,6 +173,15 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
   // Tooltip state
   const [tooltip, setTooltip] = useState<TooltipState>({ visible: false, x: 0, y: 0 });
 
+  // State to track selected Row, Bay, Level for each work order
+  // Key: work order ID, Value: { row, bay, level }
+  const [workOrderLocations, setWorkOrderLocations] = useState<Map<string, { row: string; bay: string; level: string }>>(new Map());
+
+  // State to track which work order is currently being added to warehouse
+  const [loadingWorkOrderId, setLoadingWorkOrderId] = useState<string | null>(null);
+
+  const queryClient = useQueryClient();
+
   const cellWidth = 80;
   // Increased cell height to give more vertical room for stacked levels
   const cellHeight = 128;
@@ -278,36 +289,36 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
   };
 
   // Helpers to extract qty/unit_price/total from dynamic response fields
-  const getQuantity = (wo: Record<string, any>) => {
+  const getQuantity = useCallback((wo: Record<string, any>) => {
     const qKey = Object.keys(wo).find((k) => k.toLowerCase().includes('quantity'));
     if (qKey) return Number(wo[qKey] || 0);
     const expr = Object.keys(wo).find((k) => k.includes('expression') && k.includes('quantity'));
     if (expr) return Number(wo[expr] || 0);
     return Number(wo.quantity || wo.qty || 0);
-  };
+  }, []);
 
-  const getUnitPrice = (wo: Record<string, any>) => {
+  const getUnitPrice = useCallback((wo: Record<string, any>) => {
     const pKey = Object.keys(wo).find((k) => k.toLowerCase().includes('unit_price') || k.toLowerCase().includes('unitprice') || k.toLowerCase().includes('price'));
     if (pKey) return Number(wo[pKey] || 0);
     const expr = Object.keys(wo).find((k) => k.includes('expression') && k.includes('unit_price'));
     if (expr) return Number(wo[expr] || 0);
     return Number(wo.unit_price || wo.price || 0);
-  };
+  }, []);
 
-  const getTotalFromWorkOrder = (wo: Record<string, any>) => {
+  const getTotalFromWorkOrder = useCallback((wo: Record<string, any>) => {
     const tKey = Object.keys(wo).find((k) => k.toLowerCase().includes('total'));
     if (tKey) return Number(wo[tKey] || 0);
     const expr = Object.keys(wo).find((k) => k.includes('expression') && (k.includes('unit_price') || k.includes('quantity') || k.includes('total')));
     if (expr) return Number(wo[expr] || 0);
     // fallback to qty * unit price
     return getQuantity(wo) * getUnitPrice(wo);
-  };
+  }, [getQuantity, getUnitPrice]);
 
   const { nguageStore } = useStore();
 
   // Fetch work orders with status "Finished goods" when modal is open
   const { data: finishedWorkOrders = [], isLoading: finishedWorkOrdersLoading } = useQuery({
-    queryKey: [ QueryKeys.WorkOrder ],
+    queryKey: [QueryKeys.WorkOrder],
     queryFn: async (): Promise<any[]> => {
       if (!nguageStore) return [];
       const resp = await nguageStore.GetPaginationData({
@@ -325,7 +336,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
 
   // Fetch PO items for mapping quantity, unit_price, and total (used to enrich finished work orders)
   const { data: poItems = [] } = useQuery({
-    queryKey: [ QueryKeys.PurchaseOrder ],
+    queryKey: [QueryKeys.PurchaseOrder],
     queryFn: async (): Promise<any[]> => {
       try {
         const authToken = localStorage.getItem('access_token');
@@ -375,7 +386,63 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
         _computed_total: total,
       };
     });
-  }, [finishedWorkOrders, poItems]);
+  }, [finishedWorkOrders, poItems, getQuantity, getUnitPrice, getTotalFromWorkOrder]);
+
+  // Extract unique Row, Bay, Level values from locations for dropdown options
+  const availableRows = useMemo(() => {
+    const vals = locations.map((l) => parseInt(l['RowNumber*'] || '0')).filter((n) => n > 0);
+    const maxRow = vals.length ? Math.max(...vals) : 0;
+    // Generate all rows from 1 to max
+    return Array.from({ length: maxRow }, (_, i) => String(i + 1));
+  }, [locations]);
+
+  const availableBays = useMemo(() => {
+    const vals = locations.map((l) => parseInt(l.BayNumber || '0')).filter((n) => n > 0);
+    const maxBay = vals.length ? Math.max(...vals) : 0;
+    // Generate all bays from 1 to max
+    return Array.from({ length: maxBay }, (_, i) => String(i + 1));
+  }, [locations]);
+
+  const availableLevels = useMemo(() => {
+    // Assume 6 levels always (as per warehouse structure)
+    return ['1', '2', '3', '4', '5', '6'];
+  }, []);
+
+  // Get available bay and level options for a selected row
+  const getAvailableBaysForRow = useMemo(() => {
+    return (selectedRow: string) => {
+      // All bays are available for any row (it's a grid)
+      return availableBays;
+    };
+  }, [availableBays]);
+
+  // Get available level options for a selected row and bay (all 6 levels always available)
+  const getAvailableLevelsForRowBay = useMemo(() => {
+    return (selectedRow: string, selectedBay: string) => {
+      // Get location codes that exist in this Row+Bay combination
+      const locationCodesInRowBay = locations
+        .filter((loc) => String(loc['RowNumber*']).trim() === selectedRow && String(loc.BayNumber).trim() === selectedBay)
+        .map((loc) => loc.LocationCode);
+
+      // Get which location codes have items
+      const occupiedLocationCodes = new Set(itemsWithValidLocation.keys());
+
+      // Find occupied levels
+      const occupiedLevels = new Set<string>();
+      locationCodesInRowBay.forEach((locCode) => {
+        if (occupiedLocationCodes.has(locCode)) {
+          // Find the level for this location code
+          const locData = locations.find((l) => l.LocationCode === locCode);
+          if (locData) {
+            occupiedLevels.add(String(locData['LevelNumber*']).trim());
+          }
+        }
+      });
+
+      // Return all 6 levels except the occupied ones
+      return ['1', '2', '3', '4', '5', '6'].filter((level) => !occupiedLevels.has(level));
+    };
+  }, [locations, itemsWithValidLocation]);
 
   // Tooltip styles (small modern card)
   const tooltipStyles = {
@@ -411,10 +478,6 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
     () => Math.max(...gridData.flatMap((g) => g.cells.map((c) => c.bay)), 1),
     [gridData]
   );
-  const maxLevel = useMemo(
-    () => Math.max(...gridData.flatMap((g) => g.cells.map((c) => c.level)), 1),
-    [gridData]
-  );
 
   // Compute totals from source data (original row/bay/level counts)
   const totalRowsCount = useMemo(() => {
@@ -434,6 +497,126 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
 
   const svgWidth = cellStartX + maxBay * cellWidth;
   const svgHeight = cellStartY + maxRow * cellHeight;
+
+  const AddToWarehouse = async (woLocation: {
+    row: string;
+    bay: string;
+    level: string;
+  }, workOrder?: any) => {
+    if (!woLocation.row || !woLocation.bay || !woLocation.level || !nguageStore) {
+      console.error('Missing required location data or store');
+      return;
+    }
+
+    const woId = getWorkOrderId(workOrder);
+    setLoadingWorkOrderId(woId);
+
+    try {
+      // Generate unique LocationCode (e.g., "R1-2-1")
+      const locationCode = `R${woLocation.row}-${woLocation.bay}-${woLocation.level}`;
+      
+      // Check if this location code already exists
+      const isDuplicate = locations.some((loc) => loc.LocationCode === locationCode);
+      if (isDuplicate) {
+        console.error('Location code already exists:', locationCode);
+        return;
+      }
+
+      // Build the rowData object with all required fields
+      const rowData = {
+        WarehouseCode: "WH0001",
+        WarehouseName: "Allen Toys",
+        ZoneName: "MAIN AREA",
+        Division: "TOYS",
+        LocationCode: locationCode,
+        "RowNumber*": Number(woLocation.row),
+        BayNumber: Number(woLocation.bay),
+        "LevelNumber*": Number(woLocation.level),
+        BinNumber: 1,
+        "IsDoubleDeep(Yes/No)": "False",
+        "IsLeftAisle(Yes/No)": null,
+        "IsRightAisle(Yes/No)": 1,
+        Length: 1200,
+        Width: 1000,
+        Height: 2000,
+        LWHBaseUnit: "Millimeter",
+        Weight: 1000,
+        WeightUnit: "Kilogram",
+        "DockDirection(N/E/S/W)*": "E",
+        DockCount: 10,
+        StagingCount: 10,
+        VirtualDockCount: 10,
+        RackType: "HDR",
+        "Location Status": null,
+      };
+
+      // Call AddRowData with tableNumber 55 and tableName "location_master"
+      const result = await nguageStore.AddRowData(rowData, 55, "location_master");
+      
+      if (result.result) {
+        // If work order data is provided, make second call to item_warehouse table
+        if (workOrder) {
+          // Get current system date without time
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const currentDate = today.toISOString();
+          
+          // Get item code and quantity from work order
+          const itemCode = workOrder.item_code || '';
+          const quantity = workOrder._computed_quantity || 0;
+          
+          if (itemCode) {
+            const itemWarehouseData = {
+              item_code: itemCode,
+              location: locationCode,
+              quantity: quantity,
+              last_updated_date: currentDate,
+            };
+            
+            // Call AddRowData with tableNumber 57 and tableName "item_warehouse"
+            const itemResult = await nguageStore.AddRowData(itemWarehouseData, 57, "item_warehouse");
+            
+            if (itemResult.result) {
+              // Third call: Update work order status to "In warehouse"
+              const workOrderRowId = workOrder.ROWID || workOrder.rowid || '';
+              if (workOrderRowId) {
+                // Spread existing work order data and change status
+                const updatedWorkOrderData = {
+                  ...workOrder,
+                  wo_status: "In warehouse",
+                };
+                
+                // Call UpdateRowDataDynamic with work_order table
+                const woUpdateResult = await nguageStore.UpdateRowDataDynamic(
+                  updatedWorkOrderData,
+                  String(workOrderRowId),
+                  44,
+                  "work_order"
+                );
+                
+                if (woUpdateResult.result) {
+                  // Invalidate work orders query to refresh the list
+                  await queryClient.invalidateQueries({ queryKey: [QueryKeys.WorkOrder] });
+                  toast.success('Item Added to Warehouse successfully!');
+                } else {
+                  toast.error('Failed to Add Item in the Warehouse');
+                  console.error('Failed to update work order status:', woUpdateResult.error);
+                }
+              }
+            } else {
+              console.error('Failed to add item to warehouse:', itemResult.error);
+            }
+          }
+        }
+      } else {
+        console.error('Failed to add location:', result.error);
+      }
+    } catch (error) {
+      console.error('Error adding to warehouse:', error);
+    } finally {
+      setLoadingWorkOrderId(null);
+    }
+  }
 
   // Sync scroll positions between headers and main content
   useEffect(() => {
@@ -1018,7 +1201,10 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                   </h2>
                 </div>
                 <button
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setWorkOrderLocations(new Map());
+                  }}
                   className="text-gray-900 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                   aria-label="Close modal"
                 >
@@ -1050,51 +1236,135 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                       <table className="w-full">
                         <thead>
                           <tr className="bg-linear-to-r from-blue-700 to-blue-800 dark:from-blue-900 dark:to-blue-950">
-                            <th className="px-4 py-3 text-left">
+                            {/* <th className="px-4 py-3 text-left">
                               <input type="checkbox" className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer" aria-label="select all" />
-                            </th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">WO ID</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Item Code</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Item Name</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">PO Number</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Qty</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Status</th>
+                            </th> */}
+                            <th className="pl-2 px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">WO ID</th>
+                            <th className="px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Item Code</th>
+                            <th className="px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Item Name</th>
+                            <th className="px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">PO Number</th>
+                            <th className="px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Qty</th>
+                            <th className="px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Status</th>
+                            <th className="px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide w-28">Row</th>
+                            <th className="px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide w-27">Bay</th>
+                            <th className="px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide w-29">Level</th>
+                            <th className="pr-2 px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide w-10">Add</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                          {enrichedFinishedWorkOrders.map((wo: any, idx: number) => (
-                            <tr key={wo.ROWID || wo.rowid || `${getWorkOrderId(wo)}-${idx}`} className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                              <td className="px-4 py-3">
-                                <input type="checkbox" className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer" aria-label={`select-${idx}`} />
-                              </td>
-                              <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{getWorkOrderId(wo)}</td>
-                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{wo.item_code || '-'}</td>
-                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 max-w-xs truncate">{wo.item || '-'}</td>
-                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{wo.po_number || '-'}</td>
-                              <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{Number(wo._computed_quantity || 0)}</td>
-                              <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                                <Badge color={getStatusColor(wo.wo_status)} variant="solid">
-                                  {wo.wo_status || '-'}
-                                </Badge>
-                              </td>
-                            </tr>
-                          ))}
+                          {enrichedFinishedWorkOrders.map((wo: any, idx: number) => {
+                            const woId = getWorkOrderId(wo);
+                            const woLocation = workOrderLocations.get(woId) || { row: '', bay: '', level: '' };
+                            const availableBaysForRow = woLocation.row ? getAvailableBaysForRow(woLocation.row) : availableBays;
+                            const availableLevelsForRowBay = woLocation.row && woLocation.bay ? getAvailableLevelsForRowBay(woLocation.row, woLocation.bay) : availableLevels;
+
+                            return (
+                              <tr key={wo.ROWID || wo.rowid || `${woId}-${idx}`} className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                {/* <td className="px-4 py-3">
+                                  <input type="checkbox" className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer" aria-label={`select-${idx}`} />
+                                </td> */}
+                                <td className="pl-2 px-1 py-3 text-sm font-medium text-gray-900 dark:text-white">{woId}</td>
+                                <td className="px-1 py-3 text-sm text-gray-700 dark:text-gray-300">{wo.item_code || '-'}</td>
+                                <td className="px-1 py-3 text-sm text-gray-700 dark:text-gray-300 max-w-xs truncate">{wo.item || '-'}</td>
+                                <td className="px-1 py-3 text-sm text-gray-700 dark:text-gray-300">{wo.po_number || '-'}</td>
+                                <td className="px-1 py-3 text-sm font-medium text-gray-900 dark:text-white">{Number(wo._computed_quantity || 0)}</td>
+                                <td className="px-1 py-3 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                  <Badge color={getStatusColor(wo.wo_status)} variant="solid">
+                                    {wo.wo_status || '-'}
+                                  </Badge>
+                                </td>
+                                <td className="px-1 py-3 text-sm w-28">
+                                  <Select
+                                    label=""
+                                    value={woLocation.row}
+                                    onChange={(v) => {
+                                      const newRow = v ?? '';
+                                      const newLocation = { row: newRow, bay: '', level: '' };
+                                      const newMap = new Map(workOrderLocations);
+                                      if (newRow) {
+                                        newMap.set(woId, newLocation);
+                                      } else {
+                                        newMap.delete(woId);
+                                      }
+                                      setWorkOrderLocations(newMap);
+                                    }}
+                                    data={availableRows.map((row) => ({
+                                      label: row,
+                                      value: row,
+                                    }))}
+                                    placeholder="Select Row"
+                                  />
+                                </td>
+                                <td className="px-1 py-3 text-sm w-27">
+                                  <Select
+                                    label=""
+                                    value={woLocation.bay}
+                                    onChange={(v) => {
+                                      const newBay = v ?? '';
+                                      const newLocation = { ...woLocation, bay: newBay, level: '' };
+                                      const newMap = new Map(workOrderLocations);
+                                      if (newBay) {
+                                        newMap.set(woId, newLocation);
+                                      } else {
+                                        newLocation.bay = '';
+                                        newMap.set(woId, newLocation);
+                                      }
+                                      setWorkOrderLocations(newMap);
+                                    }}
+                                    disabled={!woLocation.row}
+                                    data={availableBaysForRow.map((bay) => ({
+                                      label: bay,
+                                      value: bay,
+                                    }))}
+                                    placeholder="Select Bay"
+                                  />
+                                </td>
+                                <td className="px-1 py-3 text-sm w-29">
+                                  <Select
+                                    label=""
+                                    value={woLocation.level}
+                                    onChange={(v) => {
+                                      const newLevel = v ?? '';
+                                      const newLocation = { ...woLocation, level: newLevel };
+                                      const newMap = new Map(workOrderLocations);
+                                      if (newLevel) {
+                                        newMap.set(woId, newLocation);
+                                      } else {
+                                        newMap.delete(woId);
+                                      }
+                                      setWorkOrderLocations(newMap);
+                                    }}
+                                    disabled={!woLocation.row || !woLocation.bay}
+                                    data={availableLevelsForRowBay.map((level) => ({
+                                      label: level,
+                                      value: level,
+                                    }))}
+                                    placeholder="Select Level"
+                                  />
+                                </td>
+                                <td className="px-1 py-3 text-sm w-10 flex items-center justify-center">
+                                  <button
+                                    onClick={() => AddToWarehouse(woLocation, wo)}
+                                    disabled={!woLocation.row || !woLocation.bay || !woLocation.level || loadingWorkOrderId === woId}
+                                    className="p-2 text-blue-600 hover:text-blue-800 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                                    aria-label="Add to warehouse"
+                                    title="Add to warehouse"
+                                  >
+                                    {loadingWorkOrderId === woId ? (
+                                      <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                    ) : (
+                                      <Check className="w-5 h-5" />
+                                    )}
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
                   </div>
                 )}
-              </div>
-
-              {/* Footer */}
-              <div className="flex items-center justify-end gap-3 border-t border-gray-200 dark:border-gray-700 px-5 py-2 bg-gray-50 dark:bg-gray-800">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium"
-                >
-                  Close
-                </button>
               </div>
             </div>
           </div>
