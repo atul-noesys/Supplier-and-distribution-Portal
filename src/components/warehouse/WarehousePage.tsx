@@ -11,9 +11,7 @@ import { QueryKeys } from '@/types/query-keys';
 
 export const WarehousePage: React.FC = () => {
   const [selectedItem, setSelectedItem] = useState<ItemData | null>(null);
-  const selectedLocationCode = React.useMemo(() => {
-    return selectedItem ? (selectedItem as any).location : undefined;
-  }, [selectedItem]);
+  const [currentInstanceIndex, setCurrentInstanceIndex] = useState(0);
 
   const { nguageStore } = useStore();
 
@@ -112,15 +110,49 @@ export const WarehousePage: React.FC = () => {
     staleTime: 0,
   });
 
-  // selectedLocationCode is derived from selectedItem via useMemo
+  // Find all instances of the selected item across different locations
+  const itemInstances = React.useMemo(() => {
+    if (!selectedItem) return [];
+    return (itemsData as ItemData[]).filter(
+      (item) => item.item_code.toLowerCase() === selectedItem.item_code.toLowerCase()
+    );
+  }, [selectedItem, itemsData]);
+
+  // Get the current selected location from the current instance index
+  const selectedLocationCode = React.useMemo(() => {
+    if (!selectedItem || itemInstances.length === 0) return undefined;
+    // Ensure currentInstanceIndex is within bounds
+    const validIndex = Math.min(currentInstanceIndex, itemInstances.length - 1);
+    return itemInstances[validIndex]?.location;
+  }, [selectedItem, itemInstances, currentInstanceIndex]);
+
+  // Get all location codes for the selected item
+  const allSelectedLocationCodes = React.useMemo(() => {
+    return itemInstances.map((item) => item.location);
+  }, [itemInstances]);
 
   const handleLocationClick = useCallback((locationCode: string) => {
     // Find the item with this location
     const item = (itemsData as ItemData[]).find((i) => i.location === locationCode);
     if (item) {
       setSelectedItem(item);
+      setCurrentInstanceIndex(0);
     }
   }, [itemsData]);
+
+  // Handle navigation to next instance
+  const handleNextInstance = useCallback(() => {
+    if (itemInstances.length > 1) {
+      setCurrentInstanceIndex((prev) => (prev + 1) % itemInstances.length);
+    }
+  }, [itemInstances.length]);
+
+  // Handle navigation to previous instance
+  const handlePreviousInstance = useCallback(() => {
+    if (itemInstances.length > 1) {
+      setCurrentInstanceIndex((prev) => (prev - 1 + itemInstances.length) % itemInstances.length);
+    }
+  }, [itemInstances.length]);
 
   const isLoading = itemsLoading || locationsLoading;
   const queryError = itemsQueryError || locationsQueryError;
@@ -148,8 +180,15 @@ export const WarehousePage: React.FC = () => {
               items={itemsData as ItemData[]}
               locations={locationsData as LocationData[]}
               selectedItem={selectedItem}
-              onItemSelect={setSelectedItem}
+              onItemSelect={(item) => {
+                setSelectedItem(item);
+                setCurrentInstanceIndex(0);
+              }}
               isLoading={isLoading}
+              itemInstances={itemInstances}
+              currentInstanceIndex={currentInstanceIndex}
+              onNextInstance={handleNextInstance}
+              onPreviousInstance={handlePreviousInstance}
             />
           </div>
 
@@ -162,6 +201,7 @@ export const WarehousePage: React.FC = () => {
               items={itemsData as ItemData[]}
               onLocationClick={handleLocationClick}
               isLoading={isLoading}
+              allSelectedLocations={allSelectedLocationCodes}
             />
           </div>
         </div>

@@ -26,6 +26,19 @@ const pulseStyles = `
     animation: warehouse-pulse 2s ease-in-out infinite;
   }
 
+  @keyframes warehouse-pulse-highlight {
+    0%, 100% {
+      filter: drop-shadow(0 0 0 rgba(125, 211, 252, 0));
+    }
+    50% {
+      filter: drop-shadow(0 0 6px rgba(125, 211, 252, 0.5)) drop-shadow(0 0 10px rgba(96, 165, 250, 0.3));
+    }
+  }
+
+  .warehouse-pulse-highlight {
+    animation: warehouse-pulse-highlight 2s ease-in-out infinite;
+  }
+
   @keyframes cell-hover {
     0% {
       filter: brightness(1);
@@ -45,6 +58,11 @@ const pulseStyles = `
 
   .warehouse-cell-selected {
     filter: drop-shadow(0 4px 8px rgba(30, 64, 175, 0.3));
+  }
+
+  .warehouse-cell-highlighted {
+    filter: drop-shadow(0 2px 6px rgba(34, 197, 94, 0.3));
+    opacity: 0.85;
   }
 
   .toggle-switch {
@@ -131,6 +149,7 @@ interface WarehouseVisualizationProps {
   items?: ItemData[];
   onLocationClick?: (locationCode: string) => void;
   isLoading?: boolean;
+  allSelectedLocations?: string[];
 }
 
 interface GridCell {
@@ -159,6 +178,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
   items,
   onLocationClick,
   isLoading,
+  allSelectedLocations = [],
 }) => {
   const mainScrollRef = useRef<HTMLDivElement>(null);
   const topHeaderRef = useRef<HTMLDivElement>(null);
@@ -935,14 +955,17 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                     const x = cellStartX + (bay - 1) * cellWidth;
                     const y = cellStartY + (row - 1) * cellHeight;
                     const isSelected = !!cell && cell.isSelected;
+                    const isInSelectedList = !!cell && allSelectedLocations.includes(cell.locationCode);
                     const itemAtCell = cell ? itemsWithValidLocation.get(cell.locationCode) : undefined;
 
                     const sliceIndexFromBottom = levelNum - 1; // 0 = bottom
                     const sliceY = y + cellHeight - sliceHeight * (sliceIndexFromBottom + 1);
                     const sliceLabel = `L${levelNum}`;
-                    const showLabel = isSelected || sliceHeight >= 12;
+                    const showLabel = isSelected || isInSelectedList || sliceHeight >= 12;
 
                     // Determine fill/stroke:
+                    // - currently selected (blue highlight)
+                    // - in selected list but not current (green highlight)
                     // - occupied (item exists at this exact location) => yellow
                     // - location exists but no item => dark gray (shelved)
                     // - location does not exist => light gray (empty)
@@ -951,13 +974,15 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
 
                     const fill = isSelected
                       ? '#2563eb'
-                      : isOccupied
-                        ? '#fbbf24'
-                        : hasLocation
-                          ? '#9ca3af' // dark gray for existing shelf without item
-                          : '#f1f5f9'; // very light for non-existent level
+                      : isInSelectedList
+                        ? '#3b82f6'
+                        : isOccupied
+                          ? '#fbbf24'
+                          : hasLocation
+                            ? '#9ca3af' // dark gray for existing shelf without item
+                            : '#f1f5f9'; // very light for non-existent level
 
-                    const stroke = isSelected ? '#1e40af' : isOccupied ? '#c4a208' : '#e2e8f0';
+                    const stroke = isSelected ? '#1e40af' : isInSelectedList ? '#1d4ed8' : isOccupied ? '#c4a208' : '#e2e8f0';
 
                     nodes.push(
                       <g key={`cell-${row}-${bay}-L${levelNum}`} data-location-code={cell?.locationCode || ''}>
@@ -976,6 +1001,21 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                           />
                         )}
 
+                        {/* Highlight whole stack when in selected list but not current */}
+                        {isInSelectedList && !isSelected && (
+                          <rect
+                            x={x - 2}
+                            y={y - 2}
+                            width={cellWidth + 4}
+                            height={cellHeight + 4}
+                            fill="none"
+                            stroke="#1d4ed8"
+                            strokeWidth="1.2"
+                            rx="6"
+                            opacity="0.1"
+                          />
+                        )}
+
                         {/* Slice */}
                         <rect
                           x={x + 2}
@@ -984,9 +1024,9 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                           height={sliceHeight - 2}
                           fill={fill}
                           stroke={stroke}
-                          strokeWidth={isSelected ? 1.6 : 0.8}
+                          strokeWidth={isSelected ? 1.6 : isInSelectedList ? 1.2 : 0.8}
                           rx={4}
-                          className={`warehouse-skeleton ${isSelected ? 'warehouse-pulse' : ''}`}
+                          className={`warehouse-skeleton ${isSelected ? 'warehouse-pulse' : isInSelectedList ? 'warehouse-pulse-highlight' : ''}`}
                           onClick={(e) => {
                             e.stopPropagation();
                             if (cell?.locationCode) onLocationClick?.(cell.locationCode);
@@ -1022,7 +1062,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                             x={x + 6}
                             y={sliceY + Math.max(10, sliceHeight / 2)}
                             fontSize={Math.min(10, Math.max(8, Math.floor(sliceHeight / 2)))}
-                            fill={isSelected ? '#e6f0ff' : '#0f172a'}
+                            fill={isSelected ? '#e6f0ff' : isInSelectedList ? '#eff6ff' : '#0f172a'}
                             textAnchor="start"
                             dominantBaseline="middle"
                             fontWeight={700}

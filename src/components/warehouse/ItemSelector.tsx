@@ -1,7 +1,7 @@
 "use client";
 
 import { ItemData, LocationData } from '@/utils/csvParser';
-import { Package, X } from 'lucide-react';
+import { Package, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 interface ItemSelectorProps {
@@ -10,6 +10,10 @@ interface ItemSelectorProps {
   selectedItem: ItemData | null;
   onItemSelect: (item: ItemData | null) => void;
   isLoading?: boolean;
+  itemInstances?: ItemData[];
+  currentInstanceIndex?: number;
+  onNextInstance?: () => void;
+  onPreviousInstance?: () => void;
 }
 
 export const ItemSelector: React.FC<ItemSelectorProps> = ({
@@ -18,6 +22,10 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
   selectedItem,
   onItemSelect,
   isLoading,
+  itemInstances = [],
+  currentInstanceIndex = 0,
+  onNextInstance,
+  onPreviousInstance,
 }) => {
   const locationMap = useMemo(() => {
     const map = new Map<string, LocationData>();
@@ -69,7 +77,32 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
       {/* Selected Item Details */}
       {selectedItem && (
         <div className="lg:w-[75%] bg-white rounded shadow-sm p-2 border border-gray-200">
-          <h3 className="text-xs font-bold text-gray-900 mb-2.5">Item Details</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold text-gray-900">Item Details</h3>
+            {itemInstances && itemInstances.length > 1 && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-gray-600">
+                  Location {currentInstanceIndex + 1} of {itemInstances.length}
+                </span>
+                <button
+                  onClick={onPreviousInstance}
+                  className="p-1 hover:bg-gray-100 rounded transition-colors"
+                  title="Previous location"
+                  aria-label="Previous location"
+                >
+                  <ChevronLeft className="w-4 h-4 text-gray-600" />
+                </button>
+                <button
+                  onClick={onNextInstance}
+                  className="p-1 hover:bg-gray-100 rounded transition-colors"
+                  title="Next location"
+                  aria-label="Next location"
+                >
+                  <ChevronRight className="w-4 h-4 text-gray-600" />
+                </button>
+              </div>
+            )}
+          </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1">
             {/* Item Code */}
@@ -277,7 +310,7 @@ const SearchableItemSelect: React.FC<SearchableItemSelectProps> = ({ items, sele
             <>
               {(filtered.slice(0, visibleCount)).map((it) => (
                 <button
-                  key={it.item_code}
+                  key={`${it.item_code}-${it.location}`}
                   type="button"
                   className="w-full text-left px-3 py-2 hover:bg-slate-50"
                   onClick={() => { onItemSelect(it); setQuery(''); setOpen(false); }}
