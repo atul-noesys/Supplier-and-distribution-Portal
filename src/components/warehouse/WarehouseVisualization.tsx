@@ -65,6 +65,68 @@ const pulseStyles = `
     opacity: 0.85;
   }
 
+  @keyframes path-pulse {
+    0%, 100% {
+      opacity: 0.9;
+      filter: drop-shadow(0 0 0 rgba(255, 107, 53, 0));
+    }
+    50% {
+      opacity: 1;
+      filter: drop-shadow(0 0 8px rgba(255, 107, 53, 0.6)) drop-shadow(0 0 12px rgba(255, 107, 53, 0.3));
+    }
+  }
+
+  .path-animation {
+    animation: path-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes path-flow {
+    0% {
+      stroke-dashoffset: 12;
+    }
+    100% {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  .path-line {
+    animation: path-flow 0.8s linear infinite;
+    filter: drop-shadow(0 0 3px rgba(16, 185, 129, 0.3)) drop-shadow(0 0 8px rgba(16, 185, 129, 0.5));
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  @keyframes waypoint-glow {
+    0%, 100% {
+      r: 16;
+      filter: drop-shadow(0 0 0 rgba(16, 185, 129, 0)) drop-shadow(0 0 2px rgba(16, 185, 129, 0.2));
+    }
+    50% {
+      r: 19;
+      filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.7)) drop-shadow(0 0 20px rgba(52, 211, 153, 0.5));
+    }
+  }
+
+  .waypoint-circle {
+    animation: waypoint-glow 1.8s ease-in-out infinite;
+    transition: all 0.3s ease;
+  }
+
+  @keyframes waypoint-number-bounce {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.9;
+      transform: scale(1.15);
+    }
+  }
+
+  .waypoint-number {
+    animation: waypoint-number-bounce 1.8s ease-in-out infinite;
+  }
+
   .toggle-switch {
     position: relative;
     display: inline-flex;
@@ -102,6 +164,10 @@ const pulseStyles = `
 
   .toggle-switch input:checked + .toggle-slider {
     background-color: #3b82f6;
+  }
+
+  .toggle-switch-green input:checked + .toggle-slider {
+    background-color: #10b981;
   }
 
   .toggle-switch input:checked + .toggle-slider:before {
@@ -185,6 +251,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
   const leftHeaderRef = useRef<HTMLDivElement>(null);
   const [showLegend, setShowLegend] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showPath, setShowPath] = useState(false);
 
   // Viewport state for virtualization
   const [viewport, setViewport] = useState({ left: 0, top: 0, width: 800, height: 600 });
@@ -201,6 +268,76 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
   const [loadingWorkOrderId, setLoadingWorkOrderId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
+
+  // Pathfinding algorithm: calculate shortest path using nearest-neighbor heuristic
+  const calculateShortestPath = useCallback(
+    (locationCodes: string[]): string[] => {
+      if (locationCodes.length <= 1) return locationCodes;
+
+      // Get the coordinates for each location
+      const locationMap = new Map<string, { row: number; bay: number; level: number }>();
+      locations.forEach((loc) => {
+        if (locationCodes.includes(loc.LocationCode)) {
+          locationMap.set(loc.LocationCode, {
+            row: parseInt(loc['RowNumber*'] || '0'),
+            bay: parseInt(loc.BayNumber || '0'),
+            level: parseInt(loc['LevelNumber*'] || '0'),
+          });
+        }
+      });
+
+      // Calculate Manhattan distance between two locations
+      const manhattanDistance = (
+        loc1: { row: number; bay: number; level: number },
+        loc2: { row: number; bay: number; level: number }
+      ): number => {
+        return Math.abs(loc1.row - loc2.row) + Math.abs(loc1.bay - loc2.bay) + Math.abs(loc1.level - loc2.level);
+      };
+
+      // Nearest neighbor algorithm
+      const path: string[] = [];
+      const unvisited = new Set(locationCodes);
+      let current = locationCodes[0];
+      path.push(current);
+      unvisited.delete(current);
+
+      while (unvisited.size > 0) {
+        const currentCoords = locationMap.get(current);
+        if (!currentCoords) break;
+
+        let nearest: string | null = null;
+        let minDistance = Infinity;
+
+        for (const candidate of unvisited) {
+          const candidateCoords = locationMap.get(candidate);
+          if (!candidateCoords) continue;
+
+          const distance = manhattanDistance(currentCoords, candidateCoords);
+          if (distance < minDistance) {
+            minDistance = distance;
+            nearest = candidate;
+          }
+        }
+
+        if (nearest === null) break;
+
+        path.push(nearest);
+        unvisited.delete(nearest);
+        current = nearest;
+      }
+
+      return path;
+    },
+    [locations]
+  );
+
+  // Calculate the shortest path for all selected locations when show path is enabled
+  const shortestPathSequence = useMemo(() => {
+    if (!showPath || !allSelectedLocations || allSelectedLocations.length === 0) {
+      return [];
+    }
+    return calculateShortestPath(allSelectedLocations);
+  }, [showPath, allSelectedLocations, calculateShortestPath]);
 
   const cellWidth = 80;
   // Increased cell height to give more vertical room for stacked levels
@@ -283,6 +420,57 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
       cells: cells.sort((a, b) => a.level - b.level),
     }));
   }, [locations, selectedLocation]);
+
+  // Map path sequence to visual coordinates for rendering with actual warehouse routing
+  const pathCoordinates = useMemo(() => {
+    if (shortestPathSequence.length === 0) return [];
+
+    const coords: Array<{ x: number; y: number; locationCode: string; dataRow: number; dataBay: number; visualRow: number; visualBay: number }> = [];
+
+    // Helper to get y-coordinate based on row parity (odd = top edge, even = bottom edge)
+    const getYCoordinate = (dataRow: number, visualRow: number): number => {
+      const baseY = cellStartY + (visualRow - 1) * cellHeight;
+      if (dataRow % 2 === 1) {
+        // Odd row: position at top edge to touch vertical path
+        return baseY + 4;
+      } else {
+        // Even row: position at bottom edge to touch vertical path
+        return baseY + cellHeight - 4;
+      }
+    };
+
+    // Convert location codes to grid coordinates
+    shortestPathSequence.forEach((locationCode) => {
+      const location = locations.find((l) => l.LocationCode === locationCode);
+      if (location) {
+        const dataRow = parseInt(location['RowNumber*'] || '0');
+        const dataBay = parseInt(location.BayNumber || '0');
+        const visualRow = getVisualPosition(dataRow, 2);
+        const visualBay = getVisualPosition(dataBay, 6);
+        
+        const x = cellStartX + (visualBay - 1) * cellWidth + cellWidth / 2;
+        const y = getYCoordinate(dataRow, visualRow);
+        
+        coords.push({ x, y, locationCode, dataRow, dataBay, visualRow, visualBay });
+      }
+    });
+
+    return coords;
+  }, [shortestPathSequence, locations, cellStartX, cellStartY, cellWidth, cellHeight]);
+
+  // Calculate total distance
+  const totalDistance = useMemo(() => {
+    if (pathCoordinates.length === 0) return 0;
+
+    let distance = 0;
+    for (let i = 0; i < pathCoordinates.length - 1; i++) {
+      const dx = pathCoordinates[i + 1].x - pathCoordinates[i].x;
+      const dy = pathCoordinates[i + 1].y - pathCoordinates[i].y;
+      distance += Math.sqrt(dx * dx + dy * dy);
+    }
+
+    return Math.round(distance);
+  }, [pathCoordinates]);
 
   // Set of valid location codes coming from the Location Master (locations prop)
   const validLocationCodes = useMemo(() => new Set(locations.map((l) => l.LocationCode)), [locations]);
@@ -767,6 +955,18 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
+                   {allSelectedLocations && allSelectedLocations.length > 1 && (
+                <label className="toggle-switch toggle-switch-green">
+                  <input
+                    type="checkbox"
+                    checked={showPath}
+                    onChange={() => setShowPath(!showPath)}
+                  />
+                  <span className="toggle-slider"></span>
+                  <span className="toggle-label">Shortest Path</span>
+                </label>
+              )}
+              
               <label className="toggle-switch">
                 <input
                   type="checkbox"
@@ -1206,6 +1406,166 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
               }
               return null;
             })}
+
+            {/* Draw shortest path visualization - RENDERED LAST FOR TOP Z-INDEX */}
+            {showPath && pathCoordinates.length > 1 && (
+              <g key="shortest-path" opacity="0.95" pointerEvents="none">
+                {/* Build full waypoint list including path segments */}
+                {(() => {
+                  const waypoints: Array<{ x: number; y: number }> = [];
+                  
+                  // Build waypoint path through warehouse corridors using actual data coordinates
+                  for (let i = 0; i < pathCoordinates.length; i++) {
+                    const current = pathCoordinates[i];
+                    waypoints.push({ x: current.x, y: current.y });
+
+                    // Route to next location through warehouse paths
+                    if (i < pathCoordinates.length - 1) {
+                      const next = pathCoordinates[i + 1];
+                      
+                      // Use actual data coordinates for path calculation
+                      const currentDataBay = current.dataBay;
+                      const nextDataBay = next.dataBay;
+                      const currentDataRow = current.dataRow;
+                      const nextDataRow = next.dataRow;
+                      
+                      // Determine vertical and horizontal path coordinates separately for
+                      // current and next so routing respects row parity and avoids
+                      // going into the neighbour row and back (no backtracking).
+                      const getVerticalPathXForBay = (bay: number) => {
+                        // Map bay -> visual bay (accounts for main path gaps)
+                        const visualBay = getVisualPosition(bay, 6);
+                        const blockLength = 7; // 6 data bays + 1 main path
+                        // choose nearest main vertical path (multiples of blockLength)
+                        let mainIndex = Math.round(visualBay / blockLength);
+                        if (mainIndex < 1) mainIndex = 1;
+                        const verticalVisualBay = mainIndex * blockLength;
+                        return cellStartX + (verticalVisualBay - 1) * cellWidth + cellWidth / 2;
+                      };
+
+                      const getHorizontalPathYForRow = (row: number) => {
+                        // Map row -> visual row (accounts for main path gaps)
+                        const visualRow = getVisualPosition(row, 2);
+                        const blockLength = 3; // 2 data rows + 1 main path
+                        // choose nearest main horizontal path (multiples of blockLength)
+                        let mainIndex = Math.round(visualRow / blockLength);
+                        if (mainIndex < 1) mainIndex = 1;
+                        const horizontalVisualRow = mainIndex * blockLength;
+                        return cellStartY + (horizontalVisualRow - 1) * cellHeight + cellHeight / 2;
+                      };
+
+                      const vCurX = getVerticalPathXForBay(currentDataBay);
+                      const vNextX = getVerticalPathXForBay(nextDataBay);
+                      const hCurY = getHorizontalPathYForRow(currentDataRow);
+                      const hNextY = getHorizontalPathYForRow(nextDataRow);
+
+                      // If both locations are on the same physical row, prefer a direct
+                      // horizontal move at the data-row y coordinate instead of
+                      // routing out to corridors and back (prevents R3 -> V2 -> H2 -> R3).
+                      if (currentDataRow === nextDataRow) {
+                        // move directly horizontally from current to next on the same row
+                        waypoints.push({ x: next.x, y: current.y });
+                        continue;
+                      }
+
+                      // Routing sequence:
+                      // 1) current -> move horizontally to nearest vertical corridor for current
+                      // 2) move vertically to the horizontal corridor for current (respecting parity)
+                      // 3) move horizontally along that corridor to the vertical corridor nearest destination
+                      // 4) move vertically to the horizontal corridor for destination
+                      // 5) move horizontally to destination x and then into the destination point
+
+                      // 1) to vCurX at current.y
+                      if (Math.abs(current.x - vCurX) > 1) waypoints.push({ x: vCurX, y: current.y });
+
+                      // 2) to hCurY along vCurX
+                      if (Math.abs(current.y - hCurY) > 1) waypoints.push({ x: vCurX, y: hCurY });
+
+                      // 3) along hCurY to vNextX (if different)
+                      if (Math.abs(vCurX - vNextX) > 1) waypoints.push({ x: vNextX, y: hCurY });
+
+                      // 4) move to hNextY if destination uses a different horizontal corridor
+                      if (Math.abs(hCurY - hNextY) > 1) waypoints.push({ x: vNextX, y: hNextY });
+
+                      // 5) move horizontally from vNextX to just above/below destination x (at hNextY)
+                      if (Math.abs(vNextX - next.x) > 1) waypoints.push({ x: next.x, y: hNextY });
+                    }
+                  }
+
+                  return (
+                    <>
+                      {/* Draw lines connecting waypoints */}
+                      {waypoints.map((waypoint, index) => {
+                        if (index < waypoints.length - 1) {
+                          const nextWaypoint = waypoints[index + 1];
+                          return (
+                            <line
+                              key={`path-line-${index}`}
+                              x1={waypoint.x}
+                              y1={waypoint.y}
+                              x2={nextWaypoint.x}
+                              y2={nextWaypoint.y}
+                              stroke="#10b981"
+                              strokeWidth="4"
+                              strokeDasharray="12,8"
+                              markerEnd="url(#path-arrow)"
+                              className="path-line"
+                              style={{ vectorEffect: 'non-scaling-stroke' }}
+                            />
+                          );
+                        }
+                        return null;
+                      })}
+
+                      {/* Arrow marker definition */}
+                      <defs>
+                        <marker
+                          id="path-arrow"
+                          markerWidth="7"
+                          markerHeight="6"
+                          refX="6"
+                          refY="2.5"
+                          orient="auto"
+                          markerUnits="strokeWidth"
+                        >
+                          <path d="M0,0 L0,5 L6,2.5 z" fill="#10b981" />
+                        </marker>
+                      </defs>
+
+                      {/* Draw numbered circles at each location (not intermediate waypoints) */}
+                      {pathCoordinates.map((coord, index) => (
+                        <g key={`path-point-${index}`}>
+                          {/* Circle background */}
+                          <circle 
+                            cx={coord.x} 
+                            cy={coord.y} 
+                            r="16" 
+                            fill="#10b981" 
+                            opacity="1"
+                            className="waypoint-circle"
+                          />
+                          {/* Step number */}
+                          <text
+                            x={coord.x}
+                            y={coord.y}
+                            fontSize="13"
+                            fontWeight="bold"
+                            fill="#ffffff"
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            pointerEvents="none"
+                            className="waypoint-number"
+                            style={{ transformOrigin: `${coord.x}px ${coord.y}px` }}
+                          >
+                            {index + 1}
+                          </text>
+                        </g>
+                      ))}
+                    </>
+                  );
+                })()}
+              </g>
+            )}
           </svg>
         </div>
 
