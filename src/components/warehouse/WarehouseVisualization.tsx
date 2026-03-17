@@ -447,10 +447,10 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
         const dataBay = parseInt(location.BayNumber || '0');
         const visualRow = getVisualPosition(dataRow, 2);
         const visualBay = getVisualPosition(dataBay, 6);
-        
+
         const x = cellStartX + (visualBay - 1) * cellWidth + cellWidth / 2;
         const y = getYCoordinate(dataRow, visualRow);
-        
+
         coords.push({ x, y, locationCode, dataRow, dataBay, visualRow, visualBay });
       }
     });
@@ -722,7 +722,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
     try {
       // Generate unique LocationCode (e.g., "R1-2-1")
       const locationCode = `R${woLocation.row}-${woLocation.bay}-${woLocation.level}`;
-      
+
       // Check if this location code already exists
       const isDuplicate = locations.some((loc) => loc.LocationCode === locationCode);
       if (isDuplicate) {
@@ -760,7 +760,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
 
       // Call AddRowData with tableNumber 55 and tableName "location_master"
       const result = await nguageStore.AddRowData(rowData, 55, "location_master");
-      
+
       if (result.result) {
         // If work order data is provided, make second call to item_warehouse table
         if (workOrder) {
@@ -768,11 +768,11 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           const currentDate = today.toISOString();
-          
+
           // Get item code and quantity from work order
           const itemCode = workOrder.item_code || '';
           const quantity = workOrder._computed_quantity || 0;
-          
+
           if (itemCode) {
             const itemWarehouseData = {
               item_code: itemCode,
@@ -780,10 +780,10 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
               quantity: quantity,
               last_updated_date: currentDate,
             };
-            
+
             // Call AddRowData with tableNumber 57 and tableName "item_warehouse"
             const itemResult = await nguageStore.AddRowData(itemWarehouseData, 57, "item_warehouse");
-            
+
             if (itemResult.result) {
               // Third call: Update work order status to "In warehouse"
               const workOrderRowId = workOrder.ROWID || workOrder.rowid || '';
@@ -793,7 +793,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                   ...workOrder,
                   wo_status: "In warehouse",
                 };
-                
+
                 // Call UpdateRowDataDynamic with work_order table
                 const woUpdateResult = await nguageStore.UpdateRowDataDynamic(
                   updatedWorkOrderData,
@@ -801,7 +801,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                   44,
                   "work_order"
                 );
-                
+
                 if (woUpdateResult.result) {
                   // Invalidate work orders query to refresh the list
                   await queryClient.invalidateQueries({ queryKey: [QueryKeys.WorkOrder] });
@@ -955,26 +955,26 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
-                   {allSelectedLocations && allSelectedLocations.length > 1 && (
+              {allSelectedLocations && allSelectedLocations.length > 1 && (
                 <label className="toggle-switch toggle-switch-green">
+                  <span className="toggle-label">Optimal Pick Path</span>
                   <input
                     type="checkbox"
                     checked={showPath}
                     onChange={() => setShowPath(!showPath)}
                   />
                   <span className="toggle-slider"></span>
-                  <span className="toggle-label">Shortest Path</span>
                 </label>
               )}
-              
+
               <label className="toggle-switch">
+                <span className="toggle-label">Legend</span>
                 <input
                   type="checkbox"
                   checked={showLegend}
                   onChange={() => setShowLegend(!showLegend)}
                 />
                 <span className="toggle-slider"></span>
-                <span className="toggle-label">Legend</span>
               </label>
 
               <button
@@ -1413,7 +1413,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                 {/* Build full waypoint list including path segments */}
                 {(() => {
                   const waypoints: Array<{ x: number; y: number }> = [];
-                  
+
                   // Build waypoint path through warehouse corridors using actual data coordinates
                   for (let i = 0; i < pathCoordinates.length; i++) {
                     const current = pathCoordinates[i];
@@ -1422,13 +1422,13 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                     // Route to next location through warehouse paths
                     if (i < pathCoordinates.length - 1) {
                       const next = pathCoordinates[i + 1];
-                      
+
                       // Use actual data coordinates for path calculation
                       const currentDataBay = current.dataBay;
                       const nextDataBay = next.dataBay;
                       const currentDataRow = current.dataRow;
                       const nextDataRow = next.dataRow;
-                      
+
                       // Determine vertical and horizontal path coordinates separately for
                       // current and next so routing respects row parity and avoids
                       // going into the neighbour row and back (no backtracking).
@@ -1536,11 +1536,11 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                       {pathCoordinates.map((coord, index) => (
                         <g key={`path-point-${index}`}>
                           {/* Circle background */}
-                          <circle 
-                            cx={coord.x} 
-                            cy={coord.y} 
-                            r="16" 
-                            fill="#10b981" 
+                          <circle
+                            cx={coord.x}
+                            cy={coord.y}
+                            r="16"
+                            fill="#10b981"
                             opacity="1"
                             className="waypoint-circle"
                           />
