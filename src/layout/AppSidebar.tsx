@@ -115,13 +115,16 @@ const AppSidebar: React.FC = () => {
               <Link
                 href={nav.path}
                 onClick={() => isMobileOpen && toggleMobileSidebar()}
-                className={`menu-item group ${isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
-                  }`}
+                className={`menu-item group ${isActive(nav.path) ? "menu-item-active" : "menu-item-inactive" 
+                  }  ${!isExpanded && !isHovered
+                  ? "lg:justify-center"
+                  : "lg:justify-start"
+                }`}
               >
                 <span
                   className={`${isActive(nav.path)
                     ? "menu-item-icon-active"
-                    : "menu-item-icon-inactive"
+                    : "menu-item-icon-inactive ="
                     }`}
                 >
                   {nav.icon}
@@ -278,10 +281,11 @@ const AppSidebar: React.FC = () => {
             </>
           ) : (
             <Image
-              src="https://cdn.infoveave.com/infoveave_lightbg.svg"
+              src="https://cdn.infoveave.com/privacypolicy/infoveaveFlower.svg"
               alt="Logo"
-              width={32}
-              height={32}
+              width={45}
+              height={45}
+              className="-mt-3"
             />
           )}
         </Link>
@@ -291,7 +295,7 @@ const AppSidebar: React.FC = () => {
           <div className="flex flex-col gap-4">
             <div>
               <h2
-                className={`ml-3 mb-4 text-xs uppercase flex leading-5 text-gray-400 ${!isExpanded && !isHovered
+                className={`mb-4 text-xs uppercase flex leading-5 text-gray-400 ${!isExpanded && !isHovered
                   ? "lg:justify-center"
                   : "justify-start"
                   }`}
