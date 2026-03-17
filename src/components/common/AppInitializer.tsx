@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
+import { registerTranslations as registerDocumentViewersTranslations } from "@infoveave/document-viewers";
 
-export function AppInitializer() {
+export function 
+AppInitializer() {
   useEffect(() => {
     const initialize = async () => {
       try {
@@ -11,6 +13,7 @@ export function AppInitializer() {
 
         // initialize i18n
         await initializeI18n();
+        registerDocumentViewersTranslations();
 
         // PDF worker
         await configurePdfWorker({

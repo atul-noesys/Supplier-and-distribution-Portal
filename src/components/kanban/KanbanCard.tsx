@@ -62,10 +62,10 @@ export default function KanbanCard({ item, searchTerm = "", onEditClick }: Kanba
       style={style}
       {...attributes}
       {...listeners}
-      className={`rounded-lg border p-3 cursor-move hover:shadow-md transition-all ${
+      className={`rounded-lg border p-3 cursor-move hover:shadow-md transition-all bg-white dark:bg-gray-800 ${
         isCardCompleted
-          ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700"
-          : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+          ? "border-green-400 dark:border-green-700"
+          : "border-gray-200 dark:border-gray-700"
       }`}
     >
       {/* Header */}
