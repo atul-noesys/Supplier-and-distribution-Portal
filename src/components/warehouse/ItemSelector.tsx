@@ -78,16 +78,16 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
       {/* Selected Item Details */}
       {selectedItem && (
         <div className="lg:w-[75%] bg-white rounded shadow-sm p-2 border border-gray-200">
-          <div className={cn("flex items-center justify-between", itemInstances.length > 1 ? "" : "mb-2.5")}>
+          <div className={cn("flex items-center justify-between", "mb-2.5")}>
             <h3 className="text-xs font-bold text-gray-900">Item Details</h3>
             {itemInstances && itemInstances.length > 1 && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-gray-600">
+              <div className="flex items-center">
+                <span className="text-xs font-semibold text-gray-600 mr-2">
                   Location {currentInstanceIndex + 1} of {itemInstances.length}
                 </span>
                 <button
                   onClick={onPreviousInstance}
-                  className="p-1 hover:bg-gray-100 rounded transition-colors"
+                  className="hover:bg-gray-100 rounded transition-colors"
                   title="Previous location"
                   aria-label="Previous location"
                 >
@@ -95,7 +95,7 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
                 </button>
                 <button
                   onClick={onNextInstance}
-                  className="p-1 hover:bg-gray-100 rounded transition-colors"
+                  className="hover:bg-gray-100 rounded transition-colors"
                   title="Next location"
                   aria-label="Next location"
                 >

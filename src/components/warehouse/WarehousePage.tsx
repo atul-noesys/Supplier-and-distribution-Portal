@@ -136,7 +136,15 @@ export const WarehousePage: React.FC = () => {
     const item = (itemsData as ItemData[]).find((i) => i.location === locationCode);
     if (item) {
       setSelectedItem(item);
-      setCurrentInstanceIndex(0);
+      
+      // Find all instances of this item
+      const instances = (itemsData as ItemData[]).filter(
+        (i) => i.item_code.toLowerCase() === item.item_code.toLowerCase()
+      );
+      
+      // Find which instance was clicked and set that as current
+      const clickedInstanceIndex = instances.findIndex((i) => i.location === locationCode);
+      setCurrentInstanceIndex(clickedInstanceIndex >= 0 ? clickedInstanceIndex : 0);
     }
   }, [itemsData]);
 

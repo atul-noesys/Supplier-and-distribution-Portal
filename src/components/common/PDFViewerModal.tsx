@@ -1,10 +1,9 @@
 "use client";
 
-import { MdClose, MdHistory, MdExpandLess, MdExpandMore } from "react-icons/md";
-import { FaFilePdf } from "react-icons/fa";
-import { PDFPreview } from "@/components/pdf-preview";
 import { PdfViewer } from "@infoveave/document-viewers";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { FaFilePdf } from "react-icons/fa";
+import { MdClose, MdExpandLess, MdExpandMore, MdHistory } from "react-icons/md";
 
 interface StepHistoryVersion {
   values: Array<{
@@ -272,7 +271,7 @@ export default function PDFViewerModal({
                               ? "text-blue-800"
                               : "text-gray-700 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400"
                             }`}>
-                            Version {index + 1}
+                            Version {stepHistoryVersions.length - index}
                           </p>
                           <p className={"flex justify-between text-xs mt-1 truncate text-gray-600 dark:text-gray-400 font-normal"}>
                             <span>{new Date(version.updatedOn).toLocaleDateString()}</span>
