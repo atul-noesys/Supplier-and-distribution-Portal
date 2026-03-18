@@ -1,9 +1,10 @@
 /* Custom react-toastify styling */
 .Toastify__toast-container {
-  z-index: 40;
+  z-index: 40 !important;
 }
 
 .Toastify__toast {
+  z-index: 40 !important;
   width: 350px;
   min-width: 350px;
   padding: 16px;

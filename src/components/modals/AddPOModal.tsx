@@ -12,6 +12,7 @@ import { useStore } from '@/store/store-context';
 import AddPOItemModal from './AddPOItemModal';
 import { POItem, KeyValueRecord, RowData } from '@/types/nguage-rowdata';
 import { Select, TextInput } from "@/components/ui"
+import MultiFileInput from '@/components/ui/infoveave-components/MultiFileInput';
 
 /**
  * Convert KeyValueRecord to RowData for API submission
@@ -39,6 +40,8 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
   const { nguageStore, poStore } = useStore();
   const [isFetchingItems, setIsFetchingItems] = useState(false);
   const [itemEdited, setItemEdited] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingDocument, setIsUploadingDocument] = useState(false);
   const itemEditedRef = useRef(false);
   const [isSaved, setIsSaved] = useState(false);
   const [poData, setPoData] = useState<KeyValueRecord | null>(null);
@@ -102,14 +105,14 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
   });
 
   // Refetch when modal opens
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       refetch();
     }
   }, [isOpen, refetch]);
 
   // Initialize form data when editing existing PO
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen && initialData) {
       setIsEditMode(true);
       setPoData(initialData);
@@ -139,7 +142,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
   }, [isOpen, initialData]);
 
   // Fetch and load PO items when editing
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchPoItems = async () => {
       if (isEditMode && initialData?.po_number) {
         setIsLoadingItems(true);
@@ -240,6 +243,8 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
       return;
     }
 
+    setIsSaving(true);
+
     try {
       // Call API to save PO - send only populated key-value pairs
       console.log('Saving PO:', formData);
@@ -304,6 +309,71 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
       } else {
         toast.error('Failed to save Purchase Order');
       }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleEditDocumentChange = async (files: any[] | undefined) => {
+    if (!files || files.length === 0) return;
+
+    setIsUploadingDocument(true);
+
+    try {
+      // Parse existing document paths from formData
+      let existingDocPaths: string[] = [];
+      if (formData?.document) {
+        try {
+          const parsed = JSON.parse(String(formData.document));
+          if (Array.isArray(parsed)) {
+            existingDocPaths = parsed.map((d: any) => String(d));
+          } else if (parsed) {
+            existingDocPaths = [String(parsed)];
+          }
+        } catch {
+          existingDocPaths = [String(formData.document)];
+        }
+      }
+
+      // Normalize incoming values to File objects (some components pass { file } wrappers)
+      const filesToUpload: File[] = files
+        .map((fileItem: any) => (fileItem?.file ? fileItem.file : fileItem))
+        .filter((file: File) => {
+          if (!file || !file.name) return false;
+          return !existingDocPaths.some((docPath) => docPath.includes(file.name));
+        });
+
+      if (filesToUpload.length === 0) {
+        toast.error('No new files to upload');
+        return;
+      }
+
+      const uploadResult = await nguageStore.UploadMultipleMedia(filesToUpload);
+      if (uploadResult) {
+        setFormData((prev) => {
+          const prevState = prev || {};
+
+          const newDocs: string[] = Array.isArray(uploadResult)
+            ? uploadResult.map((d: any) => String(d))
+            : [String(uploadResult)];
+
+          const merged = [...existingDocPaths, ...newDocs];
+
+          return {
+            ...prevState,
+            document: JSON.stringify(merged),
+          };
+        });
+
+        toast.success('File(s) uploaded successfully');
+      } else {
+        toast.error('File upload failed');
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('An error occurred while uploading the file');
+    } finally {
+      setIsUploadingDocument(false);
     }
   };
 
@@ -420,7 +490,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-4/5 h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-4 bg-white dark:bg-gray-900">
+        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-5 py-3 bg-white dark:bg-gray-900">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             {isEditMode ? 'Edit Purchase Order' : 'Add Purchase Order'}
           </h2>
@@ -433,13 +503,10 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto px-6 py-4">
           <form onSubmit={handleSavePO} className="space-y-4">
             {/* PO Details Section */}
             <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
-              <h3 className="text-md font-semibold text-blue-800 dark:text-white mb-4">
-                Purchase Order Details
-              </h3>
               <div className="grid grid-cols-3 gap-6">
                 {/* PO Number - Auto-generated by backend */}
                 <div>
@@ -450,12 +517,6 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
                     value={String(poData?.po_number ?? 'ENG-PO-****')}
                     onValueChange={() => { }}
                   />
-                  {/* <input
-                    type="text"
-                    disabled
-                    value={String(poData?.po_number ?? 'ENG-PO-****')}
-                    className="w-full px-4 py-1.75 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-gray-700 dark:text-gray-300 cursor-not-allowed"
-                  /> */}
                 </div>
 
                 {/* PO Issue Date */}
@@ -486,33 +547,10 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
                     disabled={isEditMode}
                     data={availableVendors.map(v => ({ label: v.company_name, value: v.company_name }))}
                   />
-                  {/* <select
-                    value={String(formData.supplier_name ?? '')}
-                    onChange={(e) => handleVendorChange(e.target.value)}
-                    disabled={isEditMode}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    required
-                  >
-                    <option value="">Select vendor</option>
-                    {availableVendors.map((vendor: any) => (
-                      <option key={vendor.ROWID} value={vendor.company_name}>
-                        {vendor.company_name}
-                      </option>
-                    ))}
-                  </select> */}
                 </div>
 
                 {/*  Supplier ID */}
                 <div>
-                  {/* <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Supplier ID <span className="text-red-500">*</span>
-                  </label> */}
-                  {/* <input
-                    type="text"
-                    value={String(formData.supplier_id ?? '')}
-                    disabled={isEditMode}
-                    className="w-full px-4 py-1.75 border border-gray-300 dark:border-gray-600 rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 cursor-not-allowed"
-                  /> */}
                   <TextInput
                     label={<>Supplier ID <span className="text-red-500">*</span></>}
                     type="text"
@@ -522,17 +560,48 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
                   />
                 </div>
 
+                {/* Document */}
+                <div>
+                  <MultiFileInput
+                    label="Document"
+                    maxFiles={5}
+                    accept=".pdf"
+                    multiple={true}
+                    className="w-full"
+                    onValueChange={handleEditDocumentChange}
+                  />
+                  {formData.document && (
+                    <p className="text-xs text-green-600 dark:text-gray-400 mt-1">
+                      <span className="text-blue-600 dark:text-blue-400">Current:</span> {(() => {
+                        try {
+                          const parsed = JSON.parse(formData.document as string);
+                          if (Array.isArray(parsed)) {
+                            return parsed
+                              .map((f: string) => (f ? f.split("/").pop() : ""))
+                              .filter(Boolean)
+                              .join(", ");
+                          }
+                          return String(parsed).split("/").pop() || String(parsed);
+                        } catch {
+                          return String(formData.document);
+                        }
+                      })()}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <TextInput
+                    label="Remarks"
+                    type="text"
+                    placeholder="Enter remarks"
+                    value={String(formData.remarks ?? '')}
+                    onValueChange={(value) => handleInputChange("remarks", value)}
+                  />
+                </div>
+
                 {/* PO Status */}
                 <div>
-                  {/* <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Status
-                  </label> */}
-                  {/* <input
-                    type="text"
-                    value={String(formData.po_status ?? 'Pending')}
-                    disabled
-                    className="w-full px-4 py-1.75 border border-gray-300 dark:border-gray-600 rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 cursor-not-allowed"
-                  /> */}
                   <TextInput
                     label={<>Status <span className="text-red-500">*</span></>}
                     type="text"
@@ -620,12 +689,6 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
                             <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
                               <p className="text-sm text-gray-900 dark:text-white font-medium">${item.total ? parseFloat(String(item.total)).toFixed(2) : '0.00'}</p>
                             </div>
-                            {/* <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
-                            <p className="text-sm text-gray-700 dark:text-gray-300">{item.status || '-'}</p>
-                          </div>
-                          <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
-                            <p className="text-sm text-gray-700 dark:text-gray-300">{item.step_name || '-'}</p>
-                          </div> */}
                             <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
                               <p className="text-sm text-gray-700 dark:text-gray-300">{item.po_number || '-'}</p>
                             </div>
@@ -635,9 +698,6 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
                             <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
                               <p className="text-sm text-gray-700 dark:text-gray-300">{item.supplier_name || '-'}</p>
                             </div>
-                            {/* <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
-                            <p className="text-sm text-gray-700 dark:text-gray-300">{item.remarks || '-'}</p>
-                          </div> */}
                             <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-l flex items-center justify-end gap-1">
                               <button
                                 type="button"
@@ -668,7 +728,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-4 border-t border-gray-200 dark:border-gray-700 px-6 py-4 bg-white dark:bg-gray-900">
+        <div className="flex items-center justify-end gap-4 border-t border-gray-200 dark:border-gray-700 px-5 py-3 bg-white dark:bg-gray-900">
           <button
             onClick={handleClose}
             className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
@@ -685,30 +745,48 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
           ) : (
             <button
               onClick={handleSavePO}
+              disabled={isSaving || isUploadingDocument}
               className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
             >
-              {isEditMode ? 'Update Purchase Order' : 'Create Purchase Order'}
+              {isEditMode ?
+                isSaving ? (
+                  <div className='flex items-center gap-2'>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Updating Purchase Order...
+                  </div>
+                ) : (
+                  "Update Purchase Order"
+                ) : isSaving ? (
+                  <div className='flex items-center gap-2'>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Creating Purchase Order...
+                  </div>
+                ) : (
+                  "Create Purchase Order"
+                )}
             </button>
           )}
         </div>
       </div>
 
       {/* Add/Edit Item Modal */}
-      {poData && (
-        <AddPOItemModal
-          isOpen={showItemModal}
-          onClose={() => setShowItemModal(false)}
-          onSave={(item) => {
-            handleSaveItem(item);
-          }}
-          poData={poData}
-          onUserEdit={() => {
-            setItemEdited(true);
-            itemEditedRef.current = true;
-          }}
-        />
-      )}
-    </div>
+      {
+        poData && (
+          <AddPOItemModal
+            isOpen={showItemModal}
+            onClose={() => setShowItemModal(false)}
+            onSave={(item) => {
+              handleSaveItem(item);
+            }}
+            poData={poData}
+            onUserEdit={() => {
+              setItemEdited(true);
+              itemEditedRef.current = true;
+            }}
+          />
+        )
+      }
+    </div >
   );
 }
 

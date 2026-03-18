@@ -1051,16 +1051,6 @@ function AddShipmentModalContent({
 
                   {/* Remarks */}
                   <div>
-                    {/* <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Remarks
-                    </label>
-                    <textarea
-                      value={formData.remarks as string}
-                      onChange={(e) => handleInputChange("remarks", e.target.value)}
-                      className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"
-                      placeholder="Additional remarks"
-                      rows={1}
-                    /> */}
                     <TextInput
                       label= "Remarks"
                       type="text"

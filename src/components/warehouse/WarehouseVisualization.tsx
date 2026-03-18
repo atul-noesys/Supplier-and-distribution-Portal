@@ -992,7 +992,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
       </div>
 
       {/* Grid container with fixed headers */}
-      <div className="border border-slate-200 rounded-lg bg-white overflow-hidden h-110 relative shadow-sm">
+      <div className="border border-slate-200 rounded-lg bg-white overflow-hidden h-116.5 relative shadow-sm">
         {isLoading && (
           <div className="absolute inset-0 z-40 flex items-center justify-center bg-white/70 backdrop-blur-sm">
             <div className="text-center">

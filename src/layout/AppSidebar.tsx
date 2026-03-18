@@ -257,7 +257,7 @@ const AppSidebar: React.FC = () => {
           ? "w-65"
           : isHovered
             ? "w-65"
-            : "w-22.5"
+            : "w-16"
         }
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
         lg:translate-x-0`}

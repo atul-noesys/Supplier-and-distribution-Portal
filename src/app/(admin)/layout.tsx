@@ -27,7 +27,7 @@ function AdminLayoutContent({
     ? "ml-0"
     : isExpanded || isHovered
     ? "lg:ml-[260px]"
-    : "lg:ml-[90px]";
+    : "lg:ml-16";
 
   return (
     <div className="min-h-screen xl:flex">
