@@ -1007,7 +1007,7 @@ export default observer(function WorkOrderPage() {
     <Fragment>
       <div className="rounded-lg border border-gray-200 dark:border-white/5 bg-white dark:bg-white/3 overflow-hidden">
         {/* Header with Title and Search */}
-        <div className="border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/5 px-6 py-4">
+        <div className="border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/5 px-5 py-3">
           <div className="flex justify-between items-center gap-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white whitespace-nowrap">Work Orders</h2>
             <div className="flex items-center gap-3">
@@ -1017,7 +1017,7 @@ export default observer(function WorkOrderPage() {
                   placeholder="Search by PO number/Item code/Item name/Supplier"
                   value={searchTerm}
                   onChange={(e) => handleSearchChange(e.target.value)}
-                  className="w-80 px-4 py-2.25 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none text-sm"
+                  className="w-96 px-4 py-2.25 pr-8 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none text-sm"
                 />
                 {searchTerm && (
                   <button

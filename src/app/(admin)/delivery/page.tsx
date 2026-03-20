@@ -117,7 +117,7 @@ export default observer(function DeliveryPage() {
 
     // Fetch ALL work orders for status updates/lookups
     const { data: allWorkOrders = [] } = useQuery({
-        queryKey: ["allWorkOrdersDelivery", authToken],
+        queryKey: ["workOrderItems", authToken],
         queryFn: async (): Promise<RowData[]> => {
             const response = await nguageStore.GetPaginationData({
                 table: "work_order",
