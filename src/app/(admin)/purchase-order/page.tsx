@@ -862,7 +862,7 @@ export default observer(function PurchaseOrderPage() {
                                       <div className="text-gray-700 dark:text-gray-300 truncate" title={item.remarks || "No remarks"}>
                                         {item.remarks || <span className="text-gray-400 dark:text-gray-500">-</span>}
                                       </div>
-                                      <div className="flex items-center">
+                                      <div className="flex items-start">
                                         {woStatus ? (
                                           (() => {
                                             const statusValue = String(woStatus).toLowerCase();
