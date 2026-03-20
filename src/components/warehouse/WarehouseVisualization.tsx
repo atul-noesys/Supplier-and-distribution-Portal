@@ -65,66 +65,63 @@ const pulseStyles = `
     opacity: 0.85;
   }
 
+  /* Modern path visuals: softer neon gradient, smooth flow and glow */
   @keyframes path-pulse {
     0%, 100% {
-      opacity: 0.9;
-      filter: drop-shadow(0 0 0 rgba(255, 107, 53, 0));
+      opacity: 0.92;
+      filter: drop-shadow(0 0 0 rgba(99, 102, 241, 0));
     }
     50% {
       opacity: 1;
-      filter: drop-shadow(0 0 8px rgba(255, 107, 53, 0.6)) drop-shadow(0 0 12px rgba(255, 107, 53, 0.3));
+      filter: drop-shadow(0 0 14px rgba(99, 102, 241, 0.55)) drop-shadow(0 0 26px rgba(124, 58, 237, 0.28));
     }
   }
 
   .path-animation {
-    animation: path-pulse 1.5s ease-in-out infinite;
+    animation: path-pulse 1.6s ease-in-out infinite;
   }
 
+  /* creates a smooth flowing dash movement along the path */
   @keyframes path-flow {
-    0% {
-      stroke-dashoffset: 12;
-    }
-    100% {
-      stroke-dashoffset: 0;
-    }
+    0% { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: -60; }
   }
 
   .path-line {
-    animation: path-flow 0.8s linear infinite;
-    filter: drop-shadow(0 0 3px rgba(16, 185, 129, 0.3)) drop-shadow(0 0 8px rgba(16, 185, 129, 0.5));
     stroke-linecap: round;
     stroke-linejoin: round;
+    stroke-width: 3;
+    stroke-dasharray: 18 12;
+    animation: path-flow 1.2s linear infinite;
+    filter: drop-shadow(0 0 6px rgba(99, 102, 241, 0.18)) drop-shadow(0 0 12px rgba(124, 58, 237, 0.12));
+    transition: stroke-width 0.2s ease, filter 0.2s ease;
   }
 
   @keyframes waypoint-glow {
     0%, 100% {
-      r: 16;
-      filter: drop-shadow(0 0 0 rgba(16, 185, 129, 0)) drop-shadow(0 0 2px rgba(16, 185, 129, 0.2));
+      r: 10;
+      filter: drop-shadow(0 0 0 rgba(124, 58, 237, 0));
     }
     50% {
-      r: 19;
-      filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.7)) drop-shadow(0 0 20px rgba(52, 211, 153, 0.5));
+      r: 14;
+      filter: drop-shadow(0 0 18px rgba(99, 102, 241, 0.6)) drop-shadow(0 0 28px rgba(124, 58, 237, 0.35));
     }
   }
 
   .waypoint-circle {
     animation: waypoint-glow 1.8s ease-in-out infinite;
-    transition: all 0.3s ease;
+    transition: transform 0.18s ease, filter 0.18s ease;
   }
 
   @keyframes waypoint-number-bounce {
-    0%, 100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-    50% {
-      opacity: 0.9;
-      transform: scale(1.15);
-    }
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.95; transform: scale(1.08); }
   }
 
   .waypoint-number {
-    animation: waypoint-number-bounce 1.8s ease-in-out infinite;
+    animation: waypoint-number-bounce 1.6s ease-in-out infinite;
+    fill: #ffffff;
+    font-weight: 700;
   }
 
   .toggle-switch {
