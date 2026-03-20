@@ -373,6 +373,61 @@ export default observer(function DeliveryPage() {
             }
 
             console.log(`✓ Work order ${workOrderId} status updated to ${newStatus}`);
+            // After updating the work order, adjust the purchase order status
+            try {
+                const poNumber = String(fullWorkOrderData.po_number || "");
+                if (poNumber) {
+                    const woArray = Array.isArray(allWorkOrders) ? allWorkOrders : (allWorkOrders || []);
+                    const workOrdersForPo = (woArray as any[]).filter((w) => String(w.po_number || "") === poNumber);
+
+                    if (workOrdersForPo.length > 0) {
+                        const deliveredCount = workOrdersForPo.filter((w) => String(w.wo_status || "").toLowerCase() === "delivered").length;
+                        const totalCount = workOrdersForPo.length;
+
+                        let newPoStatus: string | null = null;
+                        if (deliveredCount === (totalCount - 1)) {
+                            newPoStatus = "Completed";
+                        } else {
+                            newPoStatus = "Partial";
+                        }
+
+                        if (newPoStatus) {
+                            // Find the purchase_orders row for this PO number
+                            const purchaseOrdersData = await nguageStore.GetPaginationData({
+                                table: "purchase_orders",
+                                skip: 0,
+                                take: null,
+                                NGaugeId: "41",
+                            });
+                            const poList = Array.isArray(purchaseOrdersData) ? purchaseOrdersData : (purchaseOrdersData?.data || []);
+                            const poRow = (poList as any[]).find((p) => String(p.po_number || "") === poNumber);
+
+                            if (poRow && poRow.ROWID) {
+                                const updatedPO = { ...poRow, po_status: newPoStatus };
+                                const poUpdate = await nguageStore.UpdateRowDataDynamic(
+                                    updatedPO,
+                                    String(poRow.ROWID),
+                                    41,
+                                    "purchase_orders"
+                                );
+
+                                if (!poUpdate.result) {
+                                    console.error(`Failed to update purchase order ${poNumber}:`, poUpdate.error);
+                                } else {
+                                    console.log(`✓ Purchase order ${poNumber} status updated to ${newPoStatus}`);
+                                    // Invalidate purchase order related queries
+                                    queryClient.invalidateQueries({ queryKey: ["purchaseOrders"] });
+                                    queryClient.invalidateQueries({ queryKey: ["poItems"] });
+                                }
+                            } else {
+                                console.warn(`Purchase order row not found for PO number ${poNumber}`);
+                            }
+                        }
+                    }
+                }
+            } catch (poErr) {
+                console.error("Error updating purchase order status:", poErr);
+            }
             // Invalidate work order queries to refresh the data
             queryClient.invalidateQueries({ queryKey: ["allWorkOrdersDelivery"] });
             queryClient.invalidateQueries({ queryKey: ["workOrderItems"] });

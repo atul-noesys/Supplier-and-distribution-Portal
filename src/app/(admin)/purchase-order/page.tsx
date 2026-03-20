@@ -211,10 +211,10 @@ export default observer(function PurchaseOrderPage() {
       const response = await axios.post(
         "/api/GetPOItems",
         {
-          table: "PurchaseOrder",
-          skip: 0,
-          take: null,
-          NGaugeId: undefined,
+          "table": "purchase_order_items",
+          "skip": 0,
+          "take": 200,
+          "NGaugeId": "42"
         },
         {
           headers: {
@@ -322,8 +322,8 @@ export default observer(function PurchaseOrderPage() {
     const arr = Array.isArray(workOrders)
       ? workOrders
       : (workOrders && (workOrders as any).data && Array.isArray((workOrders as any).data))
-      ? (workOrders as any).data
-      : [];
+        ? (workOrders as any).data
+        : [];
 
     arr.forEach((wo: any) => {
       const key = `${wo.po_number}_${wo.item_code}`;
@@ -347,7 +347,7 @@ export default observer(function PurchaseOrderPage() {
   const getStepNameForItemCode = useCallback(
     (itemCode: string, sequence: number = 1): string | null => {
       const steps = Array.isArray(itemProcessSteps) ? itemProcessSteps : [];
-      
+
       const matchingStep = steps.find((step: any) =>
         String(step.item_code || "").toLowerCase() === String(itemCode || "").toLowerCase() &&
         step.sequence === sequence
