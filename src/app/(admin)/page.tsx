@@ -64,7 +64,7 @@ export default function Dashboard() {
 
   return (
     <div className="w-full space-y-4">
-      <header className="rounded-lg border border-gray-200 dark:border-gray-700 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900 overflow-hidden shadow-lg px-8 py-4">
+      <header className="rounded-lg border border-gray-200 dark:border-gray-700 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900 overflow-hidden shadow-lg px-5 py-4">
         <h1 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
           <span className="font-light">{timeGreeting},</span> {user?.firstName || "User"}
         </h1>

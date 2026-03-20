@@ -876,7 +876,7 @@ function AddShipmentModalContent({
             </div>
           ) : (
             // Shipment Form Step
-            <form onSubmit={handleSaveShipment} className="space-y-8">
+            <form onSubmit={handleSaveShipment} className="space-y-4">
               {/* Shipment Details Section */}
               <div>
 
@@ -1065,8 +1065,8 @@ function AddShipmentModalContent({
               </div>
 
               {/* Shipment Items Section */}
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                <div className="flex items-center justify-between mb-4">
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                <div className="flex items-center justify-between mb-3">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                     Shipment Items ({shipmentStore.shipmentItems.length})
                   </h3>
@@ -1203,7 +1203,7 @@ function AddShipmentModalContent({
         />
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 border-t border-gray-200 dark:border-gray-700 px-5 py-4 bg-gray-50 dark:bg-gray-800">
+        <div className="flex items-center justify-end gap-3 border-t border-gray-200 dark:border-gray-700 px-5 py-3 bg-gray-50 dark:bg-gray-800">
           {!isEditMode && step === 1 && <button
             type="button"
             onClick={handleClose}

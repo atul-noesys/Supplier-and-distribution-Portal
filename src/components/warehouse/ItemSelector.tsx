@@ -53,8 +53,8 @@ export const ItemSelector: React.FC<ItemSelectorProps> = ({
         <>
       {/* Item Selector */}
       <div className="lg:w-[25%] relative">
-        <label className="block text-sm font-semibold text-gray-800 mb-2">
-          <Package className="inline mr-2 w-4 h-4" />
+        <label className="flex items-center gap-1 text-sm font-semibold text-gray-800 mb-2">
+          <Package className="inline w-4 h-4" />
           Select Item to Track
         </label>
 

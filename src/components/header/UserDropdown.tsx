@@ -39,8 +39,8 @@ const UserDropdown = () => {
       >
         <span className="mr-3 overflow-hidden rounded-full h-9 w-9">
           <Image
-            width={44}
-            height={44}
+            width={36}
+            height={36}
             src="/images/user/owner.png"
             alt="User"
           />

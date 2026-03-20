@@ -161,9 +161,9 @@ const AppHeader: React.FC = () => {
             } items-center justify-between w-full gap-4 px-5 py-2 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
         >
           <Image
-              width={160}
-              height={35}
-              className="mr-5"
+              width={145}
+              height={28}
+              className="mr-2"
               src="https://engtek.com/wp-content/uploads/2023/02/engtek.png"
               alt="Logo"
             />
