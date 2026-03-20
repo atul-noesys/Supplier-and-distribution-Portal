@@ -9,7 +9,7 @@ import { QueryKeys } from "@/types/query-keys";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { observer } from "mobx-react-lite";
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AiOutlineCheck, AiOutlineEye, AiOutlineEyeInvisible, AiOutlineLoading3Quarters } from "react-icons/ai";
 import { MdArrowDropDown, MdClose, MdEdit } from "react-icons/md";
 import { toast } from "react-toastify";
@@ -282,7 +282,7 @@ export default observer(function PurchaseOrderPage() {
         const response = await nguageStore.GetPaginationData({
           table: "item_process_steps",
           skip: 0,
-          take: 1000,
+          take: 500,
           NGaugeId: "60",
         });
         return response?.data || response || [];
@@ -294,6 +294,43 @@ export default observer(function PurchaseOrderPage() {
     staleTime: 0,
     enabled: !!authToken,
   });
+
+  // Fetch work orders so we can show current WO status in PO items list
+  const { data: workOrders = [] } = useQuery({
+    queryKey: ["workOrderItems", authToken],
+    queryFn: async () => {
+      try {
+        const response = await nguageStore.GetPaginationData({
+          table: "work_order",
+          skip: 0,
+          take: 500,
+          NGaugeId: "44",
+        });
+        return response?.data || response || [];
+      } catch (err) {
+        console.error("Error fetching work_order:", err);
+        return [];
+      }
+    },
+    staleTime: 0,
+    enabled: !!authToken,
+  });
+
+  // Map work orders by po_number + item_code => wo_status for quick lookup
+  const workOrdersMap = useMemo(() => {
+    const m = new Map<string, string | null>();
+    const arr = Array.isArray(workOrders)
+      ? workOrders
+      : (workOrders && (workOrders as any).data && Array.isArray((workOrders as any).data))
+      ? (workOrders as any).data
+      : [];
+
+    arr.forEach((wo: any) => {
+      const key = `${wo.po_number}_${wo.item_code}`;
+      m.set(key, wo.wo_status || wo.step || null);
+    });
+    return m;
+  }, [workOrders]);
 
   // Create a map of item_process_id to item_process_name
   const processNameMap = useRef(new Map<string, string>()).current;
@@ -779,7 +816,7 @@ export default observer(function PurchaseOrderPage() {
                           <>
                             <tr className="border-b border-gray-100 dark:border-white/5 bg-blue-100 dark:bg-blue-900/40">
                               <td colSpan={7} className="px-5 py-3">
-                                <div className="grid gap-6" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 1.2fr 1.2fr 1.4fr' }}>
+                                <div className="grid gap-6" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 1fr 1.2fr 1.4fr 1fr' }}>
                                   <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Item Code</div>
                                   <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Item Name</div>
                                   <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Unit Price</div>
@@ -787,73 +824,108 @@ export default observer(function PurchaseOrderPage() {
                                   <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Total</div>
                                   <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Document</div>
                                   <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Remarks</div>
+                                  <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Status</div>
                                   <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">WO Created</div>
                                 </div>
                               </td>
                             </tr>
-                            {itemsByPO[po.po_number].map((item: PurchaseOrderItem) => (
-                              <tr
-                                key={item.ROWID}
-                                className="border-b border-gray-100 dark:border-white/5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
-                              >
-                                <td colSpan={7} className="px-5 py-4">
-                                  <div className="grid gap-6 text-sm" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 1.2fr 1.2fr 1.4fr' }}>
-                                    <div className="text-gray-700 dark:text-gray-300">{item.item_code}</div>
-                                    <div className="text-gray-700 dark:text-gray-300">
-                                      {searchTerm ? highlightText(item.item, searchTerm) : item.item}
+                            {itemsByPO[po.po_number].map((item: PurchaseOrderItem) => {
+                              const key = `${item.po_number}_${item.item_code}`;
+                              const woStatus = workOrdersMap.get(key) || item.wo_status || null;
+                              return (
+                                <tr
+                                  key={item.ROWID}
+                                  className="border-b border-gray-100 dark:border-white/5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                                >
+                                  <td colSpan={7} className="px-5 py-4">
+                                    <div className="grid gap-6 text-sm" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 1fr 1.2fr 1.4fr 1fr' }}>
+                                      <div className="text-gray-700 dark:text-gray-300">{item.item_code}</div>
+                                      <div className="text-gray-700 dark:text-gray-300">
+                                        {searchTerm ? highlightText(item.item, searchTerm) : item.item}
+                                      </div>
+                                      <div className="text-gray-700 dark:text-gray-300">$ {formatNumber(item.unit_price)}</div>
+                                      <div className="text-gray-700 dark:text-gray-300">{item.quantity}</div>
+                                      <div className="text-gray-700 dark:text-gray-300 font-semibold">$ {formatNumber(item.total || 0)}</div>
+                                      <div className="pl-6 text-gray-700 dark:text-gray-300 truncate" title={item.document || "No document"}>
+                                        {item.document ? (
+                                          <button
+                                            onClick={() => handleViewDocument(item.document!, undefined, item.step_history as string | null, item.po_number)}
+                                            className="cursor-pointer hover:opacity-75 transition-opacity"
+                                            title="View document"
+                                          >
+                                            <AiOutlineEye className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                          </button>
+                                        ) : (
+                                          <AiOutlineEyeInvisible className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                                        )}
+                                      </div>
+                                      <div className="text-gray-700 dark:text-gray-300 truncate" title={item.remarks || "No remarks"}>
+                                        {item.remarks || <span className="text-gray-400 dark:text-gray-500">-</span>}
+                                      </div>
+                                      <div className="flex items-center">
+                                        {woStatus ? (
+                                          (() => {
+                                            const statusValue = String(woStatus).toLowerCase();
+                                            let statusColor: "blue" | "orange" | "green" | "warning" | "purple" | "info" = "orange";
+
+                                            if (statusValue.includes("work in progress")) {
+                                              statusColor = "warning";
+                                            } else if (statusValue.includes("in warehouse")) {
+                                              statusColor = "info";
+                                            } else if (statusValue.includes("ready to ship")) {
+                                              statusColor = "purple";
+                                            } else if (statusValue.includes("delivered")) {
+                                              statusColor = "green";
+                                            } else if (statusValue.includes("in transit")) {
+                                              statusColor = "orange";
+                                            } else if (statusValue.includes("finished goods")) {
+                                              statusColor = "blue";
+                                            }
+
+                                            return (
+                                              <Badge color={statusColor} variant="solid" size="sm">
+                                                {String(woStatus)}
+                                              </Badge>
+                                            );
+                                          })()
+                                        ) : (
+                                          <span className="text-gray-500 dark:text-gray-400 text-sm">-</span>
+                                        )}
+                                      </div>
+                                      <div>
+                                        {item.work_order_created === "Yes" ? (
+                                          <Badge color="success" variant="solid" size="sm">
+                                            Yes
+                                          </Badge>
+                                        ) : (
+                                          <>
+                                            {user?.roleId !== 5 ? (
+                                              <button
+                                                onClick={() => handleCreateWorkOrder(item)}
+                                                disabled={loadingItemROWID === item.ROWID}
+                                                className="flex items-center gap-1 px-3 py-1.5 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors"
+                                                title="Create Work Order"
+                                              >
+                                                {loadingItemROWID === item.ROWID ? (
+                                                  <AiOutlineLoading3Quarters className="w-4 h-4 animate-spin" />
+                                                ) : (
+                                                  <AiOutlineCheck className="w-4 h-4" />
+                                                )}
+                                                Create WO
+                                              </button>
+                                            ) : (
+                                              <Badge color="error" variant="solid" size="sm">
+                                                No
+                                              </Badge>
+                                            )}
+                                          </>
+                                        )}
+                                      </div>
                                     </div>
-                                    <div className="text-gray-700 dark:text-gray-300">$ {formatNumber(item.unit_price)}</div>
-                                    <div className="text-gray-700 dark:text-gray-300">{item.quantity}</div>
-                                    <div className="text-gray-700 dark:text-gray-300 font-semibold">$ {formatNumber(item.total || 0)}</div>
-                                    <div className="pl-6 text-gray-700 dark:text-gray-300 truncate" title={item.document || "No document"}>
-                                      {item.document ? (
-                                        <button
-                                          onClick={() => handleViewDocument(item.document!, undefined, item.step_history as string | null, item.po_number)}
-                                          className="cursor-pointer hover:opacity-75 transition-opacity"
-                                          title="View document"
-                                        >
-                                          <AiOutlineEye className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                                        </button>
-                                      ) : (
-                                        <AiOutlineEyeInvisible className="w-5 h-5 text-gray-400 dark:text-gray-500" />
-                                      )}
-                                    </div>
-                                    <div className="text-gray-700 dark:text-gray-300 truncate" title={item.remarks || "No remarks"}>
-                                      {item.remarks || <span className="text-gray-400 dark:text-gray-500">-</span>}
-                                    </div>
-                                    <div>
-                                      {item.work_order_created === "Yes" ? (
-                                        <Badge color="success" variant="solid" size="sm">
-                                          Yes
-                                        </Badge>
-                                      ) : (
-                                        <>
-                                          {user?.roleId !== 5 ? (
-                                            <button
-                                              onClick={() => handleCreateWorkOrder(item)}
-                                              disabled={loadingItemROWID === item.ROWID}
-                                              className="flex items-center gap-1 px-3 py-1.5 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors"
-                                              title="Create Work Order"
-                                            >
-                                              {loadingItemROWID === item.ROWID ? (
-                                                <AiOutlineLoading3Quarters className="w-4 h-4 animate-spin" />
-                                              ) : (
-                                                <AiOutlineCheck className="w-4 h-4" />
-                                              )}
-                                              Create WO
-                                            </button>
-                                          ) : (
-                                            <Badge color="error" variant="solid" size="sm">
-                                              No
-                                            </Badge>
-                                          )}
-                                        </>
-                                      )}
-                                    </div>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
+                                  </td>
+                                </tr>
+                              );
+                            })}
                           </>
                         )}
                       </Fragment>
