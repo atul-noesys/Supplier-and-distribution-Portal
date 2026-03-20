@@ -816,7 +816,7 @@ export default observer(function PurchaseOrderPage() {
                           <>
                             <tr className="border-b border-gray-100 dark:border-white/5 bg-blue-100 dark:bg-blue-900/40">
                               <td colSpan={7} className="px-5 py-3">
-                                <div className="grid gap-6" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 1fr 1.2fr 1.4fr 1fr' }}>
+                                <div className="grid gap-6" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 1fr 1.2fr 1.4fr 1.2fr' }}>
                                   <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Item Code</div>
                                   <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Item Name</div>
                                   <div className="font-semibold text-blue-900 dark:text-blue-100 text-xs uppercase tracking-wide">Unit Price</div>
@@ -838,7 +838,7 @@ export default observer(function PurchaseOrderPage() {
                                   className="border-b border-gray-100 dark:border-white/5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
                                 >
                                   <td colSpan={7} className="px-5 py-4">
-                                    <div className="grid gap-6 text-sm" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 1fr 1.2fr 1.4fr 1fr' }}>
+                                    <div className="grid gap-6 text-sm" style={{ gridTemplateColumns: '1.2fr 2fr 1fr 0.6fr 1fr 1fr 1.2fr 1.4fr 1.2fr' }}>
                                       <div className="text-gray-700 dark:text-gray-300">{item.item_code}</div>
                                       <div className="text-gray-700 dark:text-gray-300">
                                         {searchTerm ? highlightText(item.item, searchTerm) : item.item}
