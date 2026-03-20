@@ -1288,6 +1288,56 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
             })()}
 
             {/* Horizontal main path rows - rendered last for proper z-index */}
+            {/* Leading horizontal corridor H0 */}
+            {(() => {
+              if (maxRow >= 1) {
+                const pathHeight = cellHeight / 2;
+                const pathY = cellStartY - cellHeight / 2; // centered above first data row
+                return (
+                  <g key={`path-row-0`}>
+                    <rect
+                      x={cellStartX}
+                      y={pathY}
+                      width={maxBay * cellWidth}
+                      height={pathHeight}
+                      fill="#000000"
+                      opacity="0.7"
+                    />
+                    <line
+                      x1={cellStartX}
+                      y1={pathY + pathHeight / 2}
+                      x2={cellStartX + maxBay * cellWidth}
+                      y2={pathY + pathHeight / 2}
+                      stroke="#fbbf24"
+                      strokeWidth="2"
+                      strokeDasharray="8,4"
+                    />
+                    <text
+                      x={cellStartX + cellWidth / 2}
+                      y={pathY + pathHeight / 2}
+                      fontSize="14"
+                      fontWeight="bold"
+                      fill="#ffffff"
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      pointerEvents="none"
+                    >
+                      H0
+                    </text>
+                    <rect
+                      x={cellStartX}
+                      y={pathY}
+                      width={maxBay * cellWidth}
+                      height={pathHeight}
+                      fill="none"
+                      stroke="#1a1a1a"
+                      strokeWidth="1.5"
+                    />
+                  </g>
+                );
+              }
+              return null;
+            })()}
             {Array.from({ length: maxRow }).map((_, rowIdx) => {
               const row = rowIdx + 1;
               if (isMainPathPosition(row, 2)) {
@@ -1348,6 +1398,56 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
             })}
 
             {/* Vertical main path bays - rendered last for proper z-index */}
+            {/* Leading vertical corridor V0 */}
+            {(() => {
+              if (maxBay >= 1) {
+                const pathWidth = cellWidth / 2;
+                const pathX = cellStartX - cellWidth / 2; // centered left of first data bay
+                return (
+                  <g key={`path-bay-0`}>
+                    <rect
+                      x={pathX}
+                      y={cellStartY}
+                      width={pathWidth}
+                      height={maxRow * cellHeight}
+                      fill="#000000"
+                      opacity="0.7"
+                    />
+                    <line
+                      x1={pathX + pathWidth / 2}
+                      y1={cellStartY}
+                      x2={pathX + pathWidth / 2}
+                      y2={cellStartY + maxRow * cellHeight}
+                      stroke="#fbbf24"
+                      strokeWidth="2"
+                      strokeDasharray="8,4"
+                    />
+                    <text
+                      x={pathX + pathWidth / 2}
+                      y={cellStartY + 12}
+                      fontSize="14"
+                      fontWeight="bold"
+                      fill="#ffffff"
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      pointerEvents="none"
+                    >
+                      V0
+                    </text>
+                    <rect
+                      x={pathX}
+                      y={cellStartY}
+                      width={pathWidth}
+                      height={maxRow * cellHeight}
+                      fill="none"
+                      stroke="#1a1a1a"
+                      strokeWidth="1.5"
+                    />
+                  </g>
+                );
+              }
+              return null;
+            })()}
             {Array.from({ length: maxBay }).map((_, bayIdx) => {
               const bay = bayIdx + 1;
               if (isMainPathPosition(bay, 6)) {
@@ -1417,105 +1517,116 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                   // Build waypoint path through warehouse corridors using actual data coordinates
                   for (let i = 0; i < pathCoordinates.length; i++) {
                     const current = pathCoordinates[i];
+
+                    // Use data coords to determine nearest corridor centers
+                    const currentDataBay = current.dataBay;
+                    const currentDataRow = current.dataRow;
+
+                    const getVerticalPathXForBay = (bay: number) => {
+                      const visualBay = getVisualPosition(bay, 6);
+                      const blockLength = 7; // 6 data bays + 1 main path
+                      let mainIndex = Math.round(visualBay / blockLength);
+                      if (mainIndex < 0) mainIndex = 0;
+                      const verticalVisualBay = mainIndex * blockLength;
+                      return cellStartX + (verticalVisualBay - 1) * cellWidth + cellWidth / 2;
+                    };
+
+                    const getHorizontalPathYForRow = (row: number) => {
+                      const visualRow = getVisualPosition(row, 2);
+                      const blockLength = 3; // 2 data rows + 1 main path
+                      let mainIndex = Math.round(visualRow / blockLength);
+                      if (mainIndex < 0) mainIndex = 0;
+                      const horizontalVisualRow = mainIndex * blockLength;
+                      return cellStartY + (horizontalVisualRow - 1) * cellHeight + cellHeight / 2;
+                    };
+
+                    const hCurY = getHorizontalPathYForRow(currentDataRow);
+
+                    // Push the item's actual coordinate first (start from the item),
+                    // then join into the corridor center when routing to the next point.
                     waypoints.push({ x: current.x, y: current.y });
+                    if (i < pathCoordinates.length - 1 && Math.abs(current.y - hCurY) > 1) {
+                      waypoints.push({ x: current.x, y: hCurY });
+                    }
 
                     // Route to next location through warehouse paths
                     if (i < pathCoordinates.length - 1) {
                       const next = pathCoordinates[i + 1];
-
-                      // Use actual data coordinates for path calculation
-                      const currentDataBay = current.dataBay;
                       const nextDataBay = next.dataBay;
-                      const currentDataRow = current.dataRow;
                       const nextDataRow = next.dataRow;
-
-                      // Determine vertical and horizontal path coordinates separately for
-                      // current and next so routing respects row parity and avoids
-                      // going into the neighbour row and back (no backtracking).
-                      const getVerticalPathXForBay = (bay: number) => {
-                        // Map bay -> visual bay (accounts for main path gaps)
-                        const visualBay = getVisualPosition(bay, 6);
-                        const blockLength = 7; // 6 data bays + 1 main path
-                        // choose nearest main vertical path (multiples of blockLength)
-                        let mainIndex = Math.round(visualBay / blockLength);
-                        if (mainIndex < 1) mainIndex = 1;
-                        const verticalVisualBay = mainIndex * blockLength;
-                        return cellStartX + (verticalVisualBay - 1) * cellWidth + cellWidth / 2;
-                      };
-
-                      const getHorizontalPathYForRow = (row: number) => {
-                        // Map row -> visual row (accounts for main path gaps)
-                        const visualRow = getVisualPosition(row, 2);
-                        const blockLength = 3; // 2 data rows + 1 main path
-                        // choose nearest main horizontal path (multiples of blockLength)
-                        let mainIndex = Math.round(visualRow / blockLength);
-                        if (mainIndex < 1) mainIndex = 1;
-                        const horizontalVisualRow = mainIndex * blockLength;
-                        return cellStartY + (horizontalVisualRow - 1) * cellHeight + cellHeight / 2;
-                      };
 
                       const vCurX = getVerticalPathXForBay(currentDataBay);
                       const vNextX = getVerticalPathXForBay(nextDataBay);
-                      const hCurY = getHorizontalPathYForRow(currentDataRow);
                       const hNextY = getHorizontalPathYForRow(nextDataRow);
 
                       // If both locations are on the same physical row, prefer a direct
-                      // horizontal move at the data-row y coordinate instead of
-                      // routing out to corridors and back (prevents R3 -> V2 -> H2 -> R3).
+                      // horizontal move at the corridor center for that row
                       if (currentDataRow === nextDataRow) {
-                        // move directly horizontally from current to next on the same row
-                        waypoints.push({ x: next.x, y: current.y });
+                        waypoints.push({ x: next.x, y: hCurY });
+                        // join from corridor center into the item
+                        waypoints.push({ x: next.x, y: next.y });
                         continue;
                       }
 
-                      // Routing sequence:
-                      // 1) current -> move horizontally to nearest vertical corridor for current
-                      // 2) move vertically to the horizontal corridor for current (respecting parity)
-                      // 3) move horizontally along that corridor to the vertical corridor nearest destination
-                      // 4) move vertically to the horizontal corridor for destination
-                      // 5) move horizontally to destination x and then into the destination point
+                      // If both points map to the same horizontal corridor center,
+                      // we can move along that corridor directly to the destination x
+                      // and avoid detouring to the destination vertical corridor (prevents overshoot).
+                      if (Math.abs(hCurY - hNextY) <= 1) {
+                        // 1) to vCurX at corridor center (hCurY)
+                        if (Math.abs(current.x - vCurX) > 1) waypoints.push({ x: vCurX, y: hCurY });
+                        // 2) move along hCurY directly to destination x
+                        waypoints.push({ x: next.x, y: hCurY });
+                        // 3) small join into the destination item
+                        waypoints.push({ x: next.x, y: next.y });
+                        continue;
+                      }
 
-                      // 1) to vCurX at current.y
-                      if (Math.abs(current.x - vCurX) > 1) waypoints.push({ x: vCurX, y: current.y });
+                      // 1) to vCurX at corridor center (hCurY)
+                      if (Math.abs(current.x - vCurX) > 1) waypoints.push({ x: vCurX, y: hCurY });
 
-                      // 2) to hCurY along vCurX
-                      if (Math.abs(current.y - hCurY) > 1) waypoints.push({ x: vCurX, y: hCurY });
-
-                      // 3) along hCurY to vNextX (if different)
+                      // 2) along hCurY to vNextX (if different)
                       if (Math.abs(vCurX - vNextX) > 1) waypoints.push({ x: vNextX, y: hCurY });
 
-                      // 4) move to hNextY if destination uses a different horizontal corridor
+                      // 3) move to hNextY if destination uses a different horizontal corridor
                       if (Math.abs(hCurY - hNextY) > 1) waypoints.push({ x: vNextX, y: hNextY });
 
-                      // 5) move horizontally from vNextX to just above/below destination x (at hNextY)
+                      // 4) move horizontally from vNextX to just above/below destination x (at hNextY)
                       if (Math.abs(vNextX - next.x) > 1) waypoints.push({ x: next.x, y: hNextY });
+
+                      // 5) small join from corridor center into the destination item
+                      waypoints.push({ x: next.x, y: next.y });
                     }
                   }
 
                   return (
                     <>
                       {/* Draw lines connecting waypoints */}
-                      {waypoints.map((waypoint, index) => {
-                        if (index < waypoints.length - 1) {
-                          const nextWaypoint = waypoints[index + 1];
-                          return (
-                            <line
-                              key={`path-line-${index}`}
-                              x1={waypoint.x}
-                              y1={waypoint.y}
-                              x2={nextWaypoint.x}
-                              y2={nextWaypoint.y}
-                              stroke="#10b981"
-                              strokeWidth="4"
-                              strokeDasharray="12,8"
-                              markerEnd="url(#path-arrow)"
-                              className="path-line"
-                              style={{ vectorEffect: 'non-scaling-stroke' }}
-                            />
-                          );
-                        }
-                        return null;
-                      })}
+                      {(() => {
+                        const pathNodeSet = new Set(pathCoordinates.map(p => `${p.x}:${p.y}`));
+                        return waypoints.map((waypoint, index) => {
+                          if (index < waypoints.length - 1) {
+                            const nextWaypoint = waypoints[index + 1];
+                            const endsAtNode = pathNodeSet.has(`${nextWaypoint.x}:${nextWaypoint.y}`);
+                            const markerEnd = endsAtNode ? undefined : 'url(#path-arrow)';
+                            return (
+                              <line
+                                key={`path-line-${index}`}
+                                x1={waypoint.x}
+                                y1={waypoint.y}
+                                x2={nextWaypoint.x}
+                                y2={nextWaypoint.y}
+                                stroke="#10b981"
+                                strokeWidth="4"
+                                strokeDasharray="12,8"
+                                {...(markerEnd ? { markerEnd } : {})}
+                                className="path-line"
+                                style={{ vectorEffect: 'non-scaling-stroke' }}
+                              />
+                            );
+                          }
+                          return null;
+                        });
+                      })()}
 
                       {/* Arrow marker definition */}
                       <defs>
