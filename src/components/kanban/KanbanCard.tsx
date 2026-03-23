@@ -104,12 +104,12 @@ export default function KanbanCard({ item, searchTerm = "", onEditClick }: Kanba
             background: 'linear-gradient(135deg, #ffd700 0%, #ffed4e 25%, #ffc700 50%, #ffb700 75%, #ffa500 100%)',
             color: '#5a3a14',
             textShadow: '0 1px 2px rgba(255,255,255,0.6)',
-            boxShadow: `
-              inset 0 1px 0 rgba(255,255,255,0.8),
-              inset 0 -2px 0 rgba(0,0,0,0.1),
-              0 4px 12px rgba(255,168,0,0.3),
-              0 2px 4px rgba(0,0,0,0.15)
-            `,
+            // boxShadow: `
+            //   inset 0 1px 0 rgba(255,255,255,0.8),
+            //   inset 0 -2px 0 rgba(0,0,0,0.1),
+            //   0 4px 12px rgba(255,168,0,0.3),
+            //   0 2px 4px rgba(0,0,0,0.15)
+            // `,
             border: '1px solid rgba(255,200,0,0.6)'
           }}
         >
