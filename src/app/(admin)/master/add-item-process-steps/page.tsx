@@ -1,7 +1,7 @@
 "use client";
 
-import { stepColors } from "@/components/kanban/KanbanColumn";
 import { Select } from "@/components/ui/infoveave-components/Select";
+import { getStepColors } from "@/helper/step-color";
 import { useStore } from "@/store/store-context";
 import { RowData } from "@/types/nguage-rowdata";
 import { QueryKeys } from "@/types/query-keys";
@@ -11,12 +11,6 @@ import React, { useMemo, useState } from "react";
 import { IoAdd } from "react-icons/io5";
 import { MdCheckCircle, MdClose } from "react-icons/md";
 import { toast } from "react-toastify";
-
-// Helper function to get step colors by sequence
-const getStepColors = (sequence: number) => {
-  const stepKey = `Step ${sequence}`;
-  return stepColors[stepKey] || stepColors["Step 1"];
-};
 
 // Interface for grouped item process data
 interface ItemProcessGroup {

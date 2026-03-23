@@ -19,7 +19,7 @@ import { MdDateRange } from "react-icons/md";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { QueryKeys } from "@/types/query-keys";
-import { version } from "os";
+import { getStepColors } from "@/helper/step-color";
 
 
 // Keys to exclude from display
@@ -1133,7 +1133,7 @@ export default observer(function WorkOrderPage() {
                   </div>
                 ))}
 
-                <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 border-r border-blue-800 dark:border-blue-800">
+                <div className="bg-blue-800 dark:bg-blue-700 px-1.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 border-r border-blue-800 dark:border-blue-800">
                   Version
                 </div>
                 {/* Actions Header (combined Details + Timeline + Actions) */}
@@ -1162,16 +1162,12 @@ export default observer(function WorkOrderPage() {
                         // Render Badge for step field with color mapping
                         else if (column.key === "step") {
                           const stepValue = String(value || "");
-                          const stepColors: Record<string, "blue" | "purple" | "pink" | "orange" | "green"> = {
-                            "Step 1": "blue",
-                            "Step 2": "purple",
-                            "Step 3": "pink",
-                            "Step 4": "orange",
-                            "Step 5": "green",
-                          };
-                          const stepColor = stepColors[stepValue] || "blue";
+                          const match = stepValue.match(/(\d+)/);
+                          const seq = match ? Number(match[1]) : 1;
+                          const stepColorObj = getStepColors(seq);
+                          const stepClass = `${stepColorObj.bg} border ${stepColorObj.border} ${stepColorObj.text}`;
                           cellContent = (
-                            <Badge color={stepColor} variant="light">
+                            <Badge variant="light" className={stepClass}>
                               {value || "-"}
                             </Badge>
                           );

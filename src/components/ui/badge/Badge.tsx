@@ -22,6 +22,7 @@ interface BadgeProps {
   color?: BadgeColor; // Badge color
   startIcon?: React.ReactNode; // Icon at the start
   endIcon?: React.ReactNode; // Icon at the end
+  className?: string; // Optional custom classes to override color styles
   children: React.ReactNode; // Badge content
 }
 
@@ -31,6 +32,7 @@ const Badge: React.FC<BadgeProps> = ({
   size = "md",
   startIcon,
   endIcon,
+  className,
   children,
 }) => {
   const baseStyles =
@@ -80,7 +82,7 @@ const Badge: React.FC<BadgeProps> = ({
 
   // Get styles based on size and color variant
   const sizeClass = sizeStyles[size];
-  const colorStyles = variants[variant][color];
+  const colorStyles = className ?? variants[variant][color];
 
   return (
     <span className={`${baseStyles} ${sizeClass} ${colorStyles}`}>
