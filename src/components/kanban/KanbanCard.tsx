@@ -62,11 +62,10 @@ export default function KanbanCard({ item, searchTerm = "", onEditClick }: Kanba
       style={style}
       {...attributes}
       {...listeners}
-      className={`rounded-lg border p-3 cursor-move hover:shadow-md transition-all bg-white dark:bg-gray-800 ${
-        isCardCompleted
+      className={`rounded-lg border p-3 cursor-move hover:shadow-md transition-all bg-white dark:bg-gray-800 ${isCardCompleted
           ? "border-green-400 dark:border-green-700"
           : "border-gray-200 dark:border-gray-700"
-      }`}
+        }`}
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-1.5">
@@ -95,9 +94,28 @@ export default function KanbanCard({ item, searchTerm = "", onEditClick }: Kanba
       </div>
 
       {/* Item Code */}
-      <p className="text-xs text-gray-50 dark:text-gray-400 mb-2 font-mono bg-blue-700 dark:bg-gray-700 px-2 py-0.75 rounded inline-block">
-        {searchTerm ? highlightText(item.item_code, searchTerm) : item.item_code}
-      </p>
+      <div className="flex justify-between">
+        <p className="text-xs text-gray-50 dark:text-gray-400 mb-2 font-mono bg-blue-700 dark:bg-gray-700 px-2 py-0.75 rounded inline-block">
+          {searchTerm ? highlightText(item.item_code, searchTerm) : item.item_code}
+        </p>
+        <span 
+          className="flex items-center mb-2 px-1.5 rounded-lg text-xs font-bold tracking-wide"
+          style={{
+            background: 'linear-gradient(135deg, #ffd700 0%, #ffed4e 25%, #ffc700 50%, #ffb700 75%, #ffa500 100%)',
+            color: '#5a3a14',
+            textShadow: '0 1px 2px rgba(255,255,255,0.6)',
+            boxShadow: `
+              inset 0 1px 0 rgba(255,255,255,0.8),
+              inset 0 -2px 0 rgba(0,0,0,0.1),
+              0 4px 12px rgba(255,168,0,0.3),
+              0 2px 4px rgba(0,0,0,0.15)
+            `,
+            border: '1px solid rgba(255,200,0,0.6)'
+          }}
+        >
+          PV{item.version}
+        </span>
+      </div>
 
       {/* Details Grid */}
       {/* <div className="grid grid-cols-2 gap-3 mb-3 text-xs">
@@ -163,11 +181,10 @@ export default function KanbanCard({ item, searchTerm = "", onEditClick }: Kanba
               </div>
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-300 ${
-                    isCardCompleted
+                  className={`h-full rounded-full transition-all duration-300 ${isCardCompleted
                       ? "bg-green-500 dark:bg-green-400"
                       : "bg-blue-500 dark:bg-blue-400"
-                  }`}
+                    }`}
                   style={{ width: `${progress}%` }}
                 />
               </div>

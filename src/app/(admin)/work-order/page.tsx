@@ -19,6 +19,7 @@ import { MdDateRange } from "react-icons/md";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { QueryKeys } from "@/types/query-keys";
+import { version } from "os";
 
 
 // Keys to exclude from display
@@ -218,6 +219,27 @@ export default observer(function WorkOrderPage() {
     enabled: !!authToken,
   });
 
+  // Fetch work_order_steps_version data
+  const { data: workOrderStepsVersion = [] } = useQuery({
+    queryKey: ["workOrderStepsVersion", authToken],
+    queryFn: async () => {
+      try {
+        const response = await nguageStore.GetPaginationData({
+          table: "work_order_steps_version",
+          skip: 0,
+          take: 1000,
+          NGaugeId: "62",
+        });
+        return response?.data || response || [];
+      } catch (err) {
+        console.error("Error fetching work_order_steps_version:", err);
+        return [];
+      }
+    },
+    staleTime: 0,
+    enabled: !!authToken,
+  });
+
   // Fetch PO items data
   const { data: poItemsData = [] } = useQuery({
     queryKey: ["poItemsForKanban", authToken],
@@ -238,21 +260,39 @@ export default observer(function WorkOrderPage() {
     enabled: !!authToken,
   });
 
-  // Function to get total steps for an item_code
+  // Function to get total steps for a work_order_id from work_order_steps_version
   const getTotalStepsForItemCode = useCallback(
-    (itemCode: string): number => {
-      const steps = Array.isArray(itemProcessSteps) ? itemProcessSteps : [];
-      const uniqueSequences = new Set<number>();
+    (workOrderId: string): number => {
+      const versionRecords = Array.isArray(workOrderStepsVersion) ? workOrderStepsVersion : [];
+      const record = versionRecords.find((r: any) => String(r.work_order_id) === String(workOrderId));
+      
+      if (!record || !record.steps_with_sequence) {
+        return 0;
+      }
 
-      steps.forEach((step: any) => {
-        if (String(step.item_code || "").toLowerCase() === String(itemCode || "").toLowerCase()) {
-          uniqueSequences.add(Number(step.sequence || 0));
-        }
-      });
-
-      return uniqueSequences.size;
+      try {
+        const steps = JSON.parse(String(record.steps_with_sequence));
+        return Array.isArray(steps) ? steps.length : 0;
+      } catch {
+        return 0;
+      }
     },
-    [itemProcessSteps]
+    [workOrderStepsVersion]
+  );
+
+  // Function to get total steps for a work_order_id from work_order_steps_version
+  const getWorkOrderVersion = useCallback(
+    (workOrderId: string): number => {
+      const versionRecords = Array.isArray(workOrderStepsVersion) ? workOrderStepsVersion : [];
+      const record = versionRecords.find((r: any) => String(r.work_order_id) === String(workOrderId));
+      
+      if (!record || !record.steps_with_sequence) {
+        return 0;
+      }
+
+      return record.version as number;
+    },
+    [workOrderStepsVersion]
   );
 
   // Calculate max step count from itemProcessSteps to prevent column layout shift on load
@@ -271,15 +311,17 @@ export default observer(function WorkOrderPage() {
     // Create a map of PO items for quick lookup
     const poItemsMap = new Map<string, any>();
     poItemsData.forEach((item: any) => {
-      const key = `${item.po_number}_${item.item_code}`;
+      const key = `${item.po_number}${item.item_code}`;
       poItemsMap.set(key, item);
     });
 
     // Merge work order data with PO items
     return filteredItems.map((item) => {
-      const key = `${item.po_number}_${item.item_code}`;
+      const key = `${item.po_number}${item.item_code}`;
       const poItem = poItemsMap.get(key);
-      const totalSteps = getTotalStepsForItemCode(String(item.item_code));
+      const workOrderId = String(item.po_number) + String(item.item_code);
+      const totalSteps = getTotalStepsForItemCode(workOrderId);
+      const workOrderVersion = getWorkOrderVersion(workOrderId);
 
       return {
         po_number: String(item.po_number || ""),
@@ -299,6 +341,7 @@ export default observer(function WorkOrderPage() {
         wo_status: item.wo_status ? String(item.wo_status) : undefined,
         step_history: poItem?.step_history,
         ROWID: Number(item.ROWID) || 0,
+        version: workOrderVersion
       };
     });
   }, [filteredItems, poItemsData, getTotalStepsForItemCode]);
@@ -671,7 +714,8 @@ export default observer(function WorkOrderPage() {
       // Check if current step is the final step for this item
       const stepMatch = String(editFormData.step || "").match(/\d+/);
       const currentStep = stepMatch ? parseInt(stepMatch[0], 10) : 0;
-      const totalSteps = getTotalStepsForItemCode(String(editFormData.item_code || ""));
+      const workOrderId = String(editFormData.po_number) + String(editFormData.item_code);
+      const totalSteps = getTotalStepsForItemCode(workOrderId);
 
       // Add end_date as current system date
       const dataToSave = {
@@ -729,12 +773,13 @@ export default observer(function WorkOrderPage() {
       const currentDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
       // Get the new step name for the new step
-      const newStepName = getStepNameForItemCodeAndStep(String(latestData.item_code), newStep);
+      const newWorkOrderId = String(latestData.po_number) + String(latestData.item_code);
+      const newStepName = getStepNameForItemCodeAndStep(newWorkOrderId, newStep);
 
       // Check if new step is the final step for this item
       const newStepMatch = String(newStep || "").match(/\d+/);
       const newCurrentStep = newStepMatch ? parseInt(newStepMatch[0], 10) : 0;
-      const newTotalSteps = getTotalStepsForItemCode(String(latestData.item_code));
+      const newTotalSteps = getTotalStepsForItemCode(newWorkOrderId);
 
       // Prepare data with new step and current date
       const dataToSave = {
@@ -834,25 +879,29 @@ export default observer(function WorkOrderPage() {
     return undefined;
   })();
 
-  // Get all steps for the current item_code, sorted by sequence
+  // Get all steps for the current item_code from work_order_steps_version
   const availableSteps = useMemo(() => {
-    if (!editFormData?.item_code) {
+    if (!editFormData?.po_number || !editFormData?.item_code) {
       return [];
     }
 
-    // Handle both array and PaginationData formats
-    const steps = Array.isArray(itemProcessSteps) ? itemProcessSteps : [];
-    if (steps.length === 0) {
+    const workOrderId = String(editFormData.po_number) + String(editFormData.item_code);
+    const versionRecords = Array.isArray(workOrderStepsVersion) ? workOrderStepsVersion : [];
+    const record = versionRecords.find((r: any) => String(r.work_order_id) === workOrderId);
+
+    if (!record || !record.steps_with_sequence) {
       return [];
     }
 
-    // Filter steps by item_code and sort by sequence
-    return steps
-      .filter((step: any) =>
-        String(step.item_code || "").toLowerCase() === String(editFormData.item_code || "").toLowerCase()
-      )
-      .sort((a: any, b: any) => (a.sequence || 0) - (b.sequence || 0));
-  }, [editFormData?.item_code, itemProcessSteps]);
+    try {
+      const steps = JSON.parse(String(record.steps_with_sequence));
+      return Array.isArray(steps) 
+        ? steps.sort((a: any, b: any) => (a.sequence || 0) - (b.sequence || 0))
+        : [];
+    } catch {
+      return [];
+    }
+  }, [editFormData?.po_number, editFormData?.item_code, workOrderStepsVersion]);
 
   // Generate step options for the Step dropdown
   const stepOptions = useMemo(() => {
@@ -961,10 +1010,10 @@ export default observer(function WorkOrderPage() {
     [getStepNameForStep]
   );
 
-  // Function to get step name for any item_code and step value (for drag-drop operations)
+  // Function to get step name for any work_order_id and step value (for drag-drop operations)
   const getStepNameForItemCodeAndStep = useCallback(
-    (itemCode: string, stepValue: string): string | null => {
-      if (!itemCode || !stepValue) {
+    (workOrderId: string, stepValue: string): string | null => {
+      if (!workOrderId || !stepValue) {
         return null;
       }
 
@@ -974,20 +1023,27 @@ export default observer(function WorkOrderPage() {
 
       const sequence = parseInt(sequenceMatch[0], 10);
 
-      // Filter steps by item_code and find the matching sequence
-      const steps = Array.isArray(itemProcessSteps) ? itemProcessSteps : [];
-      const matchingStep = steps.find((step: any) =>
-        String(step.item_code || "").toLowerCase() === String(itemCode || "").toLowerCase() &&
-        step.sequence === sequence
-      );
+      // Get steps from work_order_steps_version for this work_order_id
+      const versionRecords = Array.isArray(workOrderStepsVersion) ? workOrderStepsVersion : [];
+      const record = versionRecords.find((r: any) => String(r.work_order_id) === workOrderId);
 
-      if (!matchingStep) return null;
+      if (!record || !record.steps_with_sequence) return null;
 
-      // Look up the step name using item_process_id
-      const processId = String(matchingStep.item_process_id || "");
-      return processNameMap.get(processId) || null;
+      try {
+        const steps = JSON.parse(String(record.steps_with_sequence));
+        if (!Array.isArray(steps)) return null;
+
+        const matchingStep = steps.find((step: any) => step.sequence === sequence);
+        if (!matchingStep) return null;
+
+        // Look up the step name using item_process_id
+        const processId = String(matchingStep.item_process_id || "");
+        return processNameMap.get(processId) || null;
+      } catch {
+        return null;
+      }
     },
-    [itemProcessSteps, processNameMap]
+    [workOrderStepsVersion, processNameMap]
   );
 
   if (error) {
