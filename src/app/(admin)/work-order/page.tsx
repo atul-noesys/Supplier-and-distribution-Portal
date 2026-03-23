@@ -265,7 +265,7 @@ export default observer(function WorkOrderPage() {
     (workOrderId: string): number => {
       const versionRecords = Array.isArray(workOrderStepsVersion) ? workOrderStepsVersion : [];
       const record = versionRecords.find((r: any) => String(r.work_order_id) === String(workOrderId));
-      
+
       if (!record || !record.steps_with_sequence) {
         return 0;
       }
@@ -285,7 +285,7 @@ export default observer(function WorkOrderPage() {
     (workOrderId: string): number => {
       const versionRecords = Array.isArray(workOrderStepsVersion) ? workOrderStepsVersion : [];
       const record = versionRecords.find((r: any) => String(r.work_order_id) === String(workOrderId));
-      
+
       if (!record || !record.steps_with_sequence) {
         return 0;
       }
@@ -895,7 +895,7 @@ export default observer(function WorkOrderPage() {
 
     try {
       const steps = JSON.parse(String(record.steps_with_sequence));
-      return Array.isArray(steps) 
+      return Array.isArray(steps)
         ? steps.sort((a: any, b: any) => (a.sequence || 0) - (b.sequence || 0))
         : [];
     } catch {
@@ -1122,7 +1122,7 @@ export default observer(function WorkOrderPage() {
         ) : (
           <div className="border-t border-gray-200 dark:border-white/5">
             <div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.6fr 1.2fr 0.9fr 0.6fr 100px', gap: '0', minWidth: '100%' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.7fr 1.2fr 0.9fr 0.6fr 70px 100px', gap: '0', minWidth: '100%' }}>
                 {/* Table Header */}
                 {tableColumns.map((column) => (
                   <div
@@ -1132,6 +1132,10 @@ export default observer(function WorkOrderPage() {
                     {column.label}
                   </div>
                 ))}
+
+                <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 border-r border-blue-800 dark:border-blue-800">
+                  Version
+                </div>
                 {/* Actions Header (combined Details + Timeline + Actions) */}
                 <div className="bg-blue-800 dark:bg-blue-700 px-2.5 py-2.5 text-xs font-bold text-white uppercase tracking-wider sticky top-0 border-r border-blue-800 dark:border-blue-800">
                   Actions
@@ -1139,7 +1143,7 @@ export default observer(function WorkOrderPage() {
               </div>
 
               {/* Table Body */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.6fr 1.2fr 0.9fr 0.6fr 100px', gap: '0', minWidth: '100%' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr 1.4fr 0.7fr 1.1fr 0.7fr 1.2fr 0.9fr 0.6fr 70px 100px', gap: '0', minWidth: '100%' }}>
                 {paginatedItems.length === 0 ? (
                   <div style={{ gridColumn: '1 / -1' }} className="py-8 text-center bg-white dark:bg-gray-800">
                     <p className="text-gray-500 dark:text-gray-400">No work orders found</p>
@@ -1227,6 +1231,19 @@ export default observer(function WorkOrderPage() {
                           </div>
                         );
                       })}
+                      <div className="px-2.5 py-2.5 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
+                        <span
+                          className="flex items-center px-3 py-1 rounded-full text-xs font-bold tracking-wide"
+                          style={{
+                            background: 'linear-gradient(135deg, #ffd700 0%, #ffed4e 25%, #ffc700 50%, #ffb700 75%, #ffa500 100%)',
+                            color: '#5a3a14',
+                            textShadow: '0 1px 2px rgba(255,255,255,0.6)',
+                            border: '1px solid rgba(255,200,0,0.6)'
+                          }}
+                        >
+                          {`PV${item.version ?? getWorkOrderVersion(String(item.po_number) + String(item.item_code))}`}
+                        </span>
+                      </div>
                       {/* Combined Actions Cell: Details, Timeline, Edit */}
                       <div className="px-2.5 py-2 bg-white dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700/50 transition-colors border-b border-gray-200 dark:border-gray-600 border-r">
                         <div className="flex items-center justify-start gap-1">
