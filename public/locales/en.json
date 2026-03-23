@@ -26,6 +26,9 @@
         "shipment": "Shipment",
         "delivery": "Delivery",
         "warehouse": "Warehouse",
-        "menu": "Menu"
+        "menu": "Menu",
+        "master": "Master",
+        "addItemProcess": "Add Item Process",
+        "addItemProcessSteps": "Add Item Process Steps"
     }
 }

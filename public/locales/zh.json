@@ -26,6 +26,9 @@
         "shipment": "装运",
         "delivery": "交付",
         "warehouse": "仓库",
-        "menu": "菜单"
+        "menu": "菜单",
+        "master": "主数据",
+        "addItemProcess": "添加物料流程",
+        "addItemProcessSteps": "添加物料流程步骤"
     }
 }
