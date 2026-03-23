@@ -361,6 +361,67 @@ export default observer(function PurchaseOrderPage() {
     [itemProcessSteps, processNameMap]
   );
 
+  // Function to get all steps for a given item_code from item_process_steps table
+  const getStepsForItemCode = useCallback(
+    (itemCode: string): Array<{ sequence: number; item_process_id: number | string }> => {
+      const steps = Array.isArray(itemProcessSteps) ? itemProcessSteps : [];
+
+      // Filter steps by item_code and sort by sequence
+      const itemSteps = steps
+        .filter((step: any) =>
+          String(step.item_code || "").toLowerCase() === String(itemCode || "").toLowerCase()
+        )
+        .sort((a: any, b: any) => (a.sequence || 0) - (b.sequence || 0));
+
+      // Map to the format needed for steps_with_sequence
+      return itemSteps.map((step: any) => ({
+        item_process_id: step.item_process_id,
+        sequence: step.sequence || 0,
+      }));
+    },
+    [itemProcessSteps]
+  );
+
+  // Function to determine the version for work_order_steps_version
+  const getVersionForSteps = useCallback(
+    async (itemCode: string, stepsJson: string): Promise<number> => {
+      try {
+        // Fetch existing work_order_steps_version records for this item_code
+        const response = await nguageStore.GetPaginationData({
+          table: "work_order_steps_version",
+          skip: 0,
+          take: 1000,
+          NGaugeId: "62",
+        });
+
+        const existingRecords = Array.isArray(response) ? response : response?.data || [];
+        const itemRecords = existingRecords.filter((record: any) => String(record.item_code) === String(itemCode));
+
+        if (itemRecords.length === 0) {
+          // No existing records, start with version 1
+          return 1;
+        }
+
+        // Check if any existing record has the same steps_with_sequence
+        for (const record of itemRecords) {
+          const recordSteps = record.steps_with_sequence;
+          if (recordSteps === stepsJson) {
+            // Found matching steps, keep the same version
+            return record.version || 1;
+          }
+        }
+
+        // Steps don't match any existing record, increment the max version
+        const maxVersion = Math.max(...itemRecords.map((record: any) => Number(record.version) || 1));
+        return maxVersion + 1;
+      } catch (error) {
+        console.error("Error determining version:", error);
+        return 1; // Fallback to 1 on error
+      }
+    },
+    [nguageStore]
+  );
+
   // Function to highlight search term in text
   const highlightText = (text: string | null | undefined, highlight: string) => {
     if (!text) return text;
@@ -502,6 +563,19 @@ export default observer(function PurchaseOrderPage() {
         "work_order"
       );
 
+      const allSteps = getStepsForItemCode(String(item.item_code));
+      const stepsJson = JSON.stringify(allSteps.length > 0 ? allSteps : [{ item_process_id: null, sequence: 1 }]);
+      const version = await getVersionForSteps(String(item.item_code), stepsJson);
+      
+      const stepsPayload = {
+        work_order_id: String(item.po_number) + String(item.item_code),
+        item_code: String(item.item_code),
+        steps_with_sequence: stepsJson,
+        version: version,
+      } as any;
+
+      await nguageStore.AddRowData(stepsPayload, 62, "work_order_steps_version");
+
       toast.success(
         <span>
           Work order created for <b>{item.item}</b>!
@@ -601,6 +675,19 @@ export default observer(function PurchaseOrderPage() {
             44,
             "work_order"
           );
+
+          const allSteps = getStepsForItemCode(String(item.item_code));
+          const stepsJson = JSON.stringify(allSteps.length > 0 ? allSteps : [{ item_process_id: null, sequence: 1 }]);
+          const version = await getVersionForSteps(String(item.item_code), stepsJson);
+          
+          const stepsPayload = {
+            work_order_id: String(item.po_number) + String(item.item_code),
+            item_code: String(item.item_code),
+            steps_with_sequence: stepsJson,
+            version: version,
+          } as any;
+
+          await nguageStore.AddRowData(stepsPayload, 62, "work_order_steps_version");
 
           successCount++;
         } catch (itemError) {
