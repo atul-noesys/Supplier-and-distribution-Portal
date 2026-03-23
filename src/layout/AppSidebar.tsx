@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useSidebar } from "../context/SidebarContext";
 import { useTranslation } from "@/i18n/useTranslation";
+import { useStore } from "@/store/store-context";
 import {
   ChevronDownIcon,
   GridIcon,
@@ -69,7 +70,14 @@ const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered, toggleMobileSidebar } = useSidebar();
   const pathname = usePathname();
   const { t } = useTranslation();
-  const navItems = getNavItems(t);
+  const { nguageStore } = useStore();
+  const user = nguageStore.currentUser;
+
+  const navItems = getNavItems(t).filter((item) => {
+    // Hide Warehouse menu for users with roleId === 5
+    if (user?.roleId === 5) return item.path !== "/warehouse";
+    return true;
+  });
 
   const renderMenuItems = (
     navItems: NavItem[],
