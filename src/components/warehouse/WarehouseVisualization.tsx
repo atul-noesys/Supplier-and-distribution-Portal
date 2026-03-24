@@ -778,8 +778,8 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
               last_updated_date: currentDate,
             };
 
-            // Call AddRowData with tableNumber 57 and tableName "item_warehouse"
-            const itemResult = await nguageStore.AddRowData(itemWarehouseData, 57, "item_warehouse");
+            // Call AddRowData with tableNumber 65 and tableName "item_warehouse"
+            const itemResult = await nguageStore.AddRowData(itemWarehouseData, 65, "item_warehouse");
 
             if (itemResult.result) {
               // Third call: Update work order status to "In warehouse"

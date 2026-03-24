@@ -27,7 +27,7 @@ export const WarehousePage: React.FC = () => {
         table: 'item_warehouse',
         skip: 0,
         take: 500,
-        NGaugeId: '57',
+        NGaugeId: '65',
       });
       const result = Array.isArray(pagination) ? pagination : pagination?.data || [];
       return result;
