@@ -10,6 +10,7 @@ import { MdClose } from 'react-icons/md';
 import { toast } from 'react-toastify';
 import { Select, TextInput } from "@/components/ui";
 import MultiFileInput from '@/components/ui/infoveave-components/MultiFileInput';
+import { QueryKeys } from '@/types/query-keys';
 
 /**
  * Convert KeyValueRecord to RowData for API submission
@@ -57,13 +58,13 @@ function AddPOItemModalContent({
 
     // Fetch pagination data using TanStack Query
     const { data: paginationData, isLoading, error } = useQuery({
-        queryKey: ["paginationData", "item", "33"],
+        queryKey: [ QueryKeys.ItemMaster ],
         queryFn: () =>
             nguageStore.GetPaginationData({
-                table: "item",
+                table: "item_master",
                 skip: 0,
                 take: 200,
-                NGaugeId: "33",
+                NGaugeId: "63",
             }),
         enabled: true,
         staleTime: Infinity,
@@ -112,10 +113,10 @@ function AddPOItemModalContent({
 
             // Auto-populate item name and unit price when item code is selected
             if (field === 'item_code' && Array.isArray(paginationData)) {
-                const selectedItem = paginationData.find((item: any) => item.Item_code === value);
+                const selectedItem = paginationData.find((item: any) => item.item_code === value);
                 if (selectedItem) {
-                    updated.item = selectedItem.Item_name;
-                    updated.unit_price = String(selectedItem.Unit_price);
+                    updated.item = selectedItem.item_name;
+                    updated.unit_price = String(selectedItem.unit_price);
                 }
             }
 
@@ -340,8 +341,8 @@ function AddPOItemModalContent({
                                         onChange={(v) => handleInputChange('item_code', v ?? '')}
                                         disabled={poStore.editingItemIndex !== null}
                                         data={Array.isArray(paginationData) && paginationData.length > 0 ? paginationData.map((item: any) => ({
-                                            label: item.Item_code,
-                                            value: item.Item_code
+                                            label: item.item_code,
+                                            value: item.item_code
                                         })) : []}
                                     />
                                 </div>

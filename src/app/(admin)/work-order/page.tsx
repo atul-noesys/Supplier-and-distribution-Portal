@@ -344,7 +344,7 @@ export default observer(function WorkOrderPage() {
         version: workOrderVersion
       };
     });
-  }, [filteredItems, poItemsData, getTotalStepsForItemCode]);
+  }, [filteredItems, poItemsData, getTotalStepsForItemCode, getWorkOrderVersion]);
 
   const handleEditRow = async (item: RowData) => {
     const rowId = String(item.ROWID);

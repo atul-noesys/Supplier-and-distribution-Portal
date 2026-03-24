@@ -3,6 +3,7 @@
 import MultiFileInput from '@/components/ui/infoveave-components/MultiFileInput';
 import { useStore } from '@/store/store-context';
 import { KeyValueRecord, RowData, ShipmentItem } from '@/types/nguage-rowdata';
+import { QueryKeys } from '@/types/query-keys';
 import { useQuery } from '@tanstack/react-query';
 import { observer } from 'mobx-react-lite';
 import * as React from 'react';
@@ -92,13 +93,13 @@ function AddShipmentItemsModalContent({
 
     // Fetch pagination data using TanStack Query
     const { data: paginationData, isLoading, error } = useQuery({
-        queryKey: ["paginationData", "item", "33"],
+        queryKey: [ QueryKeys.ItemMaster ],
         queryFn: () =>
             nguageStore.GetPaginationData({
-                table: "item",
+                table: "item_master",
                 skip: 0,
                 take: 200,
-                NGaugeId: "33",
+                NGaugeId: "63",
             }),
         enabled: true,
         staleTime: Infinity,
@@ -223,10 +224,10 @@ function AddShipmentItemsModalContent({
 
             // Auto-populate item name and unit price when item code is selected (fallback if not from work order)
             if (field === 'item_code' && Array.isArray(paginationData) && !updated.unit_price) {
-                const selectedItem = paginationData.find((item: any) => item.Item_code === value);
+                const selectedItem = paginationData.find((item: any) => item.item_code === value);
                 if (selectedItem) {
-                    updated.item = selectedItem.Item_name;
-                    updated.unit_price = String(selectedItem.Unit_price);
+                    updated.item = selectedItem.item_name;
+                    updated.unit_price = String(selectedItem.unit_price);
                 }
             }
 

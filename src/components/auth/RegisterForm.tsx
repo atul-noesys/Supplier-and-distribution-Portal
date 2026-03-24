@@ -115,7 +115,7 @@ export default observer(function RegisterForm() {
         "user_registration_date": new Date().toISOString().split('T')[0],
         "is_account_created": "false",
         "supplier_type": "Raw Material",
-      }, 31, "userregistration");
+      }, 64, "supplier_registration");
 
       if (result.result) {
         setSubmitMessage({ type: "success", text: "Registration submitted successfully!" });

@@ -45,10 +45,10 @@ export const WarehousePage: React.FC = () => {
     queryKey: [ QueryKeys.ItemMaster ],
     queryFn: async () => {
       const pagination = await nguageStore.GetPaginationData({
-        table: 'item',
+        table: 'item_master',
         skip: 0,
         take: 500,
-        NGaugeId: '33',
+        NGaugeId: '63',
       });
       const result = Array.isArray(pagination) ? pagination : pagination?.data || [];
       return result;
@@ -62,7 +62,7 @@ export const WarehousePage: React.FC = () => {
     const itemDescMap = new Map(
       (itemDescriptionsData as any[]).map((item) => {
         // Handle various column name formats for item code and description
-        const code = item.Item_code;
+        const code = item.item_code;
         const desc = item.item_description;
 
         return [code.toLowerCase(), desc];

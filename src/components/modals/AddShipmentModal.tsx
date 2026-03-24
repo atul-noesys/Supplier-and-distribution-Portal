@@ -98,13 +98,13 @@ function AddShipmentModalContent({
 
   // Fetch pagination data using TanStack Query
   const { data: paginationData, refetch, isLoading: isLoadingVendor } = useQuery({
-    queryKey: ["paginationData", "userregistration"],
+    queryKey: ["paginationData", "supplier_registration"],
     queryFn: () =>
       nguageStore.GetPaginationData({
-        table: "userregistration",
+        table: "supplier_registration",
         skip: 0,
         take: 200,
-        NGaugeId: "31",
+        NGaugeId: "64",
       }),
     staleTime: 0,
     enabled: isOpen,

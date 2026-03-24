@@ -93,13 +93,13 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
 
   // Fetch pagination data using TanStack Query
   const { data: paginationData, refetch } = useQuery({
-    queryKey: ["paginationData", "userregistration", "31"],
+    queryKey: ["paginationData", "supplier_registration", "31"],
     queryFn: () =>
       nguageStore.GetPaginationData({
-        table: "userregistration",
+        table: "supplier_registration",
         skip: 0,
         take: 200,
-        NGaugeId: "31",
+        NGaugeId: "64",
       }),
     enabled: false,
   });
