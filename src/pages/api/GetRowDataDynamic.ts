@@ -3,11 +3,6 @@ import pkg from "../../../package.json";
 
 export const runtime = "edge";
 
-// Map tableName to formId
-const tableFormIdMap: Record<string, number> = {
-  "purchase_order_items": 42,
-};
-
 export default async function handler(request: NextRequest) {
   if (request.method === "POST") {
     try {

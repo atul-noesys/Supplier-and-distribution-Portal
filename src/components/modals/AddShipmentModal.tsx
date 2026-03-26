@@ -493,7 +493,7 @@ function AddShipmentModalContent({
         const result = await nguageStore.UpdateRowDataDynamic(
           shipmentToSave,
           String(currentShipment.ROWID),
-          52,
+          71,
           "shipment_list"
         );
 
@@ -526,7 +526,7 @@ function AddShipmentModalContent({
 
         const result = await nguageStore.AddRowData(
           shipmentToSave,
-          52,
+          71,
           "shipment_list"
         );
 
@@ -540,7 +540,7 @@ function AddShipmentModalContent({
 
         let fetchedData: KeyValueRecord | null = null;
         try {
-          const rowDataResponse = await nguageStore.GetRowData(52, rowId ?? '1', 'shipment_list');
+          const rowDataResponse = await nguageStore.GetRowData(71, rowId ?? '1', 'shipment_list');
           if (rowDataResponse) {
             fetchedData = rowDataResponse as KeyValueRecord;
           }
@@ -579,7 +579,7 @@ function AddShipmentModalContent({
 
             const itemResult = await nguageStore.AddRowData(
               itemToSave,
-              47,
+              72,
               "shipment_list_items"
             );
 
@@ -641,7 +641,7 @@ function AddShipmentModalContent({
 
         const result = await nguageStore.AddRowData(
           itemToSave,
-          47,
+          72,
           "shipment_list_items"
         );
 
@@ -702,7 +702,7 @@ function AddShipmentModalContent({
         const deleteResult = await nguageStore.DeleteRowDataDynamic(
           "shipment_list_items",
           String(itemToDelete.ROWID),
-          47
+          72
         );
 
         console.log("Delete API Result:", deleteResult);

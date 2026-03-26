@@ -21,7 +21,7 @@ export default async function handler(request: NextRequest) {
       }
 
       const response = await fetch(
-        "https://nooms.infoveave.app/api/v10/ngauge/forms/42/get-row",
+        "https://nooms.infoveave.app/api/v10/ngauge/forms/67/get-row",
         {
           method: "POST",
           headers: {

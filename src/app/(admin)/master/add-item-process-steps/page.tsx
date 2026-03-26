@@ -76,7 +76,7 @@ export default observer(function AddItemProcessStepsPage() {
         table: "item_process",
         skip: 0,
         take: null,
-        NGaugeId: "58",
+        NGaugeId: "68",
       });
       const result = Array.isArray(paginationData) ? paginationData : (paginationData?.data || []);
       return (result as any[]) || [];
@@ -92,7 +92,7 @@ export default observer(function AddItemProcessStepsPage() {
         table: "item_process_steps",
         skip: 0,
         take: null,
-        NGaugeId: "60",
+        NGaugeId: "69",
       });
       const result = Array.isArray(paginationData) ? paginationData : (paginationData?.data || []);
       return (result as RowData[]) || [];
@@ -221,7 +221,7 @@ export default observer(function AddItemProcessStepsPage() {
           const newSequence = process.sequence + 1;
           
           // Fetch complete row data
-          const completeRowData = await nguageStore.GetRowData(60, process.ROWID, "item_process_steps");
+          const completeRowData = await nguageStore.GetRowData(69, process.ROWID, "item_process_steps");
           
           if (!completeRowData) {
             throw new Error(`Failed to fetch complete data for step ${process.sequence}`);
@@ -236,7 +236,7 @@ export default observer(function AddItemProcessStepsPage() {
           const updateResult = await nguageStore.UpdateRowDataDynamic(
             updatePayload,
             String(process.ROWID),
-            60,
+            69,
             "item_process_steps"
           );
 
@@ -254,7 +254,7 @@ export default observer(function AddItemProcessStepsPage() {
       };
 
       // Call the store method to add new step
-      const result = await nguageStore.AddRowData(newStep, 60, "item_process_steps");
+      const result = await nguageStore.AddRowData(newStep, 69, "item_process_steps");
 
       if (result?.result) {
         toast.success("Step added successfully!");
@@ -304,7 +304,7 @@ export default observer(function AddItemProcessStepsPage() {
       const deleteResult = await nguageStore.DeleteRowDataDynamic(
         "item_process_steps",
         String(nodeToDelete.ROWID),
-        60,
+        69,
       );
 
       if (!deleteResult.result) {
@@ -317,7 +317,7 @@ export default observer(function AddItemProcessStepsPage() {
 
         for (const process of processesToUpdate) {
           const newSequence = process.sequence - 1;
-          const completeRowData = await nguageStore.GetRowData(60, process.ROWID, "item_process_steps");
+          const completeRowData = await nguageStore.GetRowData(69, process.ROWID, "item_process_steps");
 
           if (!completeRowData) {
             throw new Error(`Failed to fetch complete data for step ${process.sequence}`);
@@ -331,7 +331,7 @@ export default observer(function AddItemProcessStepsPage() {
           const updateResult = await nguageStore.UpdateRowDataDynamic(
             updatePayload,
             String(process.ROWID),
-            60,
+            69,
             "item_process_steps",
           );
 

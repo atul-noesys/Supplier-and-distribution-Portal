@@ -196,7 +196,7 @@ export default observer(function PurchaseOrderPage() {
         table: "purchase_orders",
         skip: 0,
         take: 200,
-        NGaugeId: "41",
+        NGaugeId: "66",
       });
       return (purchaseOrderList || []) as PurchaseOrder[];
     },
@@ -214,7 +214,7 @@ export default observer(function PurchaseOrderPage() {
           "table": "purchase_order_items",
           "skip": 0,
           "take": 200,
-          "NGaugeId": "42"
+          "NGaugeId": "67"
         },
         {
           headers: {
@@ -262,7 +262,7 @@ export default observer(function PurchaseOrderPage() {
           table: "item_process",
           skip: 0,
           take: 500,
-          NGaugeId: "58",
+          NGaugeId: "68",
         });
         return response?.data || response || [];
       } catch (err) {
@@ -283,7 +283,7 @@ export default observer(function PurchaseOrderPage() {
           table: "item_process_steps",
           skip: 0,
           take: 500,
-          NGaugeId: "60",
+          NGaugeId: "69",
         });
         return response?.data || response || [];
       } catch (err) {
@@ -391,7 +391,7 @@ export default observer(function PurchaseOrderPage() {
           table: "work_order_steps_version",
           skip: 0,
           take: 1000,
-          NGaugeId: "62",
+          NGaugeId: "70",
         });
 
         const existingRecords = Array.isArray(response) ? response : response?.data || [];
@@ -574,7 +574,7 @@ export default observer(function PurchaseOrderPage() {
         version: version,
       } as any;
 
-      await nguageStore.AddRowData(stepsPayload, 62, "work_order_steps_version");
+      await nguageStore.AddRowData(stepsPayload, 70, "work_order_steps_version");
 
       toast.success(
         <span>
@@ -687,7 +687,7 @@ export default observer(function PurchaseOrderPage() {
             version: version,
           } as any;
 
-          await nguageStore.AddRowData(stepsPayload, 62, "work_order_steps_version");
+          await nguageStore.AddRowData(stepsPayload, 70, "work_order_steps_version");
 
           successCount++;
         } catch (itemError) {

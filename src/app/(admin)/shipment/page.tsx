@@ -81,7 +81,7 @@ export default observer(function ShipmentPage() {
           table: "shipment_list",
           skip: 0,
           take: null,
-          NGaugeId: "52",
+          NGaugeId: "71",
         });
 
         const result = Array.isArray(paginationData) ? paginationData : (paginationData?.data || []);
@@ -104,7 +104,7 @@ export default observer(function ShipmentPage() {
           table: "shipment_list_items",
           skip: 0,
           take: null,
-          NGaugeId: "47",
+          NGaugeId: "72",
         });
 
         const result = Array.isArray(paginationData) ? paginationData : (paginationData?.data || []);
@@ -242,12 +242,12 @@ export default observer(function ShipmentPage() {
     // Fetch fresh data in background and update store when it arrives
     setIsFetchingShipmentData(true);
     try {
-      const freshShipmentData = await nguageStore.GetRowData(52, rowId, "shipment_list");
+      const freshShipmentData = await nguageStore.GetRowData(71, rowId, "shipment_list");
 
       // Fetch fresh data for each item using GetRowData
       const freshItemsData = await Promise.all(
         itemsForShipment.map((item) => 
-          nguageStore.GetRowData(47, String(item.ROWID || ""), "shipment_list_items")
+          nguageStore.GetRowData(72, String(item.ROWID || ""), "shipment_list_items")
         )
       );
 

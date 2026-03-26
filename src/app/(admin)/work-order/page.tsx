@@ -187,7 +187,7 @@ export default observer(function WorkOrderPage() {
           table: "item_process",
           skip: 0,
           take: 500,
-          NGaugeId: "58",
+          NGaugeId: "68",
         });
         return response?.data || response || [];
       } catch (err) {
@@ -207,7 +207,7 @@ export default observer(function WorkOrderPage() {
           table: "item_process_steps",
           skip: 0,
           take: 1000,
-          NGaugeId: "60",
+          NGaugeId: "69",
         });
         return response?.data || response || [];
       } catch (err) {
@@ -228,7 +228,7 @@ export default observer(function WorkOrderPage() {
           table: "work_order_steps_version",
           skip: 0,
           take: 1000,
-          NGaugeId: "62",
+          NGaugeId: "70",
         });
         return response?.data || response || [];
       } catch (err) {

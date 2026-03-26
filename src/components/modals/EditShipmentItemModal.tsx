@@ -86,7 +86,7 @@ export function EditShipmentItemModal({
 
     try {
       // Fetch the full row data for the item
-      const fullItemData = await nguageStore.GetRowData(47, String(item.ROWID), 'shipment_list_items');
+      const fullItemData = await nguageStore.GetRowData(72, String(item.ROWID), 'shipment_list_items');
 
       if (!fullItemData) {
         toast.error("Could not fetch item data");
@@ -104,7 +104,7 @@ export function EditShipmentItemModal({
       const result = await nguageStore.UpdateRowDataDynamic(
         updatedItem,
         String(item.ROWID),
-        47,
+        72,
         'shipment_list_items'
       );
 

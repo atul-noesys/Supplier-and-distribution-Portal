@@ -74,7 +74,7 @@ export default observer(function AddItemProcessPage() {
         table: "item_process",
         skip: 0,
         take: null,
-        NGaugeId: "58",
+        NGaugeId: "68",
       });
       const result = Array.isArray(paginationData) ? paginationData : (paginationData?.data || []);
       return (result as RowData[]) || [];
@@ -261,7 +261,7 @@ export default observer(function AddItemProcessPage() {
       };
 
       // Call the store method to add new item process
-      const result = await nguageStore.AddRowData(newItemProcess, 58, "item_process");
+      const result = await nguageStore.AddRowData(newItemProcess, 68, "item_process");
 
       if (result?.result) {
         toast.success("Item Process added successfully!");

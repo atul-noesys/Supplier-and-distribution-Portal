@@ -81,7 +81,7 @@ function AddShipmentItemsModalContent({
                 table: "purchase_order_items",
                 skip: 0,
                 take: 500,
-                NGaugeId: "42",
+                NGaugeId: "67",
             });
 
             // Handle response - GetPaginationData returns array or object with data property
@@ -277,7 +277,7 @@ function AddShipmentItemsModalContent({
 
                 const result = await nguageStore.AddRowData(
                     itemToSave,
-                    47,
+                    72,
                     'shipment_list_items'
                 );
 

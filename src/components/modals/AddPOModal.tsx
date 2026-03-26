@@ -276,7 +276,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
         // Create new PO
         const result = await nguageStore.AddRowData(
           poToSave,
-          41,
+          66,
           'purchase_orders'
         );
 
@@ -287,7 +287,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
 
         // Get row data using the returned rowId
         const rowId = typeof result.result === 'string' ? result.result : (result.result as any)?.data;
-        const rowData = await nguageStore.GetRowData(41, rowId ?? '1', 'purchase_orders');
+        const rowData = await nguageStore.GetRowData(66, rowId ?? '1', 'purchase_orders');
 
         if (!rowData) {
           console.warn('Row data fetch returned null');
@@ -448,7 +448,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
       setIsFetchingItems(true);
       try {
         const latestData = await nguageStore.GetRowData(
-          42,
+          67,
           rowId,
           'purchase_order_items'
         );

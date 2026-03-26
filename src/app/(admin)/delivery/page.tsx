@@ -95,7 +95,7 @@ export default observer(function DeliveryPage() {
                     table: "shipment_list",
                     skip: 0,
                     take: null,
-                    NGaugeId: "52",
+                    NGaugeId: "71",
                 });
 
                 const result = Array.isArray(paginationData) ? paginationData : (paginationData?.data || []);
@@ -141,7 +141,7 @@ export default observer(function DeliveryPage() {
                     table: "shipment_list_items",
                     skip: 0,
                     take: null,
-                    NGaugeId: "47",
+                    NGaugeId: "72",
                 });
                 const result = Array.isArray(paginationData) ? paginationData : (paginationData?.data || []);
                 return result as RowData[];
@@ -264,7 +264,7 @@ export default observer(function DeliveryPage() {
         // Fetch latest in background and update modal if user hasn't edited
         setIsFetchingAcceptRow(true);
         try {
-            const rowData = await nguageStore.GetRowData(52, rowId, "shipment_list");
+            const rowData = await nguageStore.GetRowData(71, rowId, "shipment_list");
             if (rowData) {
                 if (!acceptModalEditedRef.current) {
                     setAcceptModalData(rowData);
@@ -397,7 +397,7 @@ export default observer(function DeliveryPage() {
                                 table: "purchase_orders",
                                 skip: 0,
                                 take: null,
-                                NGaugeId: "41",
+                                NGaugeId: "66",
                             });
                             const poList = Array.isArray(purchaseOrdersData) ? purchaseOrdersData : (purchaseOrdersData?.data || []);
                             const poRow = (poList as any[]).find((p) => String(p.po_number || "") === poNumber);
@@ -407,7 +407,7 @@ export default observer(function DeliveryPage() {
                                 const poUpdate = await nguageStore.UpdateRowDataDynamic(
                                     updatedPO,
                                     String(poRow.ROWID),
-                                    41,
+                                    66,
                                     "purchase_orders"
                                 );
 
@@ -464,7 +464,7 @@ export default observer(function DeliveryPage() {
             const result = await nguageStore.UpdateRowDataDynamic(
                 updatedData,
                 String(acceptModalData.ROWID),
-                52,
+                71,
                 "shipment_list"
             );
 

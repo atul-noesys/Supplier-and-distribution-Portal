@@ -222,7 +222,7 @@ function AddPOItemModalContent({
 
                 const result = await nguageStore.AddRowData(
                     itemToSave,
-                    42,
+                    67,
                     'purchase_order_items'
                 );
 
