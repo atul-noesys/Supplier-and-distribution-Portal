@@ -22,6 +22,8 @@ export default observer(function RegisterForm() {
     gstNumber: "",
     uploadedFileName: "" as string,
     documents: [] as File[],
+    logo: [] as File[],
+    logoFileName: "" as string,
     contactFirstName: "",
     contactLastName: "",
     jobTitle: "",
@@ -29,6 +31,7 @@ export default observer(function RegisterForm() {
     phoneNumber: "",
   });
   const [isUploading, setIsUploading] = useState(false);
+  const [isLogoUploading, setIsLogoUploading] = useState(false);
 
   const industries = [
     { value: "", label: "Select an industry" },
@@ -92,11 +95,63 @@ export default observer(function RegisterForm() {
     }
   };
 
+  const handleLogoChange = async (files: any[] | undefined) => {
+    if (!files || files.length === 0) return;
+
+    // Normalize incoming values to File objects (some components pass { file } wrappers)
+    const filesToUpload: File[] = files
+      .map((fileItem: any) => (fileItem?.file ? fileItem.file : fileItem))
+      .filter((file: File) => file && file.name);
+
+    if (filesToUpload.length === 0) {
+      setSubmitMessage({ type: "error", text: "No valid logo selected" });
+      return;
+    }
+
+    setFormData((prev) => ({ ...prev, logo: filesToUpload }));
+    setIsLogoUploading(true);
+
+    try {
+      const uploadResult = await nguageStore.UploadMultipleMedia(filesToUpload);
+      console.log("Logo upload result:", uploadResult);
+
+      if (uploadResult && (Array.isArray(uploadResult) ? uploadResult.length > 0 : uploadResult)) {
+        const logoFileName = JSON.stringify(Array.isArray(uploadResult) ? uploadResult : [uploadResult]);
+        console.log("Setting logoFileName to:", logoFileName);
+        setFormData((prev) => ({
+          ...prev,
+          logoFileName: logoFileName,
+        }));
+      } else {
+        console.error("Invalid upload result:", uploadResult);
+        setSubmitMessage({ type: "error", text: "Logo upload failed - invalid response" });
+      }
+    } catch (error) {
+      console.error("Logo upload error:", error);
+      setSubmitMessage({ type: "error", text: "An error occurred while uploading the logo" });
+    } finally {
+      setIsLogoUploading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!isChecked) {
       setSubmitMessage({ type: "error", text: "Please agree to Terms and Conditions" });
+      return;
+    }
+
+    // Validation: Check if documents are uploaded
+    if (!formData.uploadedFileName || formData.uploadedFileName.trim() === "") {
+      setSubmitMessage({ type: "error", text: "Please upload documents" });
+      return;
+    }
+
+    // Validation: Check if logo is uploaded
+    if (!formData.logoFileName || formData.logoFileName.trim() === "") {
+      console.log("Logo validation failed. logoFileName:", formData.logoFileName);
+      setSubmitMessage({ type: "error", text: "Please upload a company logo" });
       return;
     }
 
@@ -109,6 +164,7 @@ export default observer(function RegisterForm() {
         "business_address": formData.businessAddress,
         "industry": formData.industry,
         "gst_number": formData.gstNumber,
+        "logo": formData.logoFileName,
         "documents": formData.uploadedFileName,
         "first_name": formData.contactFirstName,
         "last_name": formData.contactLastName,
@@ -119,6 +175,7 @@ export default observer(function RegisterForm() {
         "user_registration_date": new Date().toISOString().split('T')[0],
         "is_account_created": "false",
         "supplier_type": "0",
+        "registration_type": isSupplier ? "Supplier" : "Buyer",
       });
 
       if (result.result !== null) {
@@ -131,6 +188,8 @@ export default observer(function RegisterForm() {
           gstNumber: "",
           uploadedFileName: "",
           documents: [],
+          logo: [],
+          logoFileName: "",
           contactFirstName: "",
           contactLastName: "",
           jobTitle: "",
@@ -159,6 +218,8 @@ export default observer(function RegisterForm() {
       gstNumber: "",
       uploadedFileName: "",
       documents: [],
+      logo: [],
+      logoFileName: "",
       contactFirstName: "",
       contactLastName: "",
       jobTitle: "",
@@ -314,7 +375,7 @@ export default observer(function RegisterForm() {
                       <MultiFileInput
                         label={<>Documents (Attachments)<span className="text-error-500">*</span></>}
                         maxFiles={5}
-                        accept=".pdf,.png,.jpg,.jpeg"
+                        accept=".pdf"
                         multiple={true}
                         className="w-full"
                         onValueChange={handleFileChange}
@@ -355,15 +416,26 @@ export default observer(function RegisterForm() {
                       />
                     </div>
 
-                    {/* Job Title */}
-                    <div className="mb-5">
-                      <TextInput
-                        label={<>Job Title<span className="text-error-500">*</span></>}
-                        type="text"
-                        value={String(formData.jobTitle ?? '')}
-                        placeholder="Enter job title"
-                        onValueChange={(v) => handleValueChange('jobTitle')(v)}
-                      />
+                    {/* Job Title & Phone Number */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <TextInput
+                          label={<>Job Title<span className="text-error-500">*</span></>}
+                          type="text"
+                          value={String(formData.jobTitle ?? '')}
+                          placeholder="Enter job title"
+                          onValueChange={(v) => handleValueChange('jobTitle')(v)}
+                        />
+                      </div>
+                      <div>
+                        <TextInput
+                          label={<>Phone Number<span className="text-error-500">*</span></>}
+                          type="tel"
+                          value={String(formData.phoneNumber ?? '')}
+                          placeholder="Enter phone number"
+                          onValueChange={(v) => handleValueChange('phoneNumber')(v)}
+                        />
+                      </div>
                     </div>
 
                     {/* Business Email Address */}
@@ -377,15 +449,22 @@ export default observer(function RegisterForm() {
                       />
                     </div>
 
-                    {/* Phone Number */}
+                    {/* Company Logo */}
                     <div className="mb-5">
-                      <TextInput
-                        label={<>Phone Number<span className="text-error-500">*</span></>}
-                        type="tel"
-                        value={String(formData.phoneNumber ?? '')}
-                        placeholder="Enter phone number"
-                        onValueChange={(v) => handleValueChange('phoneNumber')(v)}
+                      <MultiFileInput
+                        label={<>Company Logo<span className="text-error-500">*</span></>}
+                        maxFiles={1}
+                        accept=".png,.jpg,.jpeg,.gif,.svg"
+                        multiple={false}
+                        className="w-full"
+                        onValueChange={handleLogoChange}
                       />
+                      {isLogoUploading && (
+                        <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-500 border-t-transparent"></div>
+                          <span>Uploading logo...</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -437,10 +516,10 @@ export default observer(function RegisterForm() {
                 <div>
                   <button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isUploading || isLogoUploading}
                     className={cn("flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg shadow-theme-xs active:scale-95 disabled:bg-gray-400 disabled:cursor-not-allowed", isSupplier ? "bg-brand-600 hover:bg-brand-500" : "bg-green-600 hover:bg-green-500")}
                   >
-                    {isSubmitting ? "Registering..." : isSupplier ? "Register Supplier" : "Register Buyer"}
+                    {isSubmitting ? "Registering..." : isUploading || isLogoUploading ? "Please wait..." : isSupplier ? "Register Supplier" : "Register Buyer"}
                   </button>
                 </div>
               </div>
