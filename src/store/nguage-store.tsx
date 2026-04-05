@@ -242,8 +242,6 @@ export class NguageStore {
 
   async RegisterSupplier(
     rowData: RowData,
-    tableNumber: number,
-    tableName: string,
   ): Promise<{ result: string | null; error: string }> {
     try {
       const CLIENT_ID = "nooms|register";
@@ -270,9 +268,9 @@ export class NguageStore {
 
       // Step 2: Call the actual API with the obtained token
       const { data }: AxiosResponse<string> = await axios.post(
-        `https://nooms.infoveave.app/api/v10/ngauge/forms/${tableNumber}/row`,
+        `https://nooms.infoveave.app/api/v10/ngauge/forms/64/row`,
         {
-          tableName,
+          tableName: "supplier_registration",
           rowData,
         },
         {

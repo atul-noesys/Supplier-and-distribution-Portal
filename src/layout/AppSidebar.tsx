@@ -75,7 +75,7 @@ const AppSidebar: React.FC = () => {
 
   const navItems = getNavItems(t).filter((item) => {
     // Hide Warehouse menu for users with roleId === 5
-    if (user?.roleId === 5) return item.path !== "/warehouse";
+    if (user?.roleId === 7) return item.path !== "/warehouse";
     return true;
   });
 

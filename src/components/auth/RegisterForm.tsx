@@ -1,8 +1,8 @@
 "use client";
 import Checkbox from "@/components/form/input/Checkbox";
-import Input from "@/components/form/input/InputField";
-import Label from "@/components/form/Label";
-import Select from "@/components/form/Select";
+import { Select, TextInput } from "@/components/ui";
+import MultiFileInput from '@/components/ui/infoveave-components/MultiFileInput';
+import { cn } from "@/lib/utils";
 import { useStore } from "@/store/store-context";
 import { observer } from "mobx-react-lite";
 import Link from "next/link";
@@ -14,12 +14,14 @@ export default observer(function RegisterForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [isSupplier, setIsSupplier] = useState(true);
   const [formData, setFormData] = useState({
     companyName: "",
     businessAddress: "",
     industry: "",
     gstNumber: "",
     uploadedFileName: "" as string,
+    documents: [] as File[],
     contactFirstName: "",
     contactLastName: "",
     jobTitle: "",
@@ -39,14 +41,6 @@ export default observer(function RegisterForm() {
     { value: "other", label: "Other" },
   ];
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
   const handleSelectChange = (name: string) => (value: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -54,37 +48,47 @@ export default observer(function RegisterForm() {
     }));
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const files = Array.from(e.target.files);
+  const handleValueChange = (name: string) => (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
-      setFormData((prev) => ({
-        ...prev,
-        documents: files,
-      }));
+  const handleFileChange = async (files: any[] | undefined) => {
+    if (!files || files.length === 0) return;
 
-      // Call API to upload file immediately
-      setIsUploading(true);
-      setSubmitMessage(null);
+    // Normalize incoming values to File objects (some components pass { file } wrappers)
+    const filesToUpload: File[] = files
+      .map((fileItem: any) => (fileItem?.file ? fileItem.file : fileItem))
+      .filter((file: File) => file && file.name);
 
-      try {
-        const uploadResult = await nguageStore.UploadMultipleMedia(files);
-        console.log("Upload result:", uploadResult);
+    if (filesToUpload.length === 0) {
+      setSubmitMessage({ type: "error", text: "No valid files selected" });
+      return;
+    }
 
-        if (uploadResult) {
-          setFormData((prev) => ({
-            ...prev,
-            uploadedFileName: JSON.stringify(uploadResult),
-          }));
-        } else {
-          setSubmitMessage({ type: "error", text: "File upload failed" });
-        }
-      } catch (error) {
-        console.error("Upload error:", error);
-        setSubmitMessage({ type: "error", text: "An error occurred while uploading the file" });
-      } finally {
-        setIsUploading(false);
+    setFormData((prev) => ({ ...prev, documents: filesToUpload }));
+    setIsUploading(true);
+    setSubmitMessage(null);
+
+    try {
+      const uploadResult = await nguageStore.UploadMultipleMedia(filesToUpload);
+      console.log("Upload result:", uploadResult);
+
+      if (uploadResult) {
+        setFormData((prev) => ({
+          ...prev,
+          uploadedFileName: JSON.stringify(Array.isArray(uploadResult) ? uploadResult : [uploadResult]),
+        }));
+      } else {
+        setSubmitMessage({ type: "error", text: "File upload failed" });
       }
+    } catch (error) {
+      console.error("Upload error:", error);
+      setSubmitMessage({ type: "error", text: "An error occurred while uploading the file" });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -114,10 +118,10 @@ export default observer(function RegisterForm() {
         "approved": 0,
         "user_registration_date": new Date().toISOString().split('T')[0],
         "is_account_created": "false",
-        "supplier_type": "Raw Material",
-      }, 64, "supplier_registration");
+        "supplier_type": "0",
+      });
 
-      if (result.result) {
+      if (result.result !== null) {
         setSubmitMessage({ type: "success", text: "Registration submitted successfully!" });
         // Reset form
         setFormData({
@@ -126,6 +130,7 @@ export default observer(function RegisterForm() {
           industry: "",
           gstNumber: "",
           uploadedFileName: "",
+          documents: [],
           contactFirstName: "",
           contactLastName: "",
           jobTitle: "",
@@ -153,6 +158,7 @@ export default observer(function RegisterForm() {
       industry: "",
       gstNumber: "",
       uploadedFileName: "",
+      documents: [],
       contactFirstName: "",
       contactLastName: "",
       jobTitle: "",
@@ -166,8 +172,9 @@ export default observer(function RegisterForm() {
   // Success Page
   if (isSuccess) {
     return (
-      <div className="flex flex-col flex-1 lg:w-1/2 w-full overflow-y-auto no-scrollbar">
-        <div className="flex flex-col justify-center flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex flex-col flex-1 lg:w-1/2 w-full overflow-y-auto no-scrollbar relative">
+
+        <div className="flex flex-col justify-center flex-1 w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center">
             {/* Success Icon */}
             <div className="flex justify-center mb-6">
@@ -215,90 +222,102 @@ export default observer(function RegisterForm() {
   }
 
   return (
-    <div className="flex flex-col flex-1 lg:w-1/2 w-full overflow-y-auto no-scrollbar">
-      <div className="flex flex-col justify-center flex-1 w-full max-w-4xl mx-auto">
+    <div className="flex flex-col flex-1 lg:w-1/2 w-full overflow-y-auto no-scrollbar relative">
+
+      <div className="flex flex-col justify-center flex-1 w-full max-w-4xl mx-auto relative z-10">
         <div>
-          <div className="mb-5 sm:mb-8">
-            <h1 className="mb-2 font-semibold text-gray-800 text-title-sm dark:text-white/90 sm:text-title-md">
-              Register
-            </h1>
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className={`font-semibold text-title-sm sm:text-title-md transition-colors ${isSupplier ? 'text-brand-700' : 'text-green-600'} dark:text-white/90`}>
+              {isSupplier ? 'Supplier' : 'Buyer'} Registration
+            </h2>
+
+            {/* Toggle Switch */}
+            <button
+              type="button"
+              onClick={() => setIsSupplier(!isSupplier)}
+              className={`relative inline-flex h-6 w-32 px-0.5 items-center rounded-full transition-colors ${
+                isSupplier 
+                  ? 'bg-brand-600 dark:bg-brand-600' 
+                  : 'bg-green-600 dark:bg-green-600'
+              }`}
+            >
+              {/* Slider */}
+              <span
+                className={`inline-block h-5 w-1/2 transform rounded-full bg-white transition-transform ${
+                  isSupplier ? 'translate-x-0' : 'translate-x-full'
+                }`}
+              />
+              
+              {/* Labels inside */}
+              <span className="absolute inset-0 flex items-center justify-between px-3 text-xs font-semibold pointer-events-none">
+                <span className={`${isSupplier ? 'text-brand-600' : 'text-white'}`}>Supplier</span>
+                <span className={`${isSupplier ? 'text-white' : 'text-green-600'}`}>Buyer</span>
+              </span>
+            </button>
           </div>
           <div>
             <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+              <div className="bg-white dark:bg-gray-800/50 rounded-2xl shadow-lg backdrop-blur-sm p-6 border border-gray-100 dark:border-gray-700">
+                <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
                 {/* Company Identification Section */}
                 <div>
-                  <h2 className="mb-4 font-semibold text-gray-800 text-base dark:text-white/90">
+                  <h2 className={cn("mb-4 font-semibold text-gray-800 text-base dark:text-white/90 pb-3 border-b-2 border-brand-500/20", isSupplier ? "border-brand-500/20" : "border-green-600/20")}>
                     Company Identification
                   </h2>
                   <div className="space-y-5">
                     {/* Legal Company Name */}
                     <div className="mb-5">
-                      <Label>
-                        Legal Company Name<span className="text-error-500">*</span>
-                      </Label>
-                      <Input
+                      <TextInput
+                        label={<>Legal Company Name<span className="text-error-500">*</span></>}
                         type="text"
-                        name="companyName"
+                        value={String(formData.companyName ?? '')}
                         placeholder="Enter your legal company name"
-                        defaultValue={formData.companyName}
-                        onChange={handleChange}
+                        onValueChange={(v) => handleValueChange('companyName')(v)}
                       />
                     </div>
 
                     {/* Primary Business Address */}
                     <div className="mb-5">
-                      <Label>
-                        Primary Business Address<span className="text-error-500">*</span>
-                      </Label>
-                      <Input
+                      <TextInput
+                        label={<>Primary Business Address<span className="text-error-500">*</span></>}
                         type="text"
-                        name="businessAddress"
+                        value={String(formData.businessAddress ?? '')}
                         placeholder="Enter your primary business address"
-                        defaultValue={formData.businessAddress}
-                        onChange={handleChange}
+                        onValueChange={(v) => handleValueChange('businessAddress')(v)}
                       />
                     </div>
 
                     {/* Primary Industry/Business Sector */}
                     <div className="mb-5">
-                      <Label>
-                        Primary Industry/Business Sector<span className="text-error-500">*</span>
-                      </Label>
                       <Select
+                        label={<>Primary Industry/Business Sector<span className="text-error-500">*</span></>}
                         placeholder="Select an industry"
-                        options={industries}
-                        defaultValue={formData.industry}
-                        onChange={handleSelectChange("industry")}
+                        data={industries}
+                        value={String(formData.industry ?? '')}
+                        onChange={(v) => handleSelectChange('industry')(v ?? '')}
                       />
                     </div>
 
                     {/* GST Number */}
                     <div className="mb-5">
-                      <Label>
-                        GST Number<span className="text-error-500">*</span>
-                      </Label>
-                      <Input
+                      <TextInput
+                        label={<>GST Number<span className="text-error-500">*</span></>}
                         type="text"
-                        name="gstNumber"
+                        value={String(formData.gstNumber ?? '')}
                         placeholder="Enter your GST number"
-                        defaultValue={formData.gstNumber}
-                        onChange={handleChange}
+                        onValueChange={(v) => handleValueChange('gstNumber')(v)}
                       />
                     </div>
 
                     {/* Documents */}
                     <div className="mb-5">
-                      <Label>
-                        Documents (Attachments)<span className="text-error-500">*</span>
-                      </Label>
-                      <input
-                        type="file"
-                        name="documents"
-                        multiple
-                        onChange={handleFileChange}
-                        disabled={isUploading}
-                        className="block w-full text-sm text-gray-500 file:mr-4 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-500 file:text-white hover:file:bg-brand-600 disabled:opacity-50"
+                      <MultiFileInput
+                        label={<>Documents (Attachments)<span className="text-error-500">*</span></>}
+                        maxFiles={5}
+                        accept=".pdf,.png,.jpg,.jpeg"
+                        multiple={true}
+                        className="w-full"
+                        onValueChange={handleFileChange}
                       />
                       {isUploading && (
                         <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
@@ -312,83 +331,68 @@ export default observer(function RegisterForm() {
 
                 {/* Primary Contact Person Section */}
                 <div>
-                  <h2 className="mb-4 font-semibold text-gray-800 text-base dark:text-white/90">
+                  <h2 className={cn("mb-4 font-semibold text-gray-800 text-base dark:text-white/90 pb-3 border-b-2 border-brand-500/20", isSupplier ? "border-brand-500/20" : "border-green-600/20")}>
                     Primary Contact Person
                   </h2>
                   <div className="space-y-5">
                     {/* First Name & Last Name */}
                     <div>
-                      <Label>
-                        First Name<span className="text-error-500">*</span>
-                      </Label>
-                      <Input
+                      <TextInput
+                        label={<>First Name<span className="text-error-500">*</span></>}
                         type="text"
-                        name="contactFirstName"
+                        value={String(formData.contactFirstName ?? '')}
                         placeholder="Enter first name"
-                        defaultValue={formData.contactFirstName}
-                        onChange={handleChange}
+                        onValueChange={(v) => handleValueChange('contactFirstName')(v)}
                       />
                     </div>
                     <div>
-                      <Label>
-                        Last Name<span className="text-error-500">*</span>
-                      </Label>
-                      <Input
+                      <TextInput
+                        label={<>Last Name<span className="text-error-500">*</span></>}
                         type="text"
-                        name="contactLastName"
+                        value={String(formData.contactLastName ?? '')}
                         placeholder="Enter last name"
-                        defaultValue={formData.contactLastName}
-                        onChange={handleChange}
+                        onValueChange={(v) => handleValueChange('contactLastName')(v)}
                       />
                     </div>
 
                     {/* Job Title */}
                     <div className="mb-5">
-                      <Label>
-                        Job Title<span className="text-error-500">*</span>
-                      </Label>
-                      <Input
+                      <TextInput
+                        label={<>Job Title<span className="text-error-500">*</span></>}
                         type="text"
-                        name="jobTitle"
+                        value={String(formData.jobTitle ?? '')}
                         placeholder="Enter job title"
-                        defaultValue={formData.jobTitle}
-                        onChange={handleChange}
+                        onValueChange={(v) => handleValueChange('jobTitle')(v)}
                       />
                     </div>
 
                     {/* Business Email Address */}
                     <div className="mb-5">
-                      <Label>
-                        Business Email Address<span className="text-error-500">*</span>
-                      </Label>
-                      <Input
+                      <TextInput
+                        label={<>Business Email Address<span className="text-error-500">*</span></>}
                         type="email"
-                        name="businessEmail"
+                        value={String(formData.businessEmail ?? '')}
                         placeholder="Enter your business email (will be used as login ID)"
-                        defaultValue={formData.businessEmail}
-                        onChange={handleChange}
+                        onValueChange={(v) => handleValueChange('businessEmail')(v)}
                       />
                     </div>
 
                     {/* Phone Number */}
                     <div className="mb-5">
-                      <Label>
-                        Phone Number<span className="text-error-500">*</span>
-                      </Label>
-                      <Input
+                      <TextInput
+                        label={<>Phone Number<span className="text-error-500">*</span></>}
                         type="tel"
-                        name="phoneNumber"
+                        value={String(formData.phoneNumber ?? '')}
                         placeholder="Enter phone number"
-                        defaultValue={formData.phoneNumber}
-                        onChange={handleChange}
+                        onValueChange={(v) => handleValueChange('phoneNumber')(v)}
                       />
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Checkbox */}
-              <div className="flex items-center gap-3 my-3">
+              {/* Checkbox - Inside Card */}
+              <div className="flex items-center gap-3">
                 <Checkbox
                   className="w-5 h-5"
                   checked={isChecked}
@@ -405,25 +409,26 @@ export default observer(function RegisterForm() {
                   </span>
                 </p>
               </div>
+            </div>
 
               {/* Submit Message */}
               {submitMessage && (
                 <div
-                  className={`mb-4 p-4 rounded-lg ${submitMessage.type === "success"
-                    ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200"
-                    : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200"
+                  className={`mb-4 px-4 py-1 rounded-lg font-medium transition-all ${submitMessage.type === "success"
+                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-200 border border-green-300 dark:border-green-700"
+                    : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-200 border border-red-300 dark:border-red-700"
                     }`}
                 >
                   {submitMessage.text}
                 </div>
               )}
 
-              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 items-center">
+              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 items-center mt-5">
                 <p className="text-sm font-normal text-center text-gray-700 dark:text-gray-400 sm:text-start">
                   Already have an account?
                   <Link
                     href="/login"
-                    className="text-brand-500 hover:text-brand-600 dark:text-brand-400"
+                    className={cn("ml-1 dark:text-brand-400 font-semibold hover:underline", isSupplier ? "text-brand-500 hover:text-brand-600" : "text-green-500 hover:text-green-600")}
                   >
                     Login
                   </Link>
@@ -433,9 +438,9 @@ export default observer(function RegisterForm() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    className={cn("flex items-center justify-center w-full px-4 py-3 text-sm font-medium text-white transition rounded-lg shadow-theme-xs active:scale-95 disabled:bg-gray-400 disabled:cursor-not-allowed", isSupplier ? "bg-brand-600 hover:bg-brand-500" : "bg-green-600 hover:bg-green-500")}
                   >
-                    {isSubmitting ? "Registering..." : "Register"}
+                    {isSubmitting ? "Registering..." : isSupplier ? "Register Supplier" : "Register Buyer"}
                   </button>
                 </div>
               </div>

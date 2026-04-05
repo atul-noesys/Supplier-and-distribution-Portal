@@ -798,7 +798,7 @@ export default observer(function DeliveryPage() {
                                                             );
                                                         })}
                                                         <td className="px-2 py-2 text-center">
-                                                            {user?.roleId === 5 && String(row.shipment_status || "").toLowerCase() !== "delivered" && (
+                                                            {user?.roleId === 7 && String(row.shipment_status || "").toLowerCase() !== "delivered" && (
                                                                 <button
                                                                     onClick={() => handleAcceptDelivery(String(row.ROWID || ""))}
                                                                     className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded text-sm flex items-center gap-1 justify-center whitespace-nowrap"

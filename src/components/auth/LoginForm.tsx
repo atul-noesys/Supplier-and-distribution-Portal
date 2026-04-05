@@ -65,10 +65,14 @@ export default function LogInForm() {
       // Store token (expiry is encoded in JWT)
       localStorage.setItem("access_token", accessToken);
 
-      await nguageStore.GetCurrentUser();
-
+      const user = await nguageStore.GetCurrentUser();
       startTransition();
-      router.push("/");
+
+      if (user?.roleId === 8) {
+        router.push("/oms"); //todo
+      } else {
+        router.push("/");
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Login failed";
       setError(errorMessage);
