@@ -6,11 +6,20 @@ import { useSidebar } from "@/context/SidebarContext";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 const AppHeader: React.FC = () => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
 
   const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
+
+  // Fetch logo URL from localStorage using useQuery
+  const { data: logoUrl } = useQuery({
+    queryKey: ["supplierLogo"],
+    queryFn: () => localStorage.getItem("logoUrl"),
+    staleTime: Infinity,
+    gcTime: Infinity,
+  });
 
   const handleToggle = () => {
     if (window.innerWidth >= 1024) {
@@ -161,10 +170,10 @@ const AppHeader: React.FC = () => {
             } items-center justify-between w-full gap-4 px-5 py-2 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
         >
           <Image
-              width={145}
-              height={28}
-              className="mr-2"
-              src="https://engtek.com/wp-content/uploads/2023/02/engtek.png"
+              width={100}
+              height={40}
+              className="w-30 h-full"
+              src={logoUrl || "https://engtek.com/wp-content/uploads/2023/02/engtek.png"}
               alt="Logo"
             />
           <div className="flex items-center gap-2 2xsm:gap-3">
