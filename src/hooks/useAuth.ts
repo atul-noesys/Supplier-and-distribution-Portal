@@ -11,7 +11,21 @@ interface UseAuthReturn {
 
 const checkAuthStatus = async (): Promise<UseAuthReturn> => {
   try {
-    const accessToken = localStorage.getItem("access_token");
+    let accessToken = localStorage.getItem("access_token");
+
+    // Check for token in URL hash if not in localStorage
+    if (!accessToken && typeof window !== "undefined") {
+      const hash = window.location.hash;
+      const tokenMatch = hash.match(/token=([^&]*)/);
+
+      if (tokenMatch && tokenMatch[1]) {
+        accessToken = decodeURIComponent(tokenMatch[1]);
+        // Store it for future use
+        localStorage.setItem("access_token", accessToken);
+        // Clear the hash from URL
+        window.history.replaceState(null, "", window.location.pathname);
+      }
+    }
 
     // No token
     if (!accessToken) {
