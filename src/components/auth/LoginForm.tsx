@@ -7,7 +7,7 @@ import { EyeCloseIcon, EyeIcon } from "@/icons";
 import { useStore } from "@/store/store-context";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 export default function LogInForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -16,6 +16,113 @@ export default function LogInForm() {
   const router = useRouter();
   const { nguageStore } = useStore();
   const { startTransition, endTransition } = usePageTransition();
+
+  // Helper function to initialize user session
+  const initializeUserSession = async (accessToken: string) => {
+    try {
+      localStorage.setItem("access_token", accessToken);
+
+      const user = await nguageStore.GetCurrentUser();
+
+      // Fetch supplier registration data and find matching supplier by name
+      if (user) {
+        try {
+          const supplierData = await nguageStore.GetPaginationData({
+            table: "supplier_registration",
+            skip: 0,
+            take: 200,
+            NGaugeId: "64",
+          });
+
+          // Handle both cases: direct array or object with data property
+          const supplierArray = Array.isArray(supplierData)
+            ? supplierData
+            : supplierData?.data;
+
+          if (supplierArray && Array.isArray(supplierArray)) {
+            const matchingSupplier = supplierArray.find(
+              (supplier) =>
+                (supplier.first_name as string)?.toLowerCase() === user.userName.toLowerCase()
+            );
+
+            if (matchingSupplier?.logo) {
+              try {
+                // Parse logo array and extract the first URL
+                let logoUrl: string | null = null;
+                const logoData = matchingSupplier.logo as string;
+
+                try {
+                  const parsed = JSON.parse(logoData);
+                  logoUrl = Array.isArray(parsed) ? parsed[0] : parsed;
+                } catch {
+                  logoUrl = logoData;
+                }
+
+                if (logoUrl) {
+                  // Fetch the logo using the PDF API
+                  const apiUrl = `/api/GetPdfUrl?attachment=${encodeURIComponent(logoUrl)}`;
+
+                  const logoResponse = await fetch(apiUrl, {
+                    headers: {
+                      Authorization: `Bearer ${accessToken}`,
+                    },
+                  });
+
+                  if (logoResponse.ok) {
+                    const logoBlob = await logoResponse.blob();
+                    const logoBlobUrl = URL.createObjectURL(logoBlob);
+                    localStorage.setItem("logoUrl", logoBlobUrl);
+                  } else {
+                    console.error("Failed to fetch logo:", logoResponse.status);
+                  }
+                }
+              } catch (logoErr) {
+                console.error("Error fetching logo:", logoErr);
+              }
+            }
+          } else {
+            console.log("Supplier data is null or not an array", supplierArray);
+          }
+        } catch (err) {
+          console.error("Error fetching supplier data:", err);
+        }
+      }
+
+      startTransition();
+
+      if (user?.roleId === 8) {
+        router.push("/oms");
+      } else {
+        router.push("/");
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Session initialization failed";
+      setError(errorMessage);
+      console.error("Session initialization error:", err);
+      setLoading(false);
+    }
+  };
+
+  // Check for token in URL hash on component mount
+  useEffect(() => {
+    const checkForTokenInHash = async () => {
+      if (typeof window === "undefined") return;
+
+      const hash = window.location.hash;
+      const tokenMatch = hash.match(/token=([^&]*)/);
+
+      if (tokenMatch && tokenMatch[1]) {
+        const token = decodeURIComponent(tokenMatch[1]);
+        // Clear the hash to clean up the URL
+        window.history.replaceState(null, "", window.location.pathname);
+
+        setLoading(true);
+        await initializeUserSession(token);
+      }
+    };
+
+    checkForTokenInHash();
+  }, []);
 
   const [data, setData] = useState({
     username: "somesh",
@@ -62,87 +169,11 @@ export default function LogInForm() {
         throw new Error("No access token received from login");
       }
 
-      // Store token (expiry is encoded in JWT)
-      localStorage.setItem("access_token", accessToken);
-
-      const user = await nguageStore.GetCurrentUser();
-
-      // Fetch supplier registration data and find matching supplier by name
-      if (user) {
-        try {
-          const supplierData = await nguageStore.GetPaginationData({
-            table: "supplier_registration",
-            skip: 0,
-            take: 200,
-            NGaugeId: "64",
-          });
-
-          // Handle both cases: direct array or object with data property
-          const supplierArray = Array.isArray(supplierData) 
-            ? supplierData 
-            : supplierData?.data;
-
-          if (supplierArray && Array.isArray(supplierArray)) {
-            const matchingSupplier = supplierArray.find(
-              (supplier) =>
-                (supplier.first_name as string)?.toLowerCase() === user.userName.toLowerCase()
-            );
-
-            if (matchingSupplier?.logo) {
-              try {
-                // Parse logo array and extract the first URL
-                let logoUrl: string | null = null;
-                const logoData = matchingSupplier.logo as string;
-                
-                try {
-                  const parsed = JSON.parse(logoData);
-                  logoUrl = Array.isArray(parsed) ? parsed[0] : parsed;
-                } catch {
-                  logoUrl = logoData;
-                }
-
-                if (logoUrl) {
-                  // Fetch the logo using the PDF API
-                  const apiUrl = `/api/GetPdfUrl?attachment=${encodeURIComponent(logoUrl)}`;
-
-                  const logoResponse = await fetch(apiUrl, {
-                    headers: {
-                      Authorization: `Bearer ${accessToken}`,
-                    },
-                  });
-
-                  if (logoResponse.ok) {
-                    const logoBlob = await logoResponse.blob();
-                    const logoBlobUrl = URL.createObjectURL(logoBlob);
-                    localStorage.setItem("logoUrl", logoBlobUrl);
-                  } else {
-                    console.error("Failed to fetch logo:", logoResponse.status);
-                  }
-                }
-              } catch (logoErr) {
-                console.error("Error fetching logo:", logoErr);
-              }
-            }
-          } else {
-            console.log("Supplier data is null or not an array", supplierArray);
-          }
-        } catch (err) {
-          console.error("Error fetching supplier data:", err);
-        }
-      }
-
-      startTransition();
-
-      if (user?.roleId === 8) {
-        router.push("/oms"); //todo
-      } else {
-        router.push("/");
-      }
+      await initializeUserSession(accessToken);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Login failed";
       setError(errorMessage);
       console.error("Login error:", error);
-    } finally {
       setLoading(false);
     }
   };
