@@ -7,8 +7,9 @@ import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { observer } from "mobx-react-lite";
 
-const AppHeader: React.FC = () => {
+const AppHeader = observer(() => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
 
   const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
@@ -170,12 +171,12 @@ const AppHeader: React.FC = () => {
             } items-center justify-between w-full gap-4 px-5 py-2 lg:flex shadow-theme-md lg:justify-end lg:px-0 lg:shadow-none`}
         >
           <Image
-              width={100}
-              height={40}
-              className="w-30 h-full"
-              src={logoUrl || "/images/logo/hyderabad_hardware_logo.png"}
-              alt="Logo"
-            />
+            width={100}
+            height={40}
+            className="w-30 h-full"
+            src={logoUrl || "/images/logo/hyderabad_hardware_logo.png"}
+            alt="Logo"
+          />
           <div className="flex items-center gap-2 2xsm:gap-3">
             {/* <!-- Dark Mode Toggler --> */}
             <ThemeToggleButton />
@@ -193,6 +194,6 @@ const AppHeader: React.FC = () => {
       </div>
     </header>
   );
-};
+});
 
 export default AppHeader;

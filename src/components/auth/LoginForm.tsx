@@ -138,7 +138,8 @@ export default function LogInForm() {
       startTransition();
 
       if (user?.roleId === 8) {
-        router.push("/oms"); //todo
+        localStorage.clear();
+        router.push(`https://allen-toys.netlify.app/#token=${result.data.data.access_token}`);
       } else {
         router.push("/");
       }
