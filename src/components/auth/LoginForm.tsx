@@ -2,8 +2,6 @@ import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import { usePageTransition } from "@/context/PageTransitionContext";
-import { useAuth } from "@/hooks/useAuth";
-import { useInitializeSession } from "@/hooks/useInitializeSession";
 import { EyeCloseIcon, EyeIcon } from "@/icons";
 import Link from "next/link";
 import React, { useState } from "react";
@@ -13,15 +11,6 @@ export default function LogInForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const { startTransition } = usePageTransition();
-
-  // Initialize session on authentication (handles both form login and URL token)
-  useInitializeSession();
-
-  // Trigger page transition when session initializes
-  const { isAuthenticated } = useAuth();
-  if (isAuthenticated) {
-    startTransition();
-  }
 
   const [data, setData] = useState({
     username: "somesh",
