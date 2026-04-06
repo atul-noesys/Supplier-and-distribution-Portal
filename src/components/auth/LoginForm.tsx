@@ -113,8 +113,12 @@ export default function LogInForm() {
 
                   if (logoResponse.ok) {
                     const logoBlob = await logoResponse.blob();
-                    const logoBlobUrl = URL.createObjectURL(logoBlob);
-                    localStorage.setItem("logoUrl", logoBlobUrl);
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      const base64String = reader.result as string;
+                      localStorage.setItem("logoUrl", base64String);
+                    };
+                    reader.readAsDataURL(logoBlob);
                   } else {
                     console.error("Failed to fetch logo:", logoResponse.status);
                   }
