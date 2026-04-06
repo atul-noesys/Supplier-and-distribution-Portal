@@ -11,7 +11,6 @@ import { ToastProvider } from '@/providers/ToastProvider';
 import PageTransitionOverlay from '@/components/common/PageTransitionOverlay';
 import RouteTransitionManager from '@/components/common/RouteTransitionManager';
 import { AppInitializer } from '@/components/common/AppInitializer';
-import { SessionInitializer } from '@/components/common/SessionInitializer';
 import { Suspense } from 'react';
 import { Metadata } from 'next';
 
@@ -42,7 +41,6 @@ export default function RootLayout({
             <ThemeProvider>
               <StoreProvider>
                 <QueryProvider>
-                  <SessionInitializer />
                   <SidebarProvider>{children}</SidebarProvider>
                   <ToastProvider />
                 </QueryProvider>
