@@ -2,6 +2,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { jwtDecode } from "jwt-decode";
+import { rootStore } from "@/store/root-store";
 
 interface UseAuthReturn {
   isAuthenticated: boolean;
@@ -22,6 +23,7 @@ const checkAuthStatus = async (): Promise<UseAuthReturn> => {
         accessToken = decodeURIComponent(tokenMatch[1]);
         // Store it for future use
         localStorage.setItem("access_token", accessToken);
+        await rootStore.nguageStore.GetCurrentUser();
         // Clear the hash from URL
         window.history.replaceState(null, "", window.location.pathname);
       }
