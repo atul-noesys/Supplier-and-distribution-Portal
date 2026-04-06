@@ -1,13 +1,11 @@
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useStore } from "@/store/store-context";
-import { usePageTransition } from "@/context/PageTransitionContext";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { useAuth } from "./useAuth";
 
 export function useInitializeSession() {
-  const router = useRouter();
   const { nguageStore } = useStore();
-  const { startTransition } = usePageTransition();
+  const router = useRouter();
   const { isAuthenticated, isLoading, token } = useAuth();
 
   useEffect(() => {
@@ -80,11 +78,18 @@ export function useInitializeSession() {
             console.error("Error fetching supplier data:", err);
           }
         }
+
+        // Redirect based on role
+        if (user?.roleId === 8) {
+          router.push("/oms");
+        } else {
+          router.push("/");
+        }
       } catch (err) {
         console.error("Session initialization error:", err);
       }
     };
 
     initializeSession();
-  }, [isAuthenticated, isLoading, token, nguageStore]);
+  }, [isAuthenticated, isLoading, token, nguageStore, router]);
 }

@@ -1,37 +1,27 @@
-"use client";
 import Checkbox from "@/components/form/input/Checkbox";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import { usePageTransition } from "@/context/PageTransitionContext";
-import { EyeCloseIcon, EyeIcon } from "@/icons";
-import { useStore } from "@/store/store-context";
 import { useAuth } from "@/hooks/useAuth";
 import { useInitializeSession } from "@/hooks/useInitializeSession";
+import { EyeCloseIcon, EyeIcon } from "@/icons";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 
 export default function LogInForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const router = useRouter();
-  const { nguageStore } = useStore();
   const { startTransition } = usePageTransition();
-  const { isAuthenticated } = useAuth();
 
   // Initialize session on authentication (handles both form login and URL token)
   useInitializeSession();
 
-  // Navigate after user is authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      startTransition();
-      // Redirect will be handled by route guard or based on role
-      // For now, just redirect to home
-      router.push("/");
-    }
-  }, [isAuthenticated, startTransition, router]);
+  // Trigger page transition when session initializes
+  const { isAuthenticated } = useAuth();
+  if (isAuthenticated) {
+    startTransition();
+  }
 
   const [data, setData] = useState({
     username: "somesh",
