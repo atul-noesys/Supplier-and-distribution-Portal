@@ -17,8 +17,8 @@ const AppHeader: React.FC = () => {
   const { data: logoUrl } = useQuery({
     queryKey: ["supplierLogo"],
     queryFn: () => localStorage.getItem("logoUrl"),
-    staleTime: Infinity,
-    gcTime: Infinity,
+    staleTime: 0,
+    gcTime: 0,
   });
 
   const handleToggle = () => {
