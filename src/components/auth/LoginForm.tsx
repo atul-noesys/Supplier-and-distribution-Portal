@@ -5,7 +5,6 @@ import Label from "@/components/form/Label";
 import { usePageTransition } from "@/context/PageTransitionContext";
 import { EyeCloseIcon, EyeIcon } from "@/icons";
 import { useStore } from "@/store/store-context";
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
