@@ -27,7 +27,6 @@ const UserDropdown = () => {
     // Clear user data and token
     store.nguageStore.ClearCurrentUser();
     localStorage.removeItem("access_token");
-    localStorage.clear();
     
     // Redirect to login
     router.push("/login");
