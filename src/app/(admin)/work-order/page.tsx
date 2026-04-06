@@ -1117,7 +1117,7 @@ export default observer(function WorkOrderPage() {
           </div>
         ) : viewMode === "kanban" ? (
           <div className="pt-4 px-0">
-            <KanbanBoard initialData={kanbanItems} searchTerm={searchTerm} onEditClick={user?.roleId !== 7 ? handleEditRow : undefined} onDragDropSave={user?.roleId !== 7 ? handleDragDropSave : undefined} disabled={user?.roleId === 7} maxStepCount={maxStepCount} />
+            <KanbanBoard initialData={kanbanItems} searchTerm={searchTerm} onEditClick={user?.roleId === 10 ? handleEditRow : undefined} onDragDropSave={user?.roleId === 10 ? handleDragDropSave : undefined} disabled={user?.roleId !== 10} maxStepCount={maxStepCount} />
           </div>
         ) : (
           <div className="border-t border-gray-200 dark:border-white/5">
@@ -1263,7 +1263,7 @@ export default observer(function WorkOrderPage() {
                             <MdDateRange className="w-4 h-4" />
                           </button>
 
-                          {user?.roleId !== 7 && !["delivered", "ready to ship", "in transit"].includes(String(item.wo_status || "").toLowerCase()) && (
+                          {user?.roleId === 10 && !["delivered", "ready to ship", "in transit"].includes(String(item.wo_status || "").toLowerCase()) && (
                             <button
                               onClick={() => handleEditRow(item)}
                               className="text-blue-600 dark:text-blue-400 transition-colors p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30"
@@ -1399,7 +1399,7 @@ export default observer(function WorkOrderPage() {
       )}
 
       {/* Work Order Edit Modal */}
-      {isModalOpen && selectedWorkOrder && editFormData && user?.roleId !== 7 && (
+      {isModalOpen && selectedWorkOrder && editFormData && user?.roleId === 10 && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-4/5 max-h-[90vh] flex flex-col overflow-hidden">
             {/* Modal Header */}

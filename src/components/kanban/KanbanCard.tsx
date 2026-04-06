@@ -74,7 +74,7 @@ export default function KanbanCard({ item, searchTerm = "", onEditClick }: Kanba
             <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               {searchTerm ? highlightText(item.po_number, searchTerm) : item.po_number}
             </p>
-            {user?.roleId !== 7 && (
+            {user?.roleId === 10 && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();

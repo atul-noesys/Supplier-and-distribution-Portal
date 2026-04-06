@@ -748,7 +748,7 @@ export default observer(function PurchaseOrderPage() {
                   </button>
                 )}
               </div>
-              {user?.roleId === 7 && (
+              {user?.roleId !== 10 && (
                 <button
                   onClick={() => setIsAddPOModalOpen(true)}
                   className="px-4 py-2.25 bg-blue-800 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
@@ -802,12 +802,12 @@ export default observer(function PurchaseOrderPage() {
                       <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide">
                         Remarks
                       </th>
-                      {user?.roleId === 7 && (
+                      {user?.roleId !== 10 && (
                         <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide" style={{ width: '100px' }}>
                           Actions
                         </th>
                       )}
-                      {user?.roleId !== 7 && (
+                      {user?.roleId === 10 && (
                         <th className="px-5 py-3 text-left font-medium text-white text-xs uppercase tracking-wide" style={{ width: '175px' }}>
                           WO Created
                         </th>
@@ -857,7 +857,7 @@ export default observer(function PurchaseOrderPage() {
                           <td className="px-5 py-4 text-gray-600 dark:text-gray-400 text-sm truncate" title={po.remarks || "No remarks"}>
                             {po.remarks || <span className="text-gray-400 dark:text-gray-500">-</span>}
                           </td>
-                          {user?.roleId === 7 && (
+                          {user?.roleId !== 10 && (
                             <td className="px-5 py-4">
                               <button
                                 onClick={(e) => {
@@ -871,7 +871,7 @@ export default observer(function PurchaseOrderPage() {
                               </button>
                             </td>
                           )}
-                          {user?.roleId !== 7 && (
+                          {user?.roleId === 10 && (
                             <td className="px-5 py-4">
                               {itemsByPO[po.po_number]?.some((item) => item.work_order_created !== "Yes") ? (
                                 <button
@@ -986,7 +986,7 @@ export default observer(function PurchaseOrderPage() {
                                           </Badge>
                                         ) : (
                                           <>
-                                            {user?.roleId !== 7 ? (
+                                            {user?.roleId === 10 ? (
                                               <button
                                                 onClick={() => handleCreateWorkOrder(item)}
                                                 disabled={loadingItemROWID === item.ROWID}

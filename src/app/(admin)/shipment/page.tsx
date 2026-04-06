@@ -421,7 +421,7 @@ export default observer(function ShipmentPage() {
                   </button>
                 )}
               </div>
-              {user?.roleId !== 7 && (<button
+              {user?.roleId === 10 && (<button
                 onClick={() => setIsAddShipmentModalOpen(true)}
                 className="px-4 py-2.25 bg-blue-800 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
               >
@@ -560,7 +560,7 @@ export default observer(function ShipmentPage() {
                               );
                             })}
                             <td className="px-5 py-4 text-center">
-                              {user?.roleId !== 7 && String(row.shipment_status || "").toLowerCase() !== "in transit" && String(row.shipment_status || "").toLowerCase() !== "delivered" && (
+                              {user?.roleId === 10 && String(row.shipment_status || "").toLowerCase() !== "in transit" && String(row.shipment_status || "").toLowerCase() !== "delivered" && (
                                 <button
                                   onClick={(e) => { e.stopPropagation(); handleEditShipment(row); }}
                                   className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors"
