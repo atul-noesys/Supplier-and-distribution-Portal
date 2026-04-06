@@ -81,8 +81,8 @@ export function useAuth(): UseAuthReturn {
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ["auth"],
     queryFn: checkAuthStatus,
-    staleTime: 0, 
-    gcTime: 30 * 1000, 
+    staleTime: 0,
+    gcTime: 30 * 1000,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
