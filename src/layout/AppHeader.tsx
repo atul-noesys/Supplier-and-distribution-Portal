@@ -173,7 +173,7 @@ const AppHeader: React.FC = () => {
               width={100}
               height={40}
               className="w-30 h-full"
-              src={logoUrl || "https://engtek.com/wp-content/uploads/2023/02/engtek.png"}
+              src={logoUrl || "/images/logo/hyderabad_hardware_logo.png"}
               alt="Logo"
             />
           <div className="flex items-center gap-2 2xsm:gap-3">
