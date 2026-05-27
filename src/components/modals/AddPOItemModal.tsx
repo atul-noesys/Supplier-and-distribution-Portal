@@ -54,6 +54,7 @@ function AddPOItemModalContent({
     const editingItem = poStore.getEditingItem();
 
     const [isUploadingDocument, setIsUploadingDocument] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [uploadMessage, setUploadMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
     // Fetch pagination data using TanStack Query
@@ -217,41 +218,47 @@ function AddPOItemModalContent({
 
         try {
             const saveItem = async () => {
-                // Extract only fields that have values (dynamic key-value approach)
-                const itemToSave = toRowData(formData);
+                setIsSaving(true);
+                try {
+                    // Extract only fields that have values (dynamic key-value approach)
+                    const itemToSave = toRowData(formData);
 
-                const result = await nguageStore.AddRowData(
-                    itemToSave,
-                    67,
-                    'purchase_order_items'
-                );
+                    const result = await nguageStore.AddRowData(
+                        itemToSave,
+                        67,
+                        'purchase_order_items'
+                    );
 
-                if (result.error) {
-                    toast.error(`Failed to save: ${result.error}`);
-                    return;
+                    if (result.error) {
+                        toast.error(`Failed to save: ${result.error}`);
+                        return;
+                    }
+
+                    // Store the rowId from response
+                    // API returns { data: rowId, message: "..." }
+                    const rowId = typeof result.result === 'object' && result.result !== null
+                        ? (result.result as any).data
+                        : result.result;
+
+                    const itemWithRowId: POItem = {
+                        ...formData,
+                        rowId: rowId || undefined,
+                    } as POItem;
+
+                    console.log('Item saved with rowId:', itemWithRowId.rowId, 'Full item:', itemWithRowId);
+                    onSave(itemWithRowId);
+                    toast.success('Item added successfully!');
+                    handleClose();
+                } finally {
+                    setIsSaving(false);
                 }
-
-                // Store the rowId from response
-                // API returns { data: rowId, message: "..." }
-                const rowId = typeof result.result === 'object' && result.result !== null
-                    ? (result.result as any).data
-                    : result.result;
-
-                const itemWithRowId: POItem = {
-                    ...formData,
-                    rowId: rowId || undefined,
-                } as POItem;
-
-                console.log('Item saved with rowId:', itemWithRowId.rowId, 'Full item:', itemWithRowId);
-                onSave(itemWithRowId);
-                toast.success('Item added successfully!');
-                handleClose();
             };
 
             saveItem();
         } catch (error) {
             console.error('Error saving item:', error);
             toast.error('Failed to save item');
+            setIsSaving(false);
         }
     };
 
@@ -269,43 +276,49 @@ function AddPOItemModalContent({
 
         try {
             const updateItem = async () => {
-                if (!formData.rowId) {
-                    toast.error('Item ID is missing');
-                    return;
+                setIsSaving(true);
+                try {
+                    if (!formData.rowId) {
+                        toast.error('Item ID is missing');
+                        return;
+                    }
+
+                    // Extract key-value data excluding rowId
+                    const itemToUpdate = toRowData({ ...formData, rowId: undefined });
+
+                    const rowIdString = typeof formData.rowId === 'string' || typeof formData.rowId === 'number'
+                        ? String(formData.rowId)
+                        : '';
+
+                    if (!rowIdString) {
+                        toast.error('Invalid Item ID');
+                        return;
+                    }
+
+                    const result = await nguageStore.UpdateRowData(
+                        itemToUpdate,
+                        rowIdString
+                    );
+
+                    if (!result.result) {
+                        toast.error(`Failed to update: ${result.error}`);
+                        return;
+                    }
+
+                    onSave(formData as POItem);
+                    toast.success('Item updated successfully!');
+                    queryClient.invalidateQueries({ queryKey: ["poItems"] });
+                    handleClose();
+                } finally {
+                    setIsSaving(false);
                 }
-
-                // Extract key-value data excluding rowId
-                const itemToUpdate = toRowData({ ...formData, rowId: undefined });
-
-                const rowIdString = typeof formData.rowId === 'string' || typeof formData.rowId === 'number'
-                    ? String(formData.rowId)
-                    : '';
-
-                if (!rowIdString) {
-                    toast.error('Invalid Item ID');
-                    return;
-                }
-
-                const result = await nguageStore.UpdateRowData(
-                    itemToUpdate,
-                    rowIdString
-                );
-
-                if (!result.result) {
-                    toast.error(`Failed to update: ${result.error}`);
-                    return;
-                }
-
-                onSave(formData as POItem);
-                toast.success('Item updated successfully!');
-                queryClient.invalidateQueries({ queryKey: ["poItems"] });
-                handleClose();
             };
 
             updateItem();
         } catch (error) {
             console.error('Error updating item:', error);
             toast.error('Failed to update item');
+            setIsSaving(false);
         }
     };
 
@@ -488,11 +501,18 @@ function AddPOItemModalContent({
                         Cancel
                     </button>
                     <button
-                        disabled={isUploadingDocument}
+                        disabled={isUploadingDocument || isSaving}
                         onClick={poStore.editingItemIndex !== null ? handleUpdateItem : handleSubmit}
-                        className="px-4 py-2 bg-blue-500 disabled:bg-gray-500 text-white rounded hover:bg-blue-600 disabled:hover:bg-gray-500 disabled:cursor-not-allowed disabled:opacity-70 transition-colors"
+                        className="px-4 py-2 bg-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded hover:bg-blue-600 transition-colors flex items-center gap-2"
                     >
-                        {poStore.editingItemIndex !== null ? 'Update Item' : 'Add Item'}
+                        {isSaving ? (
+                            <>
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                {poStore.editingItemIndex !== null ? 'Updating Item...' : 'Adding Item...'}
+                            </>
+                        ) : (
+                            poStore.editingItemIndex !== null ? 'Update Item' : 'Add Item'
+                        )}
                     </button>
                 </div>
             </div>

@@ -747,24 +747,23 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
             <button
               onClick={handleSavePO}
               disabled={isSaving || isUploadingDocument}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
-              {isEditMode ?
-                isSaving ? (
+              {(isSaving || isUploadingDocument) ? (
+                isEditMode ? (
                   <div className='flex items-center gap-2'>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Updating Purchase Order...
+                    {isUploadingDocument ? 'Uploading...' : 'Updating Purchase Order...'}
                   </div>
                 ) : (
-                  "Update Purchase Order"
-                ) : isSaving ? (
                   <div className='flex items-center gap-2'>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Creating Purchase Order...
+                    {isUploadingDocument ? 'Uploading...' : 'Creating Purchase Order...'}
                   </div>
-                ) : (
-                  "Create Purchase Order"
-                )}
+                )
+              ) : (
+                isEditMode ? 'Update Purchase Order' : 'Create Purchase Order'
+              )}
             </button>
           )}
         </div>
