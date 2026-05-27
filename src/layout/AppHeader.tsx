@@ -176,7 +176,7 @@ const AppHeader = observer(() => {
             width={100}
             height={40}
             className="w-30 h-full"
-            src={user?.roleId === 10 ? "/images/logo/hyderabad_hardware_logo.png" : "/images/logo/allen_toys_logo.png"}
+            src={user?.roleId === 10 && user.userName !== "internal" ? "/images/logo/hyderabad_hardware_logo.png" : "/images/logo/allen_toys_logo.png"}
             alt="Logo"
           />
           <div className="flex items-center gap-2 2xsm:gap-3">
