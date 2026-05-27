@@ -3,7 +3,7 @@
   "version": "2.2.2",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 10000 --experimental-https",
+    "dev": "next dev -H 127.0.0.1 -p 10001 --experimental-https",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",

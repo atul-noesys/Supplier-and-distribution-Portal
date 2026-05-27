@@ -107,7 +107,6 @@ function AddShipmentModalContent({
         NGaugeId: "64",
       }),
     staleTime: 0,
-    enabled: isOpen,
   });
 
   const user = nguageStore.currentUser;
@@ -115,8 +114,6 @@ function AddShipmentModalContent({
   const currentLoggedInVendor = vendorList.find(
     (vendor) =>
       vendor.business_email === user?.email &&
-      vendor.first_name === user?.firstName &&
-      vendor.last_name === user?.lastName &&
       vendor.is_account_created === "true"
   );
 
@@ -487,7 +484,7 @@ function AddShipmentModalContent({
           ...shipmentToSave,
           shipment_status: formData.carrier_name !== "" ? "In transit" : "Ready to ship",
           supplier_id: currentLoggedInVendor?.supplier_id || "",
-          vendor_name: currentLoggedInVendor?.company_name || "",
+          supplier_name: currentLoggedInVendor?.company_name || "",
         }
 
         const result = await nguageStore.UpdateRowDataDynamic(
@@ -521,7 +518,7 @@ function AddShipmentModalContent({
           ...shipmentToSave,
           shipment_status: formData.carrier_name !== "" ? "In transit" : "Ready to ship",
           supplier_id: currentLoggedInVendor?.supplier_id || "",
-          vendor_name: currentLoggedInVendor?.company_name || "",
+          supplier_name: currentLoggedInVendor?.company_name || "",
         }
 
         const result = await nguageStore.AddRowData(
@@ -923,7 +920,7 @@ function AddShipmentModalContent({
                     <MultiFileInput
                       label="Document"
                       maxFiles={5}
-                      accept=".pdf,.doc,.docx,.jpg,.png"
+                      accept=".pdf"
                       multiple={true}
                       className="w-full"
                       onValueChange={handleEditDocumentChange}
@@ -1030,7 +1027,7 @@ function AddShipmentModalContent({
                       label={<>Tracking Number {formData.carrier_name && <span className="text-red-500">*</span>}</>}
                       type="text"
                       value={formData.tracking_number as string}
-                      placeholder="e.g., TK-ENG-123456789"
+                      placeholder="e.g., TK-ALLEN-123456789"
                       onValueChange={(value) => {
                         handleInputChange("tracking_number", value);
                          if (fieldErrors.tracking_number) {

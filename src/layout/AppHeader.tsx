@@ -1,26 +1,28 @@
 "use client";
-import { ThemeToggleButton } from "@/components/common/ThemeToggleButton";
 import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
+import { ThemeToggleButton } from "@/components/common/ThemeToggleButton";
 import UserDropdown from "@/components/header/UserDropdown";
 import { useSidebar } from "@/context/SidebarContext";
 import Image from "next/image";
 import Link from "next/link";
-import React, { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
+// import { useQuery } from "@tanstack/react-query";
 import { observer } from "mobx-react-lite";
+import { useStore } from "@/store/store-context";
 
 const AppHeader = observer(() => {
+  const store = useStore();
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);
-
   const { isMobileOpen, toggleSidebar, toggleMobileSidebar } = useSidebar();
+  const user = useMemo(() => store.nguageStore.GetCurrentUserDetails(), [store.nguageStore]);
 
   // Fetch logo URL from localStorage using useQuery
-  const { data: logoUrl } = useQuery({
-    queryKey: ["supplierLogo"],
-    queryFn: () => localStorage.getItem("logoUrl"),
-    staleTime: 0,
-    gcTime: 0,
-  });
+  // const { data: logoUrl } = useQuery({
+  //   queryKey: ["supplierLogo"],
+  //   queryFn: () => localStorage.getItem("logoUrl"),
+  //   staleTime: 0,
+  //   gcTime: 0,
+  // });
 
   const handleToggle = () => {
     if (window.innerWidth >= 1024) {
@@ -174,7 +176,7 @@ const AppHeader = observer(() => {
             width={100}
             height={40}
             className="w-30 h-full"
-            src={logoUrl || "/images/logo/hyderabad_hardware_logo.png"}
+            src={user?.roleId === 10 ? "/images/logo/hyderabad_hardware_logo.png" : "/images/logo/allen_toys_logo.png"}
             alt="Logo"
           />
           <div className="flex items-center gap-2 2xsm:gap-3">
