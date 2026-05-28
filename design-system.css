@@ -1,5 +1,5 @@
 /* Import design system styles (includes Tailwind) */
-@import "@infoveave/design-system/styles";
+@import "@infoveave/design-system/src/index.css";
 @source "./**/*.{ts,tsx}";
 @source "../../../../packages/*/src/**/*.{ts,tsx}";
 /* Scan external packages that use Tailwind but ship without CSS */
