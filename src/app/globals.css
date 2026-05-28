@@ -1,6 +1,6 @@
 @import 'tailwindcss';
 
-@import "@infoveave/design-system/src/index.css";
+@import "@infoveave/design-system/styles.css";
 
 @source "./app/**/*.{ts,tsx}";
 @source "./components/**/*.{ts,tsx}";
