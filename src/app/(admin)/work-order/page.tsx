@@ -707,8 +707,8 @@ export default observer(function WorkOrderPage() {
     try {
       const rowId = String(selectedWorkOrder.ROWID);
 
-      // Get current date in ISO 8601 format with timestamp
-      const currentDate = new Date().toISOString();
+      // Get current date in ISO 8601 format with time (YYYY-MM-DDTHH:MM:SSZ)
+      const currentDate = new Date().toISOString().slice(0, 19) + 'Z';
 
       // Check if current step is the final step for this item
       const stepMatch = String(editFormData.step || "").match(/\d+/);
@@ -767,8 +767,8 @@ export default observer(function WorkOrderPage() {
         return;
       }
 
-      // Get current date in ISO 8601 format with timestamp
-      const currentDate = new Date().toISOString();
+      // Get current date in ISO 8601 format with time (YYYY-MM-DDTHH:MM:SSZ)
+      const currentDate = new Date().toISOString().slice(0, 19) + 'Z';
 
       // Get the new step name for the new step
       const newWorkOrderId = String(latestData.po_number) + String(latestData.item_code);
