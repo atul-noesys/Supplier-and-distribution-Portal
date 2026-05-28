@@ -552,7 +552,7 @@ export default observer(function PurchaseOrderPage() {
         step_name: getStepNameForItemCode(String(item.item_code), 1),
         document: null,
         remarks: "",
-        start_date: new Date().toISOString().split('T')[0],
+        start_date: new Date().toISOString().slice(0, 19) + 'Z',
         wo_status: "Work in progress"
       }
 
@@ -665,7 +665,7 @@ export default observer(function PurchaseOrderPage() {
             step_name: getStepNameForItemCode(String(item.item_code), 1),
             document: null,
             remarks: "",
-            start_date: new Date().toISOString().split('T')[0],
+            start_date: new Date().toISOString().slice(0, 19) + 'Z',
             wo_status: "Work in progress"
           }
 
