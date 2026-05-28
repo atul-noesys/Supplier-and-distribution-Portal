@@ -7,7 +7,7 @@
 @source "../../packages/*/src/**/*.{ts,tsx}";
 /* Scan external packages that use Tailwind but ship without CSS */
 @source "../../node_modules/@infoveave/ai-client/dist/**/*.{js,mjs}";
-@source "../../node_modules/@infoveave/ui-compoennts/dist/**/*.{js,mjs}";
+@source "../../node_modules/@infoveave/ui-components/dist/**/*.{js,mjs}";
 @source "../../node_modules/@infoveave/ui-primitives/dist/**/*.{js,mjs}";
 
 @custom-variant dark (&:is(.dark *));

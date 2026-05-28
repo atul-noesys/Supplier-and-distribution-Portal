@@ -1,4 +1,4 @@
-import { DateInput as InfoveeaveDateInput } from "@infoveave/ui-components";
+import { DateInput as InfoveaveDateInput } from "@infoveave/ui-components";
 import React from "react";
 
 interface DateInputProps {
@@ -34,7 +34,7 @@ export const DateInput = ({
 
   return (
     <div className={containerClassName}>
-      <InfoveeaveDateInput
+      <InfoveaveDateInput
         label={label}
         value={value}
         disabled={disabled}

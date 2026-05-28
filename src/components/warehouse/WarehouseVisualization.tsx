@@ -805,6 +805,9 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                   await queryClient.invalidateQueries({ queryKey: [QueryKeys.ItemWarehouse] });
                   await queryClient.invalidateQueries({ queryKey: [QueryKeys.LocationMaster] });
                   toast.success('Item Added to Warehouse successfully!');
+                  if (finishedWorkOrders.length <= 1) {
+                    setIsModalOpen(false);
+                  }
                 } else {
                   toast.error('Failed to Add Item in the Warehouse');
                   console.error('Failed to update work order status:', woUpdateResult.error);
