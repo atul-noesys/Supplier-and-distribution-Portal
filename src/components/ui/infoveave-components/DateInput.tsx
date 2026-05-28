@@ -41,7 +41,7 @@ export const DateInput = ({
         onValueChange={onValueChange}
         className={mergedClassName}
         placeholder={placeholder}
-        displayFormat="yyyy-MM-dd"
+        // displayFormat="yyyy-MM-dd"
       />
       {error && (
         <p className="text-red-500 text-sm mt-1">{error}</p>

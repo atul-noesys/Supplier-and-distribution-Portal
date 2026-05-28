@@ -52,7 +52,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
   const [isLoadingItems, setIsLoadingItems] = useState(false);
   const [formData, setFormData] = useState<KeyValueRecord>({
     po_issue_date: '',
-    po_estimated_delivery_date: '',
+    estimated_delivery_date: '',
     supplier_id: '',
     supplier_name: '',
     po_status: 'Pending',
@@ -120,6 +120,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
       setFormData({
         po_number: String(initialData.po_number || ''),
         po_issue_date: String(initialData.po_issue_date ? initialData.po_issue_date.split('T')[0] : ''),
+        estimated_delivery_date: String(initialData.estimated_delivery_date ? initialData.estimated_delivery_date.split('T')[0] : ''),
         supplier_id: String(initialData.supplier_id || ''),
         supplier_name: String(initialData.supplier_name || ''),
         po_status: String(initialData.po_status || 'Pending'),
@@ -134,6 +135,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
       setPoData(null);
       setFormData({
         po_issue_date: '',
+        estimated_delivery_date: '',
         supplier_id: '',
         supplier_name: '',
         po_status: 'Pending',
@@ -234,7 +236,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
     e.preventDefault();
 
     // Validate required key-value fields
-    const requiredFields = ['po_issue_date', 'po_estimated_delivery_date', 'supplier_name'];
+    const requiredFields = ['po_issue_date', 'estimated_delivery_date', 'supplier_name'];
     const missingFields = requiredFields.filter(
       (field) => !formData[field]
     );
@@ -405,6 +407,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
   const handleClose = () => {
     setFormData({
       po_issue_date: '',
+      estimated_delivery_date: '',
       supplier_id: '',
       supplier_name: '',
       po_status: 'Pending',
@@ -544,7 +547,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
                   <DateInput
                     label="Estimated Delivery Date"
                     placeholder="Select date"
-                    value={formData.po_estimated_delivery_date ? new Date(String(formData.po_estimated_delivery_date)) : undefined}
+                    value={formData.estimated_delivery_date ? new Date(String(formData.estimated_delivery_date)) : undefined}
                     disabled={isEditMode}
                     onValueChange={(date) => {
                       if (date) {
@@ -552,7 +555,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
                         const month = String(date.getMonth() + 1).padStart(2, '0');
                         const day = String(date.getDate()).padStart(2, '0');
                         const formattedDate = `${year}-${month}-${day}`;
-                        handleInputChange('po_estimated_delivery_date', formattedDate);
+                        handleInputChange('estimated_delivery_date', formattedDate);
                       }
                     }}
                   />
