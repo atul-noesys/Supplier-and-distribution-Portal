@@ -557,7 +557,7 @@ export default observer(function WorkOrderPage() {
           // Fallback for old format
           return {
             id: index,
-            date: item.date || item.timestamp || new Date().toISOString().split('T')[0],
+            date: item.date || item.timestamp || new Date().toISOString().slice(0, 19) + 'Z',
             title: item.title || item.step_name || "Step",
             description: item.description || item.remarks || "",
             icon: item.icon,

@@ -119,8 +119,8 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
       setPoData(initialData);
       setFormData({
         po_number: String(initialData.po_number || ''),
-        po_issue_date: String(initialData.po_issue_date ? initialData.po_issue_date.split('T')[0] : ''),
-        estimated_delivery_date: String(initialData.estimated_delivery_date ? initialData.estimated_delivery_date.split('T')[0] : ''),
+        po_issue_date: String(initialData.po_issue_date ? initialData.po_issue_date : ''),
+        estimated_delivery_date: String(initialData.estimated_delivery_date ? initialData.estimated_delivery_date : ''),
         supplier_id: String(initialData.supplier_id || ''),
         supplier_name: String(initialData.supplier_name || ''),
         po_status: String(initialData.po_status || 'Pending'),

@@ -449,7 +449,7 @@ export default observer(function DeliveryPage() {
             const username = currentUser?.userName || "Unknown";
 
             // Get current date in ISO format
-            const currentDate = new Date().toISOString().split('T')[0];
+            const currentDate = new Date().toISOString().slice(0, 19) + 'Z';
 
             // Prepare updated data with actual delivery date and accepted by username
             const updatedData = {
