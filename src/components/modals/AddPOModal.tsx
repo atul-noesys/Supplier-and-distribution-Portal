@@ -52,6 +52,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
   const [isLoadingItems, setIsLoadingItems] = useState(false);
   const [formData, setFormData] = useState<KeyValueRecord>({
     po_issue_date: '',
+    po_estimated_delivery_date: '',
     supplier_id: '',
     supplier_name: '',
     po_status: 'Pending',
@@ -233,7 +234,7 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
     e.preventDefault();
 
     // Validate required key-value fields
-    const requiredFields = ['po_issue_date', 'supplier_name'];
+    const requiredFields = ['po_issue_date', 'po_estimated_delivery_date', 'supplier_name'];
     const missingFields = requiredFields.filter(
       (field) => !formData[field]
     );
@@ -533,6 +534,25 @@ function AddPOModalContent({ isOpen, onClose, onSuccess, initialData }: AddPOMod
                         const day = String(date.getDate()).padStart(2, '0');
                         const formattedDate = `${year}-${month}-${day}`;
                         handleInputChange('po_issue_date', formattedDate);
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* PO Estimated Delivery Date */}
+                <div>
+                  <DateInput
+                    label="Estimated Delivery Date"
+                    placeholder="Select date"
+                    value={formData.po_estimated_delivery_date ? new Date(String(formData.po_estimated_delivery_date)) : undefined}
+                    disabled={isEditMode}
+                    onValueChange={(date) => {
+                      if (date) {
+                        const year = date.getFullYear();
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const formattedDate = `${year}-${month}-${day}`;
+                        handleInputChange('po_estimated_delivery_date', formattedDate);
                       }
                     }}
                   />
