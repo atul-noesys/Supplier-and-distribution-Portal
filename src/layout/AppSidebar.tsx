@@ -60,6 +60,7 @@ const getNavItems = (t: (key: string) => string): NavItem[] => [
     icon: <DocsIcon />,
     name: t('sidebar.master'),
     subItems: [
+      { name: t('sidebar.itemMaster'), path: "/master/item-master" },
       { name: t('sidebar.addItemProcess'), path: "/master/add-item-process" },
       { name: t('sidebar.addItemProcessSteps'), path: "/master/add-item-process-steps" }
     ]

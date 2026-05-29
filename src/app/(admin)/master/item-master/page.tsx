@@ -1,7 +1,6 @@
 "use client";
 
 import PDFViewerModal from "@/components/common/PDFViewerModal";
-import { MultiFileInput } from "@/components/ui/infoveave-components/MultiFileInput";
 import { TextInput } from "@/components/ui/infoveave-components/TextInput";
 import { useStore } from "@/store/store-context";
 import { RowData } from "@/types/nguage-rowdata";
@@ -13,21 +12,23 @@ import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { MdClose } from "react-icons/md";
 import { toast } from "react-toastify";
 
-const HIDDEN_COLUMNS = ["ROWID", "InfoveaveBatchId"];
+const HIDDEN_COLUMNS = ["ROWID", "InfoveaveBatchId", "long_description", "short_description"];
 
-// Helper function to get column width class based on index
-const getColumnWidthClass = (index: number): string => {
-  switch (index) {
-    case 0:
-      return "w-[150px] min-w-[150px] max-w-[150px]";
-    case 1:
-      return "w-[200px] min-w-[200px] max-w-[200px]";
-    case 2:
-      return "min-w-0 w-auto";
-    case 3:
+// Helper function to get column width class based on column name
+const getColumnWidthClass = (col: string): string => {
+  switch (col) {
+    case "item_code":
       return "w-[100px] min-w-[100px] max-w-[100px]";
-    case 4:
+    case "item_name":
       return "w-[200px] min-w-[200px] max-w-[200px]";
+    case "item_description":
+      return "min-w-0 w-auto";
+    case "unit_price":
+      return "w-[100px] min-w-[100px] max-w-[100px]";
+    case "item_category":
+      return "w-[140px] min-w-[140px] max-w-[140px]";
+    case "sub_category":
+      return "w-[250px] min-w-[250px] max-w-[250px]";
     default:
       return "min-w-[100px]";
   }
@@ -38,7 +39,18 @@ const formatColumnName = (col: string): string => {
   return col.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
 };
 
-export default observer(function AddItemProcessPage() {
+// Helper to render sub_category nicely
+const formatSubCategory = (value: string): string => {
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) return parsed.join(", ");
+  } catch {
+    // not JSON
+  }
+  return value;
+};
+
+export default observer(function ItemMasterPage() {
   const { nguageStore } = useStore();
   const queryClient = useQueryClient();
   const [selectedDocument, setSelectedDocument] = useState<string | null>(null);
@@ -49,16 +61,19 @@ export default observer(function AddItemProcessPage() {
   const [stepHistory, setStepHistory] = useState<string | null>(null);
   const previousUrlRef = useRef<string | null>(null);
 
-  // Modal states for Add Item Process
+  // Modal states for Add Item
   const [showAddItemModal, setShowAddItemModal] = useState(false);
   const [addItemModalLoading, setAddItemModalLoading] = useState(false);
 
-  const [addItemProcessName, setAddItemProcessName] = useState<string>("");
-  const [addItemProcessDescription, setAddItemProcessDescription] = useState<string>("");
-  const [addItemProcessRemarks, setAddItemProcessRemarks] = useState<string>("");
-  const [addItemProcessDocuments, setAddItemProcessDocuments] = useState<string[]>([]);
-  const [isUploadingDocument, setIsUploadingDocument] = useState(false);
-
+  const [formData, setFormData] = useState({
+    itemCode: "",
+    itemName: "",
+    unitPrice: 0,
+    description: "",
+    itemCategory: "",
+    subCategory: [] as string[],
+    remarks: "",
+  });
 
   const { data: authToken = null } = useQuery({
     queryKey: [QueryKeys.AuthToken],
@@ -68,13 +83,13 @@ export default observer(function AddItemProcessPage() {
   });
 
   const { data: items = [], isLoading, error } = useQuery({
-    queryKey: [QueryKeys.ItemProcess, authToken],
+    queryKey: [QueryKeys.ItemMaster, authToken],
     queryFn: async (): Promise<RowData[]> => {
       const paginationData = await nguageStore.GetPaginationData({
-        table: "item_process",
+        table: "item_master",
         skip: 0,
-        take: null,
-        NGaugeId: "68",
+        take: 100,
+        NGaugeId: "63",
       });
       const result = Array.isArray(paginationData) ? paginationData : (paginationData?.data || []);
       return (result as RowData[]) || [];
@@ -130,12 +145,10 @@ export default observer(function AddItemProcessPage() {
     }
   }, [authToken]);
 
-  // Handle PDF fetching when document selection changes
   useEffect(() => {
     fetchPdf(selectedDocument);
   }, [selectedDocument, fetchPdf]);
 
-  // Handle viewing document
   const handleViewDocument = (docName: string | null) => {
     if (!docName) {
       setOpenDocumentsString(null);
@@ -148,7 +161,6 @@ export default observer(function AddItemProcessPage() {
     setSelectedDocument(null);
   };
 
-  // Close PDF viewer
   const closePdfViewer = () => {
     setSelectedDocument(null);
     setOpenDocumentsString(null);
@@ -160,129 +172,79 @@ export default observer(function AddItemProcessPage() {
     setPdfUrl(null);
   };
 
-  // Open Add Item Process Modal
   const openAddItemModal = () => {
-    setAddItemProcessName("");
-    setAddItemProcessDescription("");
-    setAddItemProcessRemarks("");
-    setAddItemProcessDocuments([]);
     setShowAddItemModal(true);
   };
 
-  // Close Add Item Process Modal
   const closeAddItemModal = () => {
+    setFormData({
+      itemCode: "",
+      itemName: "",
+      unitPrice: 0,
+      description: "",
+      itemCategory: "",
+      subCategory: [],
+      remarks: "",
+    });
     setShowAddItemModal(false);
-    setAddItemProcessName("");
-    setAddItemProcessDescription("");
-    setAddItemProcessRemarks("");
-    setAddItemProcessDocuments([]);
-    setIsUploadingDocument(false);
   };
 
-  // Handle document upload
-  const handleDocumentUpload = async (files: any[] | undefined) => {
-    if (!files || files.length === 0) return;
+  const handleSubmitAddItemMaster = async () => {
+    const requiredFields = ['itemName', 'unitPrice', 'description', 'itemCategory', 'subCategory'];
+    const missingFields = requiredFields.filter((field) => {
+      const value = formData[field as keyof typeof formData];
+      if (Array.isArray(value)) return value.length === 0;
+      return !value;
+    });
 
-    setIsUploadingDocument(true);
-
-    try {
-      // Parse existing document paths
-      let existingDocPaths: string[] = [];
-      if (addItemProcessDocuments.length > 0) {
-        try {
-          const parsed = JSON.parse(JSON.stringify(addItemProcessDocuments));
-          if (Array.isArray(parsed)) {
-            existingDocPaths = parsed.map((d: any) => String(d));
-          } else if (parsed) {
-            existingDocPaths = [String(parsed)];
-          }
-        } catch {
-          existingDocPaths = addItemProcessDocuments.map((d) => String(d));
-        }
-      }
-
-      // Normalize incoming values to File objects (some components pass { file } wrappers)
-      const filesToUpload: File[] = files
-        .map((fileItem: any) => (fileItem?.file ? fileItem.file : fileItem))
-        .filter((file: File) => {
-          if (!file || !file.name) return false;
-          return !existingDocPaths.some((docPath) => docPath.includes(file.name));
-        });
-
-      if (filesToUpload.length === 0) {
-        toast.error('No new files to upload');
-        return;
-      }
-
-      const uploadResult = await nguageStore.UploadMultipleMedia(filesToUpload);
-      console.log("Upload result:", uploadResult);
-
-      if (uploadResult) {
-        // Normalize new upload result to an array of strings
-        const newDocs: string[] = Array.isArray(uploadResult)
-          ? uploadResult.map((d: any) => String(d))
-          : [String(uploadResult)];
-
-        const merged = [...existingDocPaths, ...newDocs];
-        setAddItemProcessDocuments(merged);
-        toast.success('File uploaded successfully');
-      } else {
-        toast.error('File upload failed');
-      }
-    } catch (error) {
-      console.error("Upload error:", error);
-      toast.error('An error occurred while uploading the file');
-    } finally {
-      setIsUploadingDocument(false);
-    }
-  };
-
-  // Handle submit Add Item Process
-  const handleSubmitAddItemProcess = async () => {
-    if (!addItemProcessName.trim()) {
-      toast.error("Item Process Name is required");
-      return;
-    }
-
-    if (!addItemProcessDescription.trim()) {
-      toast.error("Item Process Description is required");
+    if (missingFields.length > 0) {
+      const labelMap: Record<string, string> = {
+        itemName: 'Item Name',
+        unitPrice: 'Unit Price',
+        description: 'Item Description',
+        itemCategory: 'Item Category',
+        subCategory: 'Sub Category',
+      };
+      const readable = missingFields.map((f) => labelMap[f] || f).join(', ');
+      toast.error(`Please fill in required fields: ${readable}`);
       return;
     }
 
     setAddItemModalLoading(true);
 
     try {
-      // Prepare data for submission
-      const newItemProcess = {
-        item_process_name: addItemProcessName,
-        item_process_description: addItemProcessDescription,
-        remarks: addItemProcessRemarks,
-        document: addItemProcessDocuments.length > 0 ? JSON.stringify(addItemProcessDocuments) : null,
+      const newItem = {
+        item_code: formData.itemCode,
+        item_name: formData.itemName,
+        item_description: formData.description,
+        short_description: formData.description,
+        long_description: formData.description,
+        unit_price: formData.unitPrice,
+        item_category: formData.itemCategory,
+        sub_category: JSON.stringify(formData.subCategory),
+        remarks: formData.remarks || null,
       };
 
-      // Call the store method to add new item process
-      const result = await nguageStore.AddRowData(newItemProcess, 68, "item_process");
+      const result = await nguageStore.AddRowData(newItem, 63, "item_master");
 
       if (result?.result) {
-        toast.success("Item Process added successfully!");
-        // Invalidate the itemProcess query to refresh the data
+        toast.success("Item added successfully!");
         await queryClient.invalidateQueries({
-          queryKey: [QueryKeys.ItemProcess],
+          queryKey: [QueryKeys.ItemMaster],
         });
         closeAddItemModal();
       } else {
-        throw new Error(result?.error || "Failed to add item process");
+        throw new Error(result?.error || "Failed to add item");
       }
     } catch (error) {
-      console.error("Error adding item process:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to add item process";
+      console.error("Error adding item:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to add item";
       toast.error(errorMessage);
     } finally {
       setAddItemModalLoading(false);
     }
   };
 
-  // Normalize documents prop for PDFViewerModal
   const documentsProp: string | string[] | undefined = openDocumentsString || undefined;
 
   return (
@@ -290,12 +252,12 @@ export default observer(function AddItemProcessPage() {
       <div className="rounded-lg border border-gray-200 dark:border-white/5 bg-white dark:bg-white/3 overflow-hidden">
         <div className="border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/5 px-3 py-3">
           <div className="flex justify-between items-center gap-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Item Process List</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Item Master List</h2>
             <button
               onClick={openAddItemModal}
               className="px-4 py-2 bg-blue-800 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors"
             >
-              Add Item Process
+              Add Item
             </button>
           </div>
         </div>
@@ -309,11 +271,11 @@ export default observer(function AddItemProcessPage() {
             </div>
           ) : error ? (
             <div className="flex items-center justify-center py-8">
-              <p className="text-error-600 dark:text-error-400">Failed to fetch item process data</p>
+              <p className="text-error-600 dark:text-error-400">Failed to fetch item master data</p>
             </div>
           ) : items.length === 0 ? (
             <div className="flex items-center justify-center py-8">
-              <p className="text-gray-600 dark:text-gray-400">No item process records found</p>
+              <p className="text-gray-600 dark:text-gray-400">No item records found</p>
             </div>
           ) : (
             <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-white/5 bg-white dark:bg-white/3">
@@ -321,10 +283,10 @@ export default observer(function AddItemProcessPage() {
                 <table className="w-full table-fixed border-collapse">
                   <thead className="block pr-4 bg-blue-800 dark:bg-blue-700">
                     <tr className="table w-full table-fixed border-b border-blue-900 bg-blue-800 dark:bg-blue-700">
-                      {columns.map((col, idx) => {
-                        const base = "px-2 py-2 text-left font-medium text-white text-xs uppercase tracking-wide sticky top-0 z-10";
-                        const widthClass = getColumnWidthClass(idx);
-
+                      {columns.map((col) => {
+                        const base =
+                          "px-2 py-2 text-left font-medium text-white text-xs uppercase tracking-wide sticky top-0 z-10";
+                        const widthClass = getColumnWidthClass(col);
                         return (
                           <th key={col} className={`${base} ${widthClass}`}>
                             {formatColumnName(col)}
@@ -336,15 +298,16 @@ export default observer(function AddItemProcessPage() {
                   <tbody className="block overflow-y-auto" style={{ maxHeight: "calc(100vh - 250px)" }}>
                     {items.map((row, idx) => (
                       <tr
-                        key={row.ROWID || idx}
+                        key={(row as any).ROWID || idx}
                         className="table w-full table-fixed border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/2 transition-colors"
                       >
-                        {columns.map((col, cidx) => {
-                          const tdBase = "px-2 py-2 text-gray-600 dark:text-gray-400 text-sm align-top";
-                          const widthClass = getColumnWidthClass(cidx);
+                        {columns.map((col) => {
+                          const tdBase =
+                            "px-2 py-2 text-gray-600 dark:text-gray-400 text-sm align-top";
+                          const widthClass = getColumnWidthClass(col);
                           const value = (row as any)[col];
 
-                          // Check if it's a document field
+                          // Document column
                           if (col.toLowerCase().includes("document")) {
                             return (
                               <td key={col} className={`${tdBase} ${widthClass}`}>
@@ -363,9 +326,31 @@ export default observer(function AddItemProcessPage() {
                             );
                           }
 
+                          // unit_price — format as currency
+                          if (col === "unit_price") {
+                            return (
+                              <td key={col} className={`${tdBase} ${widthClass}`}>
+                                {value != null ? `$${Number(value).toFixed(2)}` : "-"}
+                              </td>
+                            );
+                          }
+
+                          // sub_category — parse JSON array
+                          if (col === "sub_category") {
+                            return (
+                              <td key={col} className={`${tdBase} ${widthClass}`}>
+                                <span className="line-clamp-2">
+                                  {value ? formatSubCategory(String(value)) : "-"}
+                                </span>
+                              </td>
+                            );
+                          }
+
                           return (
                             <td key={col} className={`${tdBase} ${widthClass}`}>
-                              {String(value ?? "-")}
+                              <span className={col === "item_description" ? "line-clamp-2" : ""}>
+                                {String(value ?? "-")}
+                              </span>
                             </td>
                           );
                         })}
@@ -392,15 +377,12 @@ export default observer(function AddItemProcessPage() {
         headerName=""
       />
 
-      {/* Add Item Process Modal */}
+      {/* Add Item Modal */}
       {showAddItemModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-1/2 max-h-5/6 flex flex-col overflow-hidden">
-            {/* Header */}
             <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-5 py-3 bg-gray-50 dark:bg-white/5">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Add Item Process
-              </h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Add Item</h2>
               <button
                 onClick={closeAddItemModal}
                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -409,75 +391,71 @@ export default observer(function AddItemProcessPage() {
               </button>
             </div>
 
-            {/* Content */}
             <div className="flex-1 overflow-y-auto p-6">
-
               <div className="grid grid-cols-2 gap-4">
-                {/* Item Process ID - Disabled */}
                 <TextInput
-                  label="Item Process ID"
+                  label={<>Item Code <span className="text-red-500">*</span></>}
                   type="text"
-                  value="IT-PRO-****"
-                  disabled={true}
-                  placeholder="IT-PRO-****"
-                  onValueChange={() => { }}
-                />
-
-                {/* Item Process Name */}
-                <TextInput
-                  label="Item Process Name"
-                  type="text"
-                  value={addItemProcessName}
-                  onValueChange={(v) => setAddItemProcessName(v ?? "")}
-                  placeholder="Enter item process name"
+                  value={formData.itemCode}
+                  placeholder="TY-****"
+                  onValueChange={(v) => setFormData({ ...formData, itemCode: v ?? "" })}
                 />
 
                 <TextInput
-                  label="Item Process Description"
+                  label={<>Item Name <span className="text-red-500">*</span></>}
                   type="text"
-                  value={addItemProcessDescription}
-                  onValueChange={(v) => setAddItemProcessDescription(v ?? "")}
-                  placeholder="Enter detailed description"
+                  value={formData.itemName}
+                  placeholder="Enter item name"
+                  onValueChange={(v) => setFormData({ ...formData, itemName: v ?? "" })}
                 />
-                <div>
-                  <MultiFileInput
-                    label="Document"
-                    maxFiles={5}
-                    accept=".pdf"
-                    multiple={true}
-                    className="w-full"
-                    onValueChange={handleDocumentUpload}
-                  />
-                  {addItemProcessDocuments.length > 0 && (
-                    <p className="text-xs text-green-600 dark:text-gray-400 mt-1">
-                      <span className="text-blue-600 dark:text-blue-400">Current:</span> {(() => {
-                        try {
-                          if (Array.isArray(addItemProcessDocuments)) {
-                            return addItemProcessDocuments
-                              .map((f: string) => (f ? f.split("/").pop() : ""))
-                              .filter(Boolean)
-                              .join(", ");
-                          }
-                          return String(addItemProcessDocuments).split("/").pop() || String(addItemProcessDocuments);
-                        } catch {
-                          return addItemProcessDocuments.join(", ");
-                        }
-                      })()}
-                    </p>
-                  )}
-                </div>
+
+                <TextInput
+                  label={<>Item Description <span className="text-red-500">*</span></>}
+                  type="text"
+                  value={formData.description}
+                  placeholder="Enter item description"
+                  onValueChange={(v) => setFormData({ ...formData, description: v ?? "" })}
+                />
+
+                <TextInput
+                  label={<>Unit Price <span className="text-red-500">*</span></>}
+                  type="number"
+                  value={String(formData.unitPrice || "")}
+                  placeholder="Enter unit price"
+                  onValueChange={(v) => setFormData({ ...formData, unitPrice: parseFloat(v ?? "0") || 0 })}
+                />
+
+                <TextInput
+                  label={<>Item Category <span className="text-red-500">*</span></>}
+                  type="text"
+                  value={formData.itemCategory}
+                  placeholder="Enter item category"
+                  onValueChange={(v) => setFormData({ ...formData, itemCategory: v ?? "" })}
+                />
+
+                <TextInput
+                  label={<>Sub Category <span className="text-red-500">*</span></>}
+                  type="text"
+                  value={formData.subCategory.join(", ")}
+                  placeholder="e.g. Teddy Bears, Dragon Toys"
+                  onValueChange={(v) =>
+                    setFormData({
+                      ...formData,
+                      subCategory: (v ?? "").split(",").map((s) => s.trim()).filter(Boolean),
+                    })
+                  }
+                />
 
                 <TextInput
                   label="Remarks"
                   type="text"
-                  value={addItemProcessRemarks}
-                  onValueChange={(v) => setAddItemProcessRemarks(v ?? "")}
+                  value={formData.remarks}
+                  onValueChange={(v) => setFormData({ ...formData, remarks: v ?? "" })}
                   placeholder="Add any remarks (optional)"
                 />
               </div>
             </div>
 
-            {/* Footer */}
             <div className="border-t border-gray-200 dark:border-gray-700 px-5 py-3 bg-gray-50 dark:bg-white/5 flex justify-end gap-3">
               <button
                 onClick={closeAddItemModal}
@@ -486,8 +464,8 @@ export default observer(function AddItemProcessPage() {
                 Cancel
               </button>
               <button
-                onClick={handleSubmitAddItemProcess}
-                disabled={addItemModalLoading || isUploadingDocument}
+                onClick={handleSubmitAddItemMaster}
+                disabled={addItemModalLoading}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-500 disabled:cursor-not-allowed disabled:opacity-60 text-white font-medium rounded-lg transition-colors flex items-center gap-2 justify-center"
               >
                 {addItemModalLoading ? (
@@ -498,7 +476,7 @@ export default observer(function AddItemProcessPage() {
                     Adding...
                   </>
                 ) : (
-                  "Add Item Process"
+                  "Add Item"
                 )}
               </button>
             </div>

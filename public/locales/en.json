@@ -28,6 +28,7 @@
         "warehouse": "Warehouse",
         "menu": "Menu",
         "master": "Master",
+        "itemMaster": "Item Master",
         "addItemProcess": "Add Item Process",
         "addItemProcessSteps": "Add Item Process Steps"
     }
