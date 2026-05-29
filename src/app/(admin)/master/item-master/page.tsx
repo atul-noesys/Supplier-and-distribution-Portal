@@ -1,6 +1,7 @@
 "use client";
 
 import PDFViewerModal from "@/components/common/PDFViewerModal";
+import { Select } from "@/components/ui";
 import { TextInput } from "@/components/ui/infoveave-components/TextInput";
 import { useStore } from "@/store/store-context";
 import { RowData } from "@/types/nguage-rowdata";
@@ -425,13 +426,26 @@ export default observer(function ItemMasterPage() {
                   onValueChange={(v) => setFormData({ ...formData, unitPrice: parseFloat(v ?? "0") || 0 })}
                 />
 
-                <TextInput
+                <Select
+                  label={<>Item Category <span className="text-red-500">*</span></>}
+                  value={String(formData.itemCategory ?? '')}
+                  onValueChange={(v) => setFormData({ ...formData, itemCategory: v ?? "" })}
+                  placeholder="Select item category"
+                  data={[
+                    ...new Map(items.map(v => [v.item_category, v])).values()
+                  ].map(v => ({
+                    label: v.item_category as string,
+                    value: v.item_category as string
+                  }))}
+                />
+
+                {/* <TextInput
                   label={<>Item Category <span className="text-red-500">*</span></>}
                   type="text"
                   value={formData.itemCategory}
                   placeholder="Enter item category"
                   onValueChange={(v) => setFormData({ ...formData, itemCategory: v ?? "" })}
-                />
+                /> */}
 
                 <TextInput
                   label={<>Sub Category <span className="text-red-500">*</span></>}

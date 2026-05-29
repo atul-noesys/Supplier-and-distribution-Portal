@@ -9,10 +9,12 @@ AppInitializer() {
       try {
         const { initializeI18n } = await import("@infoveave/i18n-core");
         const { configurePdfWorker, registerTranslations } = await import("@infoveave/document-viewers");
+        const { registerTranslations : uiComponentsRegisterTranslations } = await import("@infoveave/ui-components");
 
         // initialize i18n
         await initializeI18n();
         registerTranslations();
+        uiComponentsRegisterTranslations();
 
         // PDF worker
         await configurePdfWorker({
