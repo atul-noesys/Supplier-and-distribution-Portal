@@ -748,7 +748,7 @@ export default observer(function PurchaseOrderPage() {
                   </button>
                 )}
               </div>
-              {user?.roleId !== 10 && (
+              {(user?.roleId !== 10 || user.userName === "internal") && (
                 <button
                   onClick={() => setIsAddPOModalOpen(true)}
                   className="px-4 py-2.25 bg-blue-800 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap"
