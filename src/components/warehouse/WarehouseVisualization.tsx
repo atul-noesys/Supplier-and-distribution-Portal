@@ -249,6 +249,7 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
   const [showLegend, setShowLegend] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showPath, setShowPath] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
   // Viewport state for virtualization
   const [viewport, setViewport] = useState({ left: 0, top: 0, width: 800, height: 600 });
@@ -483,6 +484,29 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
     });
     return m;
   }, [items, validLocationCodes]);
+
+  const aggregatedItems = useMemo(() => {
+    const aggregated = new Map<string, { item_code: string; item_description: string; locations: string[]; quantity: number }>();
+
+    Array.from(itemsWithValidLocation.values()).forEach((item) => {
+      if (aggregated.has(item.item_code)) {
+        const existing = aggregated.get(item.item_code)!;
+        existing.quantity += Number(item.quantity);
+        if (!existing.locations.includes(item.location)) {
+          existing.locations.push(item.location);
+        }
+      } else {
+        aggregated.set(item.item_code, {
+          item_code: item.item_code,
+          item_description: item.item_description,
+          locations: [item.location],
+          quantity: Number(item.quantity),
+        });
+      }
+    });
+
+    return Array.from(aggregated.values());
+  }, [itemsWithValidLocation]);
 
   // Helper to derive a simple work order id (fallback to po-item key)
   const getWorkOrderId = (workOrder: Record<string, any>) => {
@@ -967,12 +991,30 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
                 </label>
               )}
 
-              <label className="toggle-switch">
+              {/* <label className="toggle-switch">
                 <span className="toggle-label">Legend</span>
                 <input
                   type="checkbox"
                   checked={showLegend}
                   onChange={() => setShowLegend(!showLegend)}
+                />
+                <span className="toggle-slider"></span>
+              </label> */}
+
+              <label className="toggle-switch">
+                <span className="toggle-label">{viewMode === 'grid' ? 'Grid' : 'Table'} View</span>
+                <input
+                  type="checkbox"
+                  checked={viewMode === 'table'}
+                  onChange={() => {
+                    setViewMode(viewMode === 'grid' ? 'table' : 'grid');
+                    // Auto-disable legend when switching to table view
+                    if (viewMode === 'grid') {
+                      setShowLegend(false);
+                    } else{
+                       setShowLegend(true);
+                    }
+                  }}
                 />
                 <span className="toggle-slider"></span>
               </label>
@@ -991,1018 +1033,1072 @@ export const WarehouseVisualization: React.FC<WarehouseVisualizationProps> = ({
         </div>
       </div>
 
-      {/* Grid container with fixed headers */}
-      <div className="border border-slate-200 rounded-lg bg-white overflow-hidden h-116.5 relative shadow-sm">
-        {isLoading && (
-          <div className="absolute inset-0 z-40 flex items-center justify-center bg-white/70 backdrop-blur-sm">
-            <div className="text-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>            </div>
-          </div>
-        )}
-        {/* Main scrollable content */}
-        <div
-          ref={mainScrollRef}
-          className="w-full h-full overflow-auto"
-          style={{
-            paddingTop: `${headerSize}px`,
-            paddingLeft: `${headerSize}px`,
-            backgroundColor: '#fafbfc',
-            scrollbarGutter: 'stable',
-          }}
-        >
-          <svg width={svgWidth} height={svgHeight} xmlns="http://www.w3.org/2000/svg">
-            <defs>
-            </defs>
+      {viewMode === 'grid' ? (
+        <div className="border border-slate-200 rounded-lg bg-white overflow-hidden h-115 relative shadow-sm">
+          {isLoading && (
+            <div className="absolute inset-0 z-40 flex items-center justify-center bg-white/70 backdrop-blur-sm">
+              <div className="text-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>            </div>
+            </div>
+          )}
+          {/* Main scrollable content */}
+          <div
+            ref={mainScrollRef}
+            className="w-full h-full overflow-auto"
+            style={{
+              paddingTop: `${headerSize}px`,
+              paddingLeft: `${headerSize}px`,
+              backgroundColor: '#fafbfc',
+              scrollbarGutter: 'stable',
+            }}
+          >
+            <svg width={svgWidth} height={svgHeight} xmlns="http://www.w3.org/2000/svg">
+              <defs>
+              </defs>
 
-            {/* Background */}
-            <rect width={svgWidth} height={svgHeight} fill="#fafbfc" />
+              {/* Background */}
+              <rect width={svgWidth} height={svgHeight} fill="#fafbfc" />
 
-            {/* Grid lines - only for data cell positions (not path-reserved) */}
-            {/* Vertical grid lines */}
-            {Array.from({ length: maxBay + 1 }).map((_, i) => {
-              // Draw vertical lines only at data bay boundaries
-              if (i === 0 || i === maxBay) {
-                return (
-                  <line
-                    key={`vline-${i}`}
-                    x1={cellStartX + i * cellWidth}
-                    y1={cellStartY}
-                    x2={cellStartX + i * cellWidth}
-                    y2={cellStartY + maxRow * cellHeight}
-                    stroke="#e2e8f0"
-                    strokeWidth="1"
-                    opacity="0.8"
-                  />
-                );
-              }
-              // For intermediate lines, only draw where not interrupted by path positions
-              const bay = i;
-              if (!isPathReservedPosition(bay, 6)) {
-                return (
-                  <line
-                    key={`vline-${i}`}
-                    x1={cellStartX + i * cellWidth}
-                    y1={cellStartY}
-                    x2={cellStartX + i * cellWidth}
-                    y2={cellStartY + maxRow * cellHeight}
-                    stroke="#e2e8f0"
-                    strokeWidth="1"
-                    opacity="0.8"
-                  />
-                );
-              }
-              return null;
-            })}
-            {/* Horizontal grid lines */}
-            {Array.from({ length: maxRow + 1 }).map((_, i) => {
-              // Draw horizontal lines only at data row boundaries
-              if (i === 0 || i === maxRow) {
-                return (
-                  <line
-                    key={`hline-${i}`}
-                    x1={cellStartX}
-                    y1={cellStartY + i * cellHeight}
-                    x2={cellStartX + maxBay * cellWidth}
-                    y2={cellStartY + i * cellHeight}
-                    stroke="#e2e8f0"
-                    strokeWidth="1"
-                    opacity="0.8"
-                  />
-                );
-              }
-              // For intermediate lines, only draw where not interrupted by path positions
-              const row = i;
-              if (!isPathReservedPosition(row, 2)) {
-                return (
-                  <line
-                    key={`hline-${i}`}
-                    x1={cellStartX}
-                    y1={cellStartY + i * cellHeight}
-                    x2={cellStartX + maxBay * cellWidth}
-                    y2={cellStartY + i * cellHeight}
-                    stroke="#e2e8f0"
-                    strokeWidth="1"
-                    opacity="0.8"
-                  />
-                );
-              }
-              return null;
-            })}
-
-            {/* Sub-path cells and main path cells - render first so location cells appear on top */}
-            {/* Sub-path rendering removed: white sub-path rows, vertical sub-paths, and intersections suppressed for now */}
-
-            {/* Draw thin cell boxes for DATA positions so empty boxes remain visible when sub-paths overlap */}
-            {(() => {
-              const buffer = 2;
-              const startRow = Math.max(1, Math.floor(viewport.top / cellHeight) + 1 - buffer);
-              const endRow = Math.min(maxRow, Math.ceil((viewport.top + viewport.height) / cellHeight) + buffer);
-              const startBay = Math.max(1, Math.floor(viewport.left / cellWidth) + 1 - buffer);
-              const endBay = Math.min(maxBay, Math.ceil((viewport.left + viewport.width) / cellWidth) + buffer);
-              const rects: React.ReactNode[] = [];
-              for (let row = startRow; row <= endRow; row++) {
-                for (let bay = startBay; bay <= endBay; bay++) {
-                  if (!isPathReservedPosition(row, 2) && !isPathReservedPosition(bay, 6)) {
-                    const x = cellStartX + (bay - 1) * cellWidth;
-                    const y = cellStartY + (row - 1) * cellHeight;
-                    rects.push(
-                      <rect
-                        key={`empty-box-${row}-${bay}`}
-                        x={x}
-                        y={y}
-                        width={cellWidth}
-                        height={cellHeight}
-                        fill="none"
-                        stroke="#e2e8f0"
-                        strokeWidth="1"
-                        pointerEvents="none"
-                      />
-                    );
-                  }
+              {/* Grid lines - only for data cell positions (not path-reserved) */}
+              {/* Vertical grid lines */}
+              {Array.from({ length: maxBay + 1 }).map((_, i) => {
+                // Draw vertical lines only at data bay boundaries
+                if (i === 0 || i === maxBay) {
+                  return (
+                    <line
+                      key={`vline-${i}`}
+                      x1={cellStartX + i * cellWidth}
+                      y1={cellStartY}
+                      x2={cellStartX + i * cellWidth}
+                      y2={cellStartY + maxRow * cellHeight}
+                      stroke="#e2e8f0"
+                      strokeWidth="1"
+                      opacity="0.8"
+                    />
+                  );
                 }
-              }
-              return rects;
-            })()}
+                // For intermediate lines, only draw where not interrupted by path positions
+                const bay = i;
+                if (!isPathReservedPosition(bay, 6)) {
+                  return (
+                    <line
+                      key={`vline-${i}`}
+                      x1={cellStartX + i * cellWidth}
+                      y1={cellStartY}
+                      x2={cellStartX + i * cellWidth}
+                      y2={cellStartY + maxRow * cellHeight}
+                      stroke="#e2e8f0"
+                      strokeWidth="1"
+                      opacity="0.8"
+                    />
+                  );
+                }
+                return null;
+              })}
+              {/* Horizontal grid lines */}
+              {Array.from({ length: maxRow + 1 }).map((_, i) => {
+                // Draw horizontal lines only at data row boundaries
+                if (i === 0 || i === maxRow) {
+                  return (
+                    <line
+                      key={`hline-${i}`}
+                      x1={cellStartX}
+                      y1={cellStartY + i * cellHeight}
+                      x2={cellStartX + maxBay * cellWidth}
+                      y2={cellStartY + i * cellHeight}
+                      stroke="#e2e8f0"
+                      strokeWidth="1"
+                      opacity="0.8"
+                    />
+                  );
+                }
+                // For intermediate lines, only draw where not interrupted by path positions
+                const row = i;
+                if (!isPathReservedPosition(row, 2)) {
+                  return (
+                    <line
+                      key={`hline-${i}`}
+                      x1={cellStartX}
+                      y1={cellStartY + i * cellHeight}
+                      x2={cellStartX + maxBay * cellWidth}
+                      y2={cellStartY + i * cellHeight}
+                      stroke="#e2e8f0"
+                      strokeWidth="1"
+                      opacity="0.8"
+                    />
+                  );
+                }
+                return null;
+              })}
 
-            {/* Warehouse cells grouped by level */}
-            {(() => {
-              const buffer = 2;
-              const startRow = Math.max(1, Math.floor(viewport.top / cellHeight) + 1 - buffer);
-              const endRow = Math.min(maxRow, Math.ceil((viewport.top + viewport.height) / cellHeight) + buffer);
-              const startBay = Math.max(1, Math.floor(viewport.left / cellWidth) + 1 - buffer);
-              const endBay = Math.min(maxBay, Math.ceil((viewport.left + viewport.width) / cellWidth) + buffer);
+              {/* Sub-path cells and main path cells - render first so location cells appear on top */}
+              {/* Sub-path rendering removed: white sub-path rows, vertical sub-paths, and intersections suppressed for now */}
 
-              const nodes: React.ReactNode[] = [];
-
-              gridData.forEach((gridItem) => {
-                const [rowStr, bayStr] = gridItem.gridKey.split('-');
-                const row = parseInt(rowStr);
-                const bay = parseInt(bayStr);
-
-                // skip groups outside viewport
-                if (row < startRow || row > endRow || bay < startBay || bay > endBay) return;
-
-                // Render 10 fixed levels per cell (bottom = level 1, top = level 10)
-                {
-                  const levels = gridItem.cells;
-                  const levelMap = new Map<number, GridCell>();
-                  levels.forEach((c) => levelMap.set(c.level, c));
-                  const TOTAL_LEVELS = 6; // warehouse max level
-                  const sliceHeight = Math.max(12, Math.floor((cellHeight - 8) / TOTAL_LEVELS));
-
-                  for (let levelNum = 1; levelNum <= TOTAL_LEVELS; levelNum++) {
-                    const cell = levelMap.get(levelNum);
-                    const x = cellStartX + (bay - 1) * cellWidth;
-                    const y = cellStartY + (row - 1) * cellHeight;
-                    const isSelected = !!cell && cell.isSelected;
-                    const isInSelectedList = !!cell && allSelectedLocations.includes(cell.locationCode);
-                    const itemAtCell = cell ? itemsWithValidLocation.get(cell.locationCode) : undefined;
-
-                    const sliceIndexFromBottom = levelNum - 1; // 0 = bottom
-                    const sliceY = y + cellHeight - sliceHeight * (sliceIndexFromBottom + 1);
-                    const sliceLabel = `L${levelNum}`;
-                    const showLabel = isSelected || isInSelectedList || sliceHeight >= 12;
-
-                    // Determine fill/stroke:
-                    // - currently selected (blue highlight)
-                    // - in selected list but not current (green highlight)
-                    // - occupied (item exists at this exact location) => yellow
-                    // - location exists but no item => dark gray (shelved)
-                    // - location does not exist => light gray (empty)
-                    const hasLocation = !!cell;
-                    const isOccupied = !!itemAtCell;
-
-                    const fill = isSelected
-                      ? '#2563eb'
-                      : isInSelectedList
-                        ? '#3b82f6'
-                        : isOccupied
-                          ? '#fbbf24'
-                          : hasLocation
-                            ? '#9ca3af' // dark gray for existing shelf without item
-                            : '#f1f5f9'; // very light for non-existent level
-
-                    const stroke = isSelected ? '#1e40af' : isInSelectedList ? '#1d4ed8' : isOccupied ? '#c4a208' : '#e2e8f0';
-
-                    nodes.push(
-                      <g key={`cell-${row}-${bay}-L${levelNum}`} data-location-code={cell?.locationCode || ''}>
-                        {/* Highlight whole stack when selected (only if any level in this stack is selected) */}
-                        {isSelected && (
-                          <rect
-                            x={x - 2}
-                            y={y - 2}
-                            width={cellWidth + 4}
-                            height={cellHeight + 4}
-                            fill="none"
-                            stroke="#1e40af"
-                            strokeWidth="1.6"
-                            rx="6"
-                            opacity="0.12"
-                          />
-                        )}
-
-                        {/* Highlight whole stack when in selected list but not current */}
-                        {isInSelectedList && !isSelected && (
-                          <rect
-                            x={x - 2}
-                            y={y - 2}
-                            width={cellWidth + 4}
-                            height={cellHeight + 4}
-                            fill="none"
-                            stroke="#1d4ed8"
-                            strokeWidth="1.2"
-                            rx="6"
-                            opacity="0.1"
-                          />
-                        )}
-
-                        {/* Slice */}
+              {/* Draw thin cell boxes for DATA positions so empty boxes remain visible when sub-paths overlap */}
+              {(() => {
+                const buffer = 2;
+                const startRow = Math.max(1, Math.floor(viewport.top / cellHeight) + 1 - buffer);
+                const endRow = Math.min(maxRow, Math.ceil((viewport.top + viewport.height) / cellHeight) + buffer);
+                const startBay = Math.max(1, Math.floor(viewport.left / cellWidth) + 1 - buffer);
+                const endBay = Math.min(maxBay, Math.ceil((viewport.left + viewport.width) / cellWidth) + buffer);
+                const rects: React.ReactNode[] = [];
+                for (let row = startRow; row <= endRow; row++) {
+                  for (let bay = startBay; bay <= endBay; bay++) {
+                    if (!isPathReservedPosition(row, 2) && !isPathReservedPosition(bay, 6)) {
+                      const x = cellStartX + (bay - 1) * cellWidth;
+                      const y = cellStartY + (row - 1) * cellHeight;
+                      rects.push(
                         <rect
-                          x={x + 2}
-                          y={sliceY + 1}
-                          width={cellWidth - 4}
-                          height={sliceHeight - 2}
-                          fill={fill}
-                          stroke={stroke}
-                          strokeWidth={isSelected ? 1.6 : isInSelectedList ? 1.2 : 0.8}
-                          rx={4}
-                          className={`warehouse-skeleton ${isSelected ? 'warehouse-pulse' : isInSelectedList ? 'warehouse-pulse-highlight' : ''}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (cell?.locationCode) onLocationClick?.(cell.locationCode);
-                          }}
-                          onMouseEnter={(e) => {
-                            e.stopPropagation();
-                            // Only show tooltip when an item is present at this location
-                            if (!itemAtCell) return;
-                            setTooltip({
-                              visible: true,
-                              x: e.clientX + 12,
-                              y: e.clientY + 12,
-                              item: itemAtCell,
-                              location: cell?.zoneData,
-                              level: levelNum,
-                              locationCode: cell?.locationCode,
-                            });
-                          }}
-                          onMouseMove={(e) => {
-                            e.stopPropagation();
-                            setTooltip((t) => (t.visible ? { ...t, x: e.clientX + 12, y: e.clientY + 12 } : t));
-                          }}
-                          onMouseLeave={(e) => {
-                            e.stopPropagation();
-                            setTooltip((t) => ({ ...t, visible: false }));
-                          }}
-                          style={{ cursor: cell ? 'pointer' : 'default' }}
+                          key={`empty-box-${row}-${bay}`}
+                          x={x}
+                          y={y}
+                          width={cellWidth}
+                          height={cellHeight}
+                          fill="none"
+                          stroke="#e2e8f0"
+                          strokeWidth="1"
+                          pointerEvents="none"
                         />
-
-                        {/* Level label only when enough space or selected */}
-                        {showLabel && (
-                          <text
-                            x={x + 6}
-                            y={sliceY + Math.max(10, sliceHeight / 2)}
-                            fontSize={Math.min(10, Math.max(8, Math.floor(sliceHeight / 2)))}
-                            fill={isSelected ? '#e6f0ff' : isInSelectedList ? '#eff6ff' : '#0f172a'}
-                            textAnchor="start"
-                            dominantBaseline="middle"
-                            fontWeight={700}
-                            pointerEvents="none"
-                          >
-                            {sliceLabel}
-                          </text>
-                        )}
-
-                        {/* Selected slice shows qty in the center */}
-                        {isSelected && isOccupied && (
-                          <text x={x + cellWidth - 8} y={sliceY + sliceHeight / 2} fontSize="10" fill="#fff7cc" textAnchor="end" dominantBaseline="middle" fontWeight={700} pointerEvents="none">
-                            Qty: {itemAtCell?.quantity}
-                          </text>
-                        )}
-                      </g>
-                    );
+                      );
+                    }
                   }
                 }
-              });
+                return rects;
+              })()}
 
-              return nodes;
-            })()}
+              {/* Warehouse cells grouped by level */}
+              {(() => {
+                const buffer = 2;
+                const startRow = Math.max(1, Math.floor(viewport.top / cellHeight) + 1 - buffer);
+                const endRow = Math.min(maxRow, Math.ceil((viewport.top + viewport.height) / cellHeight) + buffer);
+                const startBay = Math.max(1, Math.floor(viewport.left / cellWidth) + 1 - buffer);
+                const endBay = Math.min(maxBay, Math.ceil((viewport.left + viewport.width) / cellWidth) + buffer);
 
-            {/* Horizontal main path rows - rendered last for proper z-index */}
-            {/* Leading horizontal corridor H0 */}
-            {(() => {
-              if (maxRow >= 1) {
-                const pathHeight = cellHeight / 2;
-                const pathY = cellStartY - cellHeight / 2; // centered above first data row
-                return (
-                  <g key={`path-row-0`}>
-                    <rect
-                      x={cellStartX}
-                      y={pathY}
-                      width={maxBay * cellWidth}
-                      height={pathHeight}
-                      fill="#000000"
-                      opacity="0.7"
-                    />
-                    <line
-                      x1={cellStartX}
-                      y1={pathY + pathHeight / 2}
-                      x2={cellStartX + maxBay * cellWidth}
-                      y2={pathY + pathHeight / 2}
-                      stroke="#fbbf24"
-                      strokeWidth="2"
-                      strokeDasharray="8,4"
-                    />
-                    <text
-                      x={cellStartX + cellWidth / 2}
-                      y={pathY + pathHeight / 2}
-                      fontSize="14"
-                      fontWeight="bold"
-                      fill="#ffffff"
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      pointerEvents="none"
-                    >
-                      H0
-                    </text>
-                    <rect
-                      x={cellStartX}
-                      y={pathY}
-                      width={maxBay * cellWidth}
-                      height={pathHeight}
-                      fill="none"
-                      stroke="#1a1a1a"
-                      strokeWidth="1.5"
-                    />
-                  </g>
-                );
-              }
-              return null;
-            })()}
-            {Array.from({ length: maxRow }).map((_, rowIdx) => {
-              const row = rowIdx + 1;
-              if (isMainPathPosition(row, 2)) {
-                const y = cellStartY + (row - 1) * cellHeight;
-                const pathHeight = cellHeight / 2;
-                const pathY = y + (cellHeight - pathHeight) / 2; // Center vertically
-                // Calculate horizontal path index (1, 2, 3, ...)
-                // Each row block has `blockSize=2` data rows + 1 main path -> blockLength = 3
-                const pathIndex = Math.ceil(row / (2 + 1));
-                return (
-                  <g key={`path-row-${row}`}>
-                    {/* Background */}
-                    <rect
-                      x={cellStartX}
-                      y={pathY}
-                      width={maxBay * cellWidth}
-                      height={pathHeight}
-                      fill="#000000"
-                      opacity="0.7"
-                    />
-                    {/* Center dashed line */}
-                    <line
-                      x1={cellStartX}
-                      y1={pathY + pathHeight / 2}
-                      x2={cellStartX + maxBay * cellWidth}
-                      y2={pathY + pathHeight / 2}
-                      stroke="#fbbf24"
-                      strokeWidth="2"
-                      strokeDasharray="8,4"
-                    />
-                    {/* Path number label */}
-                    <text
-                      x={cellStartX + cellWidth / 2}
-                      y={pathY + pathHeight / 2}
-                      fontSize="14"
-                      fontWeight="bold"
-                      fill="#ffffff"
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      pointerEvents="none"
-                    >
-                      H{pathIndex}
-                    </text>
-                    {/* Border */}
-                    <rect
-                      x={cellStartX}
-                      y={pathY}
-                      width={maxBay * cellWidth}
-                      height={pathHeight}
-                      fill="none"
-                      stroke="#1a1a1a"
-                      strokeWidth="1.5"
-                    />
-                  </g>
-                );
-              }
-              return null;
-            })}
+                const nodes: React.ReactNode[] = [];
 
-            {/* Vertical main path bays - rendered last for proper z-index */}
-            {/* Leading vertical corridor V0 */}
-            {(() => {
-              if (maxBay >= 1) {
-                const pathWidth = cellWidth / 2;
-                const pathX = cellStartX - cellWidth / 2; // centered left of first data bay
-                return (
-                  <g key={`path-bay-0`}>
-                    <rect
-                      x={pathX}
-                      y={cellStartY}
-                      width={pathWidth}
-                      height={maxRow * cellHeight}
-                      fill="#000000"
-                      opacity="0.7"
-                    />
-                    <line
-                      x1={pathX + pathWidth / 2}
-                      y1={cellStartY}
-                      x2={pathX + pathWidth / 2}
-                      y2={cellStartY + maxRow * cellHeight}
-                      stroke="#fbbf24"
-                      strokeWidth="2"
-                      strokeDasharray="8,4"
-                    />
-                    <text
-                      x={pathX + pathWidth / 2}
-                      y={cellStartY + 12}
-                      fontSize="14"
-                      fontWeight="bold"
-                      fill="#ffffff"
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      pointerEvents="none"
-                    >
-                      V0
-                    </text>
-                    <rect
-                      x={pathX}
-                      y={cellStartY}
-                      width={pathWidth}
-                      height={maxRow * cellHeight}
-                      fill="none"
-                      stroke="#1a1a1a"
-                      strokeWidth="1.5"
-                    />
-                  </g>
-                );
-              }
-              return null;
-            })()}
-            {Array.from({ length: maxBay }).map((_, bayIdx) => {
-              const bay = bayIdx + 1;
-              if (isMainPathPosition(bay, 6)) {
-                const x = cellStartX + (bay - 1) * cellWidth;
-                const pathWidth = cellWidth / 2;
-                const pathX = x + (cellWidth - pathWidth) / 2; // Center horizontally
-                // Calculate vertical path index (1, 2, 3, ...)
-                // Each bay block has `blockSize=6` data bays + 1 main path -> blockLength = 7
-                const pathIndex = Math.ceil(bay / (6 + 1));
-                return (
-                  <g key={`path-bay-${bay}`}>
-                    {/* Background */}
-                    <rect
-                      x={pathX}
-                      y={cellStartY}
-                      width={pathWidth}
-                      height={maxRow * cellHeight}
-                      fill="#000000"
-                      opacity="0.7"
-                    />
-                    {/* Center dashed line */}
-                    <line
-                      x1={pathX + pathWidth / 2}
-                      y1={cellStartY}
-                      x2={pathX + pathWidth / 2}
-                      y2={cellStartY + maxRow * cellHeight}
-                      stroke="#fbbf24"
-                      strokeWidth="2"
-                      strokeDasharray="8,4"
-                    />
-                    {/* Path number label */}
-                    <text
-                      x={pathX + pathWidth / 2}
-                      y={cellStartY + 12}
-                      fontSize="14"
-                      fontWeight="bold"
-                      fill="#ffffff"
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      pointerEvents="none"
-                    >
-                      V{pathIndex}
-                    </text>
-                    {/* Border */}
-                    <rect
-                      x={pathX}
-                      y={cellStartY}
-                      width={pathWidth}
-                      height={maxRow * cellHeight}
-                      fill="none"
-                      stroke="#1a1a1a"
-                      strokeWidth="1.5"
-                    />
-                  </g>
-                );
-              }
-              return null;
-            })}
+                gridData.forEach((gridItem) => {
+                  const [rowStr, bayStr] = gridItem.gridKey.split('-');
+                  const row = parseInt(rowStr);
+                  const bay = parseInt(bayStr);
 
-            {/* Draw shortest path visualization - RENDERED LAST FOR TOP Z-INDEX */}
-            {showPath && pathCoordinates.length > 1 && (
-              <g key="shortest-path" opacity="0.95" pointerEvents="none">
-                {/* Build full waypoint list including path segments */}
-                {(() => {
-                  const waypoints: Array<{ x: number; y: number }> = [];
+                  // skip groups outside viewport
+                  if (row < startRow || row > endRow || bay < startBay || bay > endBay) return;
 
-                  // Build waypoint path through warehouse corridors using actual data coordinates
-                  for (let i = 0; i < pathCoordinates.length; i++) {
-                    const current = pathCoordinates[i];
+                  // Render 10 fixed levels per cell (bottom = level 1, top = level 10)
+                  {
+                    const levels = gridItem.cells;
+                    const levelMap = new Map<number, GridCell>();
+                    levels.forEach((c) => levelMap.set(c.level, c));
+                    const TOTAL_LEVELS = 6; // warehouse max level
+                    const sliceHeight = Math.max(12, Math.floor((cellHeight - 8) / TOTAL_LEVELS));
 
-                    // Use data coords to determine nearest corridor centers
-                    const currentDataBay = current.dataBay;
-                    const currentDataRow = current.dataRow;
+                    for (let levelNum = 1; levelNum <= TOTAL_LEVELS; levelNum++) {
+                      const cell = levelMap.get(levelNum);
+                      const x = cellStartX + (bay - 1) * cellWidth;
+                      const y = cellStartY + (row - 1) * cellHeight;
+                      const isSelected = !!cell && cell.isSelected;
+                      const isInSelectedList = !!cell && allSelectedLocations.includes(cell.locationCode);
+                      const itemAtCell = cell ? itemsWithValidLocation.get(cell.locationCode) : undefined;
 
-                    const getVerticalPathXForBay = (bay: number) => {
-                      const visualBay = getVisualPosition(bay, 6);
-                      const blockLength = 7; // 6 data bays + 1 main path
-                      let mainIndex = Math.round(visualBay / blockLength);
-                      if (mainIndex < 0) mainIndex = 0;
-                      const verticalVisualBay = mainIndex * blockLength;
-                      return cellStartX + (verticalVisualBay - 1) * cellWidth + cellWidth / 2;
-                    };
+                      const sliceIndexFromBottom = levelNum - 1; // 0 = bottom
+                      const sliceY = y + cellHeight - sliceHeight * (sliceIndexFromBottom + 1);
+                      const sliceLabel = `L${levelNum}`;
+                      const showLabel = isSelected || isInSelectedList || sliceHeight >= 12;
 
-                    const getHorizontalPathYForRow = (row: number) => {
-                      const visualRow = getVisualPosition(row, 2);
-                      const blockLength = 3; // 2 data rows + 1 main path
-                      let mainIndex = Math.round(visualRow / blockLength);
-                      if (mainIndex < 0) mainIndex = 0;
-                      const horizontalVisualRow = mainIndex * blockLength;
-                      return cellStartY + (horizontalVisualRow - 1) * cellHeight + cellHeight / 2;
-                    };
+                      // Determine fill/stroke:
+                      // - currently selected (blue highlight)
+                      // - in selected list but not current (green highlight)
+                      // - occupied (item exists at this exact location) => yellow
+                      // - location exists but no item => dark gray (shelved)
+                      // - location does not exist => light gray (empty)
+                      const hasLocation = !!cell;
+                      const isOccupied = !!itemAtCell;
 
-                    const hCurY = getHorizontalPathYForRow(currentDataRow);
+                      const fill = isSelected
+                        ? '#2563eb'
+                        : isInSelectedList
+                          ? '#3b82f6'
+                          : isOccupied
+                            ? '#fbbf24'
+                            : hasLocation
+                              ? '#9ca3af' // dark gray for existing shelf without item
+                              : '#f1f5f9'; // very light for non-existent level
 
-                    // Push the item's actual coordinate first (start from the item),
-                    // then join into the corridor center when routing to the next point.
-                    waypoints.push({ x: current.x, y: current.y });
-                    if (i < pathCoordinates.length - 1 && Math.abs(current.y - hCurY) > 1) {
-                      waypoints.push({ x: current.x, y: hCurY });
+                      const stroke = isSelected ? '#1e40af' : isInSelectedList ? '#1d4ed8' : isOccupied ? '#c4a208' : '#e2e8f0';
+
+                      nodes.push(
+                        <g key={`cell-${row}-${bay}-L${levelNum}`} data-location-code={cell?.locationCode || ''}>
+                          {/* Highlight whole stack when selected (only if any level in this stack is selected) */}
+                          {isSelected && (
+                            <rect
+                              x={x - 2}
+                              y={y - 2}
+                              width={cellWidth + 4}
+                              height={cellHeight + 4}
+                              fill="none"
+                              stroke="#1e40af"
+                              strokeWidth="1.6"
+                              rx="6"
+                              opacity="0.12"
+                            />
+                          )}
+
+                          {/* Highlight whole stack when in selected list but not current */}
+                          {isInSelectedList && !isSelected && (
+                            <rect
+                              x={x - 2}
+                              y={y - 2}
+                              width={cellWidth + 4}
+                              height={cellHeight + 4}
+                              fill="none"
+                              stroke="#1d4ed8"
+                              strokeWidth="1.2"
+                              rx="6"
+                              opacity="0.1"
+                            />
+                          )}
+
+                          {/* Slice */}
+                          <rect
+                            x={x + 2}
+                            y={sliceY + 1}
+                            width={cellWidth - 4}
+                            height={sliceHeight - 2}
+                            fill={fill}
+                            stroke={stroke}
+                            strokeWidth={isSelected ? 1.6 : isInSelectedList ? 1.2 : 0.8}
+                            rx={4}
+                            className={`warehouse-skeleton ${isSelected ? 'warehouse-pulse' : isInSelectedList ? 'warehouse-pulse-highlight' : ''}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (cell?.locationCode) onLocationClick?.(cell.locationCode);
+                            }}
+                            onMouseEnter={(e) => {
+                              e.stopPropagation();
+                              // Only show tooltip when an item is present at this location
+                              if (!itemAtCell) return;
+                              setTooltip({
+                                visible: true,
+                                x: e.clientX + 12,
+                                y: e.clientY + 12,
+                                item: itemAtCell,
+                                location: cell?.zoneData,
+                                level: levelNum,
+                                locationCode: cell?.locationCode,
+                              });
+                            }}
+                            onMouseMove={(e) => {
+                              e.stopPropagation();
+                              setTooltip((t) => (t.visible ? { ...t, x: e.clientX + 12, y: e.clientY + 12 } : t));
+                            }}
+                            onMouseLeave={(e) => {
+                              e.stopPropagation();
+                              setTooltip((t) => ({ ...t, visible: false }));
+                            }}
+                            style={{ cursor: cell ? 'pointer' : 'default' }}
+                          />
+
+                          {/* Level label only when enough space or selected */}
+                          {showLabel && (
+                            <text
+                              x={x + 6}
+                              y={sliceY + Math.max(10, sliceHeight / 2)}
+                              fontSize={Math.min(10, Math.max(8, Math.floor(sliceHeight / 2)))}
+                              fill={isSelected ? '#e6f0ff' : isInSelectedList ? '#eff6ff' : '#0f172a'}
+                              textAnchor="start"
+                              dominantBaseline="middle"
+                              fontWeight={700}
+                              pointerEvents="none"
+                            >
+                              {sliceLabel}
+                            </text>
+                          )}
+
+                          {/* Selected slice shows qty in the center */}
+                          {isSelected && isOccupied && (
+                            <text x={x + cellWidth - 8} y={sliceY + sliceHeight / 2} fontSize="10" fill="#fff7cc" textAnchor="end" dominantBaseline="middle" fontWeight={700} pointerEvents="none">
+                              Qty: {itemAtCell?.quantity}
+                            </text>
+                          )}
+                        </g>
+                      );
                     }
+                  }
+                });
 
-                    // Route to next location through warehouse paths
-                    if (i < pathCoordinates.length - 1) {
-                      const next = pathCoordinates[i + 1];
-                      const nextDataBay = next.dataBay;
-                      const nextDataRow = next.dataRow;
+                return nodes;
+              })()}
 
-                      const vCurX = getVerticalPathXForBay(currentDataBay);
-                      const vNextX = getVerticalPathXForBay(nextDataBay);
-                      const hNextY = getHorizontalPathYForRow(nextDataRow);
+              {/* Horizontal main path rows - rendered last for proper z-index */}
+              {/* Leading horizontal corridor H0 */}
+              {(() => {
+                if (maxRow >= 1) {
+                  const pathHeight = cellHeight / 2;
+                  const pathY = cellStartY - cellHeight / 2; // centered above first data row
+                  return (
+                    <g key={`path-row-0`}>
+                      <rect
+                        x={cellStartX}
+                        y={pathY}
+                        width={maxBay * cellWidth}
+                        height={pathHeight}
+                        fill="#000000"
+                        opacity="0.7"
+                      />
+                      <line
+                        x1={cellStartX}
+                        y1={pathY + pathHeight / 2}
+                        x2={cellStartX + maxBay * cellWidth}
+                        y2={pathY + pathHeight / 2}
+                        stroke="#fbbf24"
+                        strokeWidth="2"
+                        strokeDasharray="8,4"
+                      />
+                      <text
+                        x={cellStartX + cellWidth / 2}
+                        y={pathY + pathHeight / 2}
+                        fontSize="14"
+                        fontWeight="bold"
+                        fill="#ffffff"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        pointerEvents="none"
+                      >
+                        H0
+                      </text>
+                      <rect
+                        x={cellStartX}
+                        y={pathY}
+                        width={maxBay * cellWidth}
+                        height={pathHeight}
+                        fill="none"
+                        stroke="#1a1a1a"
+                        strokeWidth="1.5"
+                      />
+                    </g>
+                  );
+                }
+                return null;
+              })()}
+              {Array.from({ length: maxRow }).map((_, rowIdx) => {
+                const row = rowIdx + 1;
+                if (isMainPathPosition(row, 2)) {
+                  const y = cellStartY + (row - 1) * cellHeight;
+                  const pathHeight = cellHeight / 2;
+                  const pathY = y + (cellHeight - pathHeight) / 2; // Center vertically
+                  // Calculate horizontal path index (1, 2, 3, ...)
+                  // Each row block has `blockSize=2` data rows + 1 main path -> blockLength = 3
+                  const pathIndex = Math.ceil(row / (2 + 1));
+                  return (
+                    <g key={`path-row-${row}`}>
+                      {/* Background */}
+                      <rect
+                        x={cellStartX}
+                        y={pathY}
+                        width={maxBay * cellWidth}
+                        height={pathHeight}
+                        fill="#000000"
+                        opacity="0.7"
+                      />
+                      {/* Center dashed line */}
+                      <line
+                        x1={cellStartX}
+                        y1={pathY + pathHeight / 2}
+                        x2={cellStartX + maxBay * cellWidth}
+                        y2={pathY + pathHeight / 2}
+                        stroke="#fbbf24"
+                        strokeWidth="2"
+                        strokeDasharray="8,4"
+                      />
+                      {/* Path number label */}
+                      <text
+                        x={cellStartX + cellWidth / 2}
+                        y={pathY + pathHeight / 2}
+                        fontSize="14"
+                        fontWeight="bold"
+                        fill="#ffffff"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        pointerEvents="none"
+                      >
+                        H{pathIndex}
+                      </text>
+                      {/* Border */}
+                      <rect
+                        x={cellStartX}
+                        y={pathY}
+                        width={maxBay * cellWidth}
+                        height={pathHeight}
+                        fill="none"
+                        stroke="#1a1a1a"
+                        strokeWidth="1.5"
+                      />
+                    </g>
+                  );
+                }
+                return null;
+              })}
 
-                      // If both locations are on the same physical row, prefer a direct
-                      // horizontal move at the corridor center for that row
-                      if (currentDataRow === nextDataRow) {
-                        waypoints.push({ x: next.x, y: hCurY });
-                        // join from corridor center into the item
-                        waypoints.push({ x: next.x, y: next.y });
-                        continue;
+              {/* Vertical main path bays - rendered last for proper z-index */}
+              {/* Leading vertical corridor V0 */}
+              {(() => {
+                if (maxBay >= 1) {
+                  const pathWidth = cellWidth / 2;
+                  const pathX = cellStartX - cellWidth / 2; // centered left of first data bay
+                  return (
+                    <g key={`path-bay-0`}>
+                      <rect
+                        x={pathX}
+                        y={cellStartY}
+                        width={pathWidth}
+                        height={maxRow * cellHeight}
+                        fill="#000000"
+                        opacity="0.7"
+                      />
+                      <line
+                        x1={pathX + pathWidth / 2}
+                        y1={cellStartY}
+                        x2={pathX + pathWidth / 2}
+                        y2={cellStartY + maxRow * cellHeight}
+                        stroke="#fbbf24"
+                        strokeWidth="2"
+                        strokeDasharray="8,4"
+                      />
+                      <text
+                        x={pathX + pathWidth / 2}
+                        y={cellStartY + 12}
+                        fontSize="14"
+                        fontWeight="bold"
+                        fill="#ffffff"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        pointerEvents="none"
+                      >
+                        V0
+                      </text>
+                      <rect
+                        x={pathX}
+                        y={cellStartY}
+                        width={pathWidth}
+                        height={maxRow * cellHeight}
+                        fill="none"
+                        stroke="#1a1a1a"
+                        strokeWidth="1.5"
+                      />
+                    </g>
+                  );
+                }
+                return null;
+              })()}
+              {Array.from({ length: maxBay }).map((_, bayIdx) => {
+                const bay = bayIdx + 1;
+                if (isMainPathPosition(bay, 6)) {
+                  const x = cellStartX + (bay - 1) * cellWidth;
+                  const pathWidth = cellWidth / 2;
+                  const pathX = x + (cellWidth - pathWidth) / 2; // Center horizontally
+                  // Calculate vertical path index (1, 2, 3, ...)
+                  // Each bay block has `blockSize=6` data bays + 1 main path -> blockLength = 7
+                  const pathIndex = Math.ceil(bay / (6 + 1));
+                  return (
+                    <g key={`path-bay-${bay}`}>
+                      {/* Background */}
+                      <rect
+                        x={pathX}
+                        y={cellStartY}
+                        width={pathWidth}
+                        height={maxRow * cellHeight}
+                        fill="#000000"
+                        opacity="0.7"
+                      />
+                      {/* Center dashed line */}
+                      <line
+                        x1={pathX + pathWidth / 2}
+                        y1={cellStartY}
+                        x2={pathX + pathWidth / 2}
+                        y2={cellStartY + maxRow * cellHeight}
+                        stroke="#fbbf24"
+                        strokeWidth="2"
+                        strokeDasharray="8,4"
+                      />
+                      {/* Path number label */}
+                      <text
+                        x={pathX + pathWidth / 2}
+                        y={cellStartY + 12}
+                        fontSize="14"
+                        fontWeight="bold"
+                        fill="#ffffff"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        pointerEvents="none"
+                      >
+                        V{pathIndex}
+                      </text>
+                      {/* Border */}
+                      <rect
+                        x={pathX}
+                        y={cellStartY}
+                        width={pathWidth}
+                        height={maxRow * cellHeight}
+                        fill="none"
+                        stroke="#1a1a1a"
+                        strokeWidth="1.5"
+                      />
+                    </g>
+                  );
+                }
+                return null;
+              })}
+
+              {/* Draw shortest path visualization - RENDERED LAST FOR TOP Z-INDEX */}
+              {showPath && pathCoordinates.length > 1 && (
+                <g key="shortest-path" opacity="0.95" pointerEvents="none">
+                  {/* Build full waypoint list including path segments */}
+                  {(() => {
+                    const waypoints: Array<{ x: number; y: number }> = [];
+
+                    // Build waypoint path through warehouse corridors using actual data coordinates
+                    for (let i = 0; i < pathCoordinates.length; i++) {
+                      const current = pathCoordinates[i];
+
+                      // Use data coords to determine nearest corridor centers
+                      const currentDataBay = current.dataBay;
+                      const currentDataRow = current.dataRow;
+
+                      const getVerticalPathXForBay = (bay: number) => {
+                        const visualBay = getVisualPosition(bay, 6);
+                        const blockLength = 7; // 6 data bays + 1 main path
+                        let mainIndex = Math.round(visualBay / blockLength);
+                        if (mainIndex < 0) mainIndex = 0;
+                        const verticalVisualBay = mainIndex * blockLength;
+                        return cellStartX + (verticalVisualBay - 1) * cellWidth + cellWidth / 2;
+                      };
+
+                      const getHorizontalPathYForRow = (row: number) => {
+                        const visualRow = getVisualPosition(row, 2);
+                        const blockLength = 3; // 2 data rows + 1 main path
+                        let mainIndex = Math.round(visualRow / blockLength);
+                        if (mainIndex < 0) mainIndex = 0;
+                        const horizontalVisualRow = mainIndex * blockLength;
+                        return cellStartY + (horizontalVisualRow - 1) * cellHeight + cellHeight / 2;
+                      };
+
+                      const hCurY = getHorizontalPathYForRow(currentDataRow);
+
+                      // Push the item's actual coordinate first (start from the item),
+                      // then join into the corridor center when routing to the next point.
+                      waypoints.push({ x: current.x, y: current.y });
+                      if (i < pathCoordinates.length - 1 && Math.abs(current.y - hCurY) > 1) {
+                        waypoints.push({ x: current.x, y: hCurY });
                       }
 
-                      // If both points map to the same horizontal corridor center,
-                      // we can move along that corridor directly to the destination x
-                      // and avoid detouring to the destination vertical corridor (prevents overshoot).
-                      if (Math.abs(hCurY - hNextY) <= 1) {
+                      // Route to next location through warehouse paths
+                      if (i < pathCoordinates.length - 1) {
+                        const next = pathCoordinates[i + 1];
+                        const nextDataBay = next.dataBay;
+                        const nextDataRow = next.dataRow;
+
+                        const vCurX = getVerticalPathXForBay(currentDataBay);
+                        const vNextX = getVerticalPathXForBay(nextDataBay);
+                        const hNextY = getHorizontalPathYForRow(nextDataRow);
+
+                        // If both locations are on the same physical row, prefer a direct
+                        // horizontal move at the corridor center for that row
+                        if (currentDataRow === nextDataRow) {
+                          waypoints.push({ x: next.x, y: hCurY });
+                          // join from corridor center into the item
+                          waypoints.push({ x: next.x, y: next.y });
+                          continue;
+                        }
+
+                        // If both points map to the same horizontal corridor center,
+                        // we can move along that corridor directly to the destination x
+                        // and avoid detouring to the destination vertical corridor (prevents overshoot).
+                        if (Math.abs(hCurY - hNextY) <= 1) {
+                          // 1) to vCurX at corridor center (hCurY)
+                          if (Math.abs(current.x - vCurX) > 1) waypoints.push({ x: vCurX, y: hCurY });
+                          // 2) move along hCurY directly to destination x
+                          waypoints.push({ x: next.x, y: hCurY });
+                          // 3) small join into the destination item
+                          waypoints.push({ x: next.x, y: next.y });
+                          continue;
+                        }
+
                         // 1) to vCurX at corridor center (hCurY)
                         if (Math.abs(current.x - vCurX) > 1) waypoints.push({ x: vCurX, y: hCurY });
-                        // 2) move along hCurY directly to destination x
-                        waypoints.push({ x: next.x, y: hCurY });
-                        // 3) small join into the destination item
+
+                        // 2) along hCurY to vNextX (if different)
+                        if (Math.abs(vCurX - vNextX) > 1) waypoints.push({ x: vNextX, y: hCurY });
+
+                        // 3) move to hNextY if destination uses a different horizontal corridor
+                        if (Math.abs(hCurY - hNextY) > 1) waypoints.push({ x: vNextX, y: hNextY });
+
+                        // 4) move horizontally from vNextX to just above/below destination x (at hNextY)
+                        if (Math.abs(vNextX - next.x) > 1) waypoints.push({ x: next.x, y: hNextY });
+
+                        // 5) small join from corridor center into the destination item
                         waypoints.push({ x: next.x, y: next.y });
-                        continue;
                       }
-
-                      // 1) to vCurX at corridor center (hCurY)
-                      if (Math.abs(current.x - vCurX) > 1) waypoints.push({ x: vCurX, y: hCurY });
-
-                      // 2) along hCurY to vNextX (if different)
-                      if (Math.abs(vCurX - vNextX) > 1) waypoints.push({ x: vNextX, y: hCurY });
-
-                      // 3) move to hNextY if destination uses a different horizontal corridor
-                      if (Math.abs(hCurY - hNextY) > 1) waypoints.push({ x: vNextX, y: hNextY });
-
-                      // 4) move horizontally from vNextX to just above/below destination x (at hNextY)
-                      if (Math.abs(vNextX - next.x) > 1) waypoints.push({ x: next.x, y: hNextY });
-
-                      // 5) small join from corridor center into the destination item
-                      waypoints.push({ x: next.x, y: next.y });
                     }
-                  }
 
-                  return (
-                    <>
-                      {/* Draw lines connecting waypoints */}
-                      {(() => {
-                        const pathNodeSet = new Set(pathCoordinates.map(p => `${p.x}:${p.y}`));
-                        return waypoints.map((waypoint, index) => {
-                          if (index < waypoints.length - 1) {
-                            const nextWaypoint = waypoints[index + 1];
-                            const endsAtNode = pathNodeSet.has(`${nextWaypoint.x}:${nextWaypoint.y}`);
-                            const markerEnd = endsAtNode ? undefined : 'url(#path-arrow)';
-                            return (
-                              <line
-                                key={`path-line-${index}`}
-                                x1={waypoint.x}
-                                y1={waypoint.y}
-                                x2={nextWaypoint.x}
-                                y2={nextWaypoint.y}
-                                stroke="#10b981"
-                                strokeWidth="4"
-                                strokeDasharray="12,8"
-                                {...(markerEnd ? { markerEnd } : {})}
-                                className="path-line"
-                                style={{ vectorEffect: 'non-scaling-stroke' }}
-                              />
-                            );
-                          }
-                          return null;
-                        });
-                      })()}
+                    return (
+                      <>
+                        {/* Draw lines connecting waypoints */}
+                        {(() => {
+                          const pathNodeSet = new Set(pathCoordinates.map(p => `${p.x}:${p.y}`));
+                          return waypoints.map((waypoint, index) => {
+                            if (index < waypoints.length - 1) {
+                              const nextWaypoint = waypoints[index + 1];
+                              const endsAtNode = pathNodeSet.has(`${nextWaypoint.x}:${nextWaypoint.y}`);
+                              const markerEnd = endsAtNode ? undefined : 'url(#path-arrow)';
+                              return (
+                                <line
+                                  key={`path-line-${index}`}
+                                  x1={waypoint.x}
+                                  y1={waypoint.y}
+                                  x2={nextWaypoint.x}
+                                  y2={nextWaypoint.y}
+                                  stroke="#10b981"
+                                  strokeWidth="4"
+                                  strokeDasharray="12,8"
+                                  {...(markerEnd ? { markerEnd } : {})}
+                                  className="path-line"
+                                  style={{ vectorEffect: 'non-scaling-stroke' }}
+                                />
+                              );
+                            }
+                            return null;
+                          });
+                        })()}
 
-                      {/* Arrow marker definition */}
-                      <defs>
-                        <marker
-                          id="path-arrow"
-                          markerWidth="7"
-                          markerHeight="6"
-                          refX="6"
-                          refY="2.5"
-                          orient="auto"
-                          markerUnits="strokeWidth"
-                        >
-                          <path d="M0,0 L0,5 L6,2.5 z" fill="#10b981" />
-                        </marker>
-                      </defs>
-
-                      {/* Draw numbered circles at each location (not intermediate waypoints) */}
-                      {pathCoordinates.map((coord, index) => (
-                        <g key={`path-point-${index}`}>
-                          {/* Circle background */}
-                          <circle
-                            cx={coord.x}
-                            cy={coord.y}
-                            r="16"
-                            fill="#10b981"
-                            opacity="1"
-                            className="waypoint-circle"
-                          />
-                          {/* Step number */}
-                          <text
-                            x={coord.x}
-                            y={coord.y}
-                            fontSize="13"
-                            fontWeight="bold"
-                            fill="#ffffff"
-                            textAnchor="middle"
-                            dominantBaseline="middle"
-                            pointerEvents="none"
-                            className="waypoint-number"
-                            style={{ transformOrigin: `${coord.x}px ${coord.y}px` }}
+                        {/* Arrow marker definition */}
+                        <defs>
+                          <marker
+                            id="path-arrow"
+                            markerWidth="7"
+                            markerHeight="6"
+                            refX="6"
+                            refY="2.5"
+                            orient="auto"
+                            markerUnits="strokeWidth"
                           >
-                            {index + 1}
-                          </text>
-                        </g>
-                      ))}
-                    </>
-                  );
-                })()}
-              </g>
-            )}
-          </svg>
-        </div>
+                            <path d="M0,0 L0,5 L6,2.5 z" fill="#10b981" />
+                          </marker>
+                        </defs>
 
-        {/* Tooltip overlay (fixed) */}
-        {tooltip.visible && (
-          <div style={{ ...tooltipStyles.container, left: tooltip.x, top: tooltip.y }}>
-            <div style={tooltipStyles.card}>
-              <div style={tooltipStyles.title}>{tooltip.item ? tooltip.item.item_code : tooltip.location?.LocationCode || tooltip.locationCode}</div>
-
-              {tooltip.item && (
-                <div>
-                  <div style={tooltipStyles.row}><div style={tooltipStyles.label}>Quantity</div><div style={tooltipStyles.value}>{tooltip.item.quantity}</div></div>
-                  <div style={tooltipStyles.row}><div style={tooltipStyles.label}>Location</div><div style={tooltipStyles.value}>{tooltip.item.location}</div></div>
-                </div>
+                        {/* Draw numbered circles at each location (not intermediate waypoints) */}
+                        {pathCoordinates.map((coord, index) => (
+                          <g key={`path-point-${index}`}>
+                            {/* Circle background */}
+                            <circle
+                              cx={coord.x}
+                              cy={coord.y}
+                              r="16"
+                              fill="#10b981"
+                              opacity="1"
+                              className="waypoint-circle"
+                            />
+                            {/* Step number */}
+                            <text
+                              x={coord.x}
+                              y={coord.y}
+                              fontSize="13"
+                              fontWeight="bold"
+                              fill="#ffffff"
+                              textAnchor="middle"
+                              dominantBaseline="middle"
+                              pointerEvents="none"
+                              className="waypoint-number"
+                              style={{ transformOrigin: `${coord.x}px ${coord.y}px` }}
+                            >
+                              {index + 1}
+                            </text>
+                          </g>
+                        ))}
+                      </>
+                    );
+                  })()}
+                </g>
               )}
+            </svg>
 
-              {tooltip.location && (
-                <div>
-                  <div style={tooltipStyles.row}><div style={tooltipStyles.label}>Warehouse</div><div style={tooltipStyles.value}>{tooltip.location.WarehouseName}</div></div>
-                </div>
-              )}
-            </div>
           </div>
-        )}
 
-        {/* Finished Goods Work Orders Modal (controlled by Open modal button) */}
-        {isModalOpen && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl w-4/5 h-[90vh] flex flex-col overflow-hidden">
-              {/* Header */}
-              <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-5 py-3">
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
-                    Add to Warehouse
-                  </h2>
-                </div>
-                <button
-                  onClick={() => {
-                    setIsModalOpen(false);
-                    setWorkOrderLocations(new Map());
-                  }}
-                  className="text-gray-900 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-                  aria-label="Close modal"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
+          {/* Tooltip overlay (fixed) */}
+          {tooltip.visible && (
+            <div style={{ ...tooltipStyles.container, left: tooltip.x, top: tooltip.y }}>
+              <div style={tooltipStyles.card}>
+                <div style={tooltipStyles.title}>{tooltip.item ? tooltip.item.item_code : tooltip.location?.LocationCode || tooltip.locationCode}</div>
 
-              {/* Content */}
-              <div className="flex-1 overflow-y-auto px-5 py-3 space-y-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                    List of Finished Goods Work Orders
-                  </h3>
-                </div>
-
-                {finishedWorkOrdersLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin">
-                      <div className="h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
-                    </div>
+                {tooltip.item && (
+                  <div>
+                    <div style={tooltipStyles.row}><div style={tooltipStyles.label}>Quantity</div><div style={tooltipStyles.value}>{tooltip.item.quantity}</div></div>
+                    <div style={tooltipStyles.row}><div style={tooltipStyles.label}>Location</div><div style={tooltipStyles.value}>{tooltip.item.location}</div></div>
                   </div>
-                ) : finishedWorkOrders.length === 0 ? (
-                  <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
-                    <p className="text-gray-600 dark:text-gray-400">No finished goods work orders available.</p>
-                  </div>
-                ) : (
-                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="bg-linear-to-r from-blue-700 to-blue-800 dark:from-blue-900 dark:to-blue-950">
-                            {/* <th className="px-4 py-3 text-left">
-                              <input type="checkbox" className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer" aria-label="select all" />
-                            </th> */}
-                            <th className="pl-2 px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">WO ID</th>
-                            <th className="px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Item Code</th>
-                            <th className="px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Item Name</th>
-                            <th className="px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">PO Number</th>
-                            <th className="px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Qty</th>
-                            <th className="px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Status</th>
-                            <th className="px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide w-28">Row</th>
-                            <th className="px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide w-27">Bay</th>
-                            <th className="px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide w-29">Level</th>
-                            <th className="pr-2 px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide w-10">Add</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                          {enrichedFinishedWorkOrders.map((wo: any, idx: number) => {
-                            const woId = getWorkOrderId(wo);
-                            const woLocation = workOrderLocations.get(woId) || { row: '', bay: '', level: '' };
-                            const availableBaysForRow = woLocation.row ? getAvailableBaysForRow(woLocation.row) : availableBays;
-                            const availableLevelsForRowBay = woLocation.row && woLocation.bay ? getAvailableLevelsForRowBay(woLocation.row, woLocation.bay) : availableLevels;
+                )}
 
-                            return (
-                              <tr key={wo.ROWID || wo.rowid || `${woId}-${idx}`} className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                {/* <td className="px-4 py-3">
-                                  <input type="checkbox" className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer" aria-label={`select-${idx}`} />
-                                </td> */}
-                                <td className="pl-2 px-1 py-3 text-sm font-medium text-gray-900 dark:text-white">{woId}</td>
-                                <td className="px-1 py-3 text-sm text-gray-700 dark:text-gray-300">{wo.item_code || '-'}</td>
-                                <td className="px-1 py-3 text-sm text-gray-700 dark:text-gray-300 max-w-xs truncate">{wo.item || '-'}</td>
-                                <td className="px-1 py-3 text-sm text-gray-700 dark:text-gray-300">{wo.po_number || '-'}</td>
-                                <td className="px-1 py-3 text-sm font-medium text-gray-900 dark:text-white">{Number(wo._computed_quantity || 0)}</td>
-                                <td className="px-1 py-3 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                                  <Badge color={getStatusColor(wo.wo_status)} variant="solid">
-                                    {wo.wo_status || '-'}
-                                  </Badge>
-                                </td>
-                                <td className="px-1 py-3 text-sm w-28">
-                                  <Select
-                                    label=""
-                                    value={woLocation.row}
-                                    onChange={(v) => {
-                                      const newRow = v ?? '';
-                                      const newLocation = { row: newRow, bay: '', level: '' };
-                                      const newMap = new Map(workOrderLocations);
-                                      if (newRow) {
-                                        newMap.set(woId, newLocation);
-                                      } else {
-                                        newMap.delete(woId);
-                                      }
-                                      setWorkOrderLocations(newMap);
-                                    }}
-                                    data={availableRows.map((row) => ({
-                                      label: row,
-                                      value: row,
-                                    }))}
-                                    placeholder="Select Row"
-                                  />
-                                </td>
-                                <td className="px-1 py-3 text-sm w-27">
-                                  <Select
-                                    label=""
-                                    value={woLocation.bay}
-                                    onChange={(v) => {
-                                      const newBay = v ?? '';
-                                      const newLocation = { ...woLocation, bay: newBay, level: '' };
-                                      const newMap = new Map(workOrderLocations);
-                                      if (newBay) {
-                                        newMap.set(woId, newLocation);
-                                      } else {
-                                        newLocation.bay = '';
-                                        newMap.set(woId, newLocation);
-                                      }
-                                      setWorkOrderLocations(newMap);
-                                    }}
-                                    disabled={!woLocation.row}
-                                    data={availableBaysForRow.map((bay) => ({
-                                      label: bay,
-                                      value: bay,
-                                    }))}
-                                    placeholder="Select Bay"
-                                  />
-                                </td>
-                                <td className="px-1 py-3 text-sm w-29">
-                                  <Select
-                                    label=""
-                                    value={woLocation.level}
-                                    onChange={(v) => {
-                                      const newLevel = v ?? '';
-                                      const newLocation = { ...woLocation, level: newLevel };
-                                      const newMap = new Map(workOrderLocations);
-                                      if (newLevel) {
-                                        newMap.set(woId, newLocation);
-                                      } else {
-                                        newMap.delete(woId);
-                                      }
-                                      setWorkOrderLocations(newMap);
-                                    }}
-                                    disabled={!woLocation.row || !woLocation.bay}
-                                    data={availableLevelsForRowBay.map((level) => ({
-                                      label: level,
-                                      value: level,
-                                    }))}
-                                    placeholder="Select Level"
-                                  />
-                                </td>
-                                <td className="px-1 py-3 text-sm w-10 flex items-center justify-center">
-                                  <button
-                                    onClick={() => AddToWarehouse(woLocation, wo)}
-                                    disabled={!woLocation.row || !woLocation.bay || !woLocation.level || loadingWorkOrderId === woId}
-                                    className="p-2 text-blue-600 hover:text-blue-800 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
-                                    aria-label="Add to warehouse"
-                                    title="Add to warehouse"
-                                  >
-                                    {loadingWorkOrderId === woId ? (
-                                      <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                                    ) : (
-                                      <Check className="w-5 h-5" />
-                                    )}
-                                  </button>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                {tooltip.location && (
+                  <div>
+                    <div style={tooltipStyles.row}><div style={tooltipStyles.label}>Warehouse</div><div style={tooltipStyles.value}>{tooltip.location.WarehouseName}</div></div>
                   </div>
                 )}
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Sticky Legend - Top Right */}
-        {showLegend && (
-          <div
-            className="absolute top-12 right-4 bg-white border border-slate-200 rounded-lg py-1.5 px-2 shadow-md z-30"
-            style={{
-              width: '105px',
-            }}
-          >
-            {/* Empty cell legend */}
-            <div className="flex items-center gap-2 mb-1">
-              <div
-                className="w-3 h-3 border rounded"
-                style={{ backgroundColor: '#ffffff', borderColor: '#cacaca' }}
-              />
-              <span className="text-xs font-medium text-slate-700">Empty</span>
+          {/* Finished Goods Work Orders Modal (controlled by Open modal button) */}
+          {isModalOpen && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div className="bg-white dark:bg-gray-900 rounded-lg shadow-2xl w-4/5 h-[90vh] flex flex-col overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-5 py-3">
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
+                      Add to Warehouse
+                    </h2>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setIsModalOpen(false);
+                      setWorkOrderLocations(new Map());
+                    }}
+                    className="text-gray-900 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                    aria-label="Close modal"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto px-5 py-3 space-y-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                      List of Finished Goods Work Orders
+                    </h3>
+                  </div>
+
+                  {finishedWorkOrdersLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="animate-spin">
+                        <div className="h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+                      </div>
+                    </div>
+                  ) : finishedWorkOrders.length === 0 ? (
+                    <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600">
+                      <p className="text-gray-600 dark:text-gray-400">No finished goods work orders available.</p>
+                    </div>
+                  ) : (
+                    <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="bg-linear-to-r from-blue-700 to-blue-800 dark:from-blue-900 dark:to-blue-950">
+                              {/* <th className="px-4 py-3 text-left">
+                              <input type="checkbox" className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer" aria-label="select all" />
+                            </th> */}
+                              <th className="pl-2 px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">WO ID</th>
+                              <th className="px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Item Code</th>
+                              <th className="px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Item Name</th>
+                              <th className="px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">PO Number</th>
+                              <th className="px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Qty</th>
+                              <th className="px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide">Status</th>
+                              <th className="px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide w-28">Row</th>
+                              <th className="px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide w-27">Bay</th>
+                              <th className="px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide w-29">Level</th>
+                              <th className="pr-2 px-1 py-3 text-left text-xs font-semibold text-white uppercase tracking-wide w-10">Add</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                            {enrichedFinishedWorkOrders.map((wo: any, idx: number) => {
+                              const woId = getWorkOrderId(wo);
+                              const woLocation = workOrderLocations.get(woId) || { row: '', bay: '', level: '' };
+                              const availableBaysForRow = woLocation.row ? getAvailableBaysForRow(woLocation.row) : availableBays;
+                              const availableLevelsForRowBay = woLocation.row && woLocation.bay ? getAvailableLevelsForRowBay(woLocation.row, woLocation.bay) : availableLevels;
+
+                              return (
+                                <tr key={wo.ROWID || wo.rowid || `${woId}-${idx}`} className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                  {/* <td className="px-4 py-3">
+                                  <input type="checkbox" className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer" aria-label={`select-${idx}`} />
+                                </td> */}
+                                  <td className="pl-2 px-1 py-3 text-sm font-medium text-gray-900 dark:text-white">{woId}</td>
+                                  <td className="px-1 py-3 text-sm text-gray-700 dark:text-gray-300">{wo.item_code || '-'}</td>
+                                  <td className="px-1 py-3 text-sm text-gray-700 dark:text-gray-300 max-w-xs truncate">{wo.item || '-'}</td>
+                                  <td className="px-1 py-3 text-sm text-gray-700 dark:text-gray-300">{wo.po_number || '-'}</td>
+                                  <td className="px-1 py-3 text-sm font-medium text-gray-900 dark:text-white">{Number(wo._computed_quantity || 0)}</td>
+                                  <td className="px-1 py-3 text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                                    <Badge color={getStatusColor(wo.wo_status)} variant="solid">
+                                      {wo.wo_status || '-'}
+                                    </Badge>
+                                  </td>
+                                  <td className="px-1 py-3 text-sm w-28">
+                                    <Select
+                                      label=""
+                                      value={woLocation.row}
+                                      onChange={(v) => {
+                                        const newRow = v ?? '';
+                                        const newLocation = { row: newRow, bay: '', level: '' };
+                                        const newMap = new Map(workOrderLocations);
+                                        if (newRow) {
+                                          newMap.set(woId, newLocation);
+                                        } else {
+                                          newMap.delete(woId);
+                                        }
+                                        setWorkOrderLocations(newMap);
+                                      }}
+                                      data={availableRows.map((row) => ({
+                                        label: row,
+                                        value: row,
+                                      }))}
+                                      placeholder="Select Row"
+                                    />
+                                  </td>
+                                  <td className="px-1 py-3 text-sm w-27">
+                                    <Select
+                                      label=""
+                                      value={woLocation.bay}
+                                      onChange={(v) => {
+                                        const newBay = v ?? '';
+                                        const newLocation = { ...woLocation, bay: newBay, level: '' };
+                                        const newMap = new Map(workOrderLocations);
+                                        if (newBay) {
+                                          newMap.set(woId, newLocation);
+                                        } else {
+                                          newLocation.bay = '';
+                                          newMap.set(woId, newLocation);
+                                        }
+                                        setWorkOrderLocations(newMap);
+                                      }}
+                                      disabled={!woLocation.row}
+                                      data={availableBaysForRow.map((bay) => ({
+                                        label: bay,
+                                        value: bay,
+                                      }))}
+                                      placeholder="Select Bay"
+                                    />
+                                  </td>
+                                  <td className="px-1 py-3 text-sm w-29">
+                                    <Select
+                                      label=""
+                                      value={woLocation.level}
+                                      onChange={(v) => {
+                                        const newLevel = v ?? '';
+                                        const newLocation = { ...woLocation, level: newLevel };
+                                        const newMap = new Map(workOrderLocations);
+                                        if (newLevel) {
+                                          newMap.set(woId, newLocation);
+                                        } else {
+                                          newMap.delete(woId);
+                                        }
+                                        setWorkOrderLocations(newMap);
+                                      }}
+                                      disabled={!woLocation.row || !woLocation.bay}
+                                      data={availableLevelsForRowBay.map((level) => ({
+                                        label: level,
+                                        value: level,
+                                      }))}
+                                      placeholder="Select Level"
+                                    />
+                                  </td>
+                                  <td className="px-1 py-3 text-sm w-10 flex items-center justify-center">
+                                    <button
+                                      onClick={() => AddToWarehouse(woLocation, wo)}
+                                      disabled={!woLocation.row || !woLocation.bay || !woLocation.level || loadingWorkOrderId === woId}
+                                      className="p-2 text-blue-600 hover:text-blue-800 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                                      aria-label="Add to warehouse"
+                                      title="Add to warehouse"
+                                    >
+                                      {loadingWorkOrderId === woId ? (
+                                        <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                      ) : (
+                                        <Check className="w-5 h-5" />
+                                      )}
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
+          )}
 
-            {/* Selected cell legend */}
-            <div className="flex items-center gap-2 mb-1">
-              <div
-                className="w-3 h-3 border border-blue-900 rounded"
-                style={{ backgroundColor: '#2563eb' }}
-              />
-              <span className="text-xs font-medium text-slate-700">Selected</span>
+          {/* Sticky Legend - Top Right */}
+          {showLegend && viewMode === 'grid' && (
+            <div
+              className="absolute top-12 right-4 bg-white border border-slate-200 rounded-lg py-1.5 px-2 shadow-md z-30"
+              style={{
+                width: '105px',
+              }}
+            >
+              {/* Empty cell legend */}
+              <div className="flex items-center gap-2 mb-1">
+                <div
+                  className="w-3 h-3 border rounded"
+                  style={{ backgroundColor: '#ffffff', borderColor: '#cacaca' }}
+                />
+                <span className="text-xs font-medium text-slate-700">Empty</span>
+              </div>
+
+              {/* Selected cell legend */}
+              <div className="flex items-center gap-2 mb-1">
+                <div
+                  className="w-3 h-3 border border-blue-900 rounded"
+                  style={{ backgroundColor: '#2563eb' }}
+                />
+                <span className="text-xs font-medium text-slate-700">Selected</span>
+              </div>
+
+              {/* Main path legend */}
+              <div className="flex items-center gap-2">
+                <svg width="14" height="8" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="14" height="4" fill="#000000" opacity="0.7" />
+                  <line x1="1" y1="4" x2="13" y2="4" stroke="#fbbf24" strokeWidth="1.5" strokeDasharray="3,2" />
+                </svg>
+                <span className="text-xs font-medium text-slate-700">Path</span>
+              </div>
             </div>
+          )}
 
-            {/* Main path legend */}
-            <div className="flex items-center gap-2">
-              <svg width="14" height="8" xmlns="http://www.w3.org/2000/svg">
-                <rect x="0" y="2" width="14" height="4" fill="#000000" opacity="0.7" />
-                <line x1="1" y1="4" x2="13" y2="4" stroke="#fbbf24" strokeWidth="1.5" strokeDasharray="3,2" />
+          {/* Fixed Top Header - Bay labels */}
+          {viewMode === 'grid' && (
+            <div
+              ref={topHeaderRef}
+              className="absolute top-0 left-0 right-0 bg-linear-to-b from-slate-100 to-slate-50 border-b border-slate-200"
+              style={{
+                left: `${headerSize}px`,
+                height: `${headerSize}px`,
+                overflow: 'hidden',
+                zIndex: 10,
+                paddingRight: '16px',
+              }}
+            >
+              <svg width={svgWidth} height={headerSize} xmlns="http://www.w3.org/2000/svg">
+                <rect width={svgWidth} height={headerSize} fill="none" />
+                {/* Axis labels - Bay numbers (top) */}
+                {(() => {
+                  const buffer = 2;
+                  const startBay = Math.max(1, Math.floor(viewport.left / cellWidth) + 1 - buffer);
+                  const endBay = Math.min(maxBay, Math.ceil((viewport.left + viewport.width) / cellWidth) + buffer);
+                  const nodes: React.ReactNode[] = [];
+                  for (let visualPos = startBay; visualPos <= endBay; visualPos++) {
+                    if (!isPathReservedPosition(visualPos, 6)) {
+                      const dataPos = getDataPosition(visualPos, 6);
+                      const i = visualPos - 1;
+                      nodes.push(
+                        <text key={`bay-label-${i}`} x={cellStartX + i * cellWidth + cellWidth / 2} y={headerSize - 10} fontSize="12" fill="#475569" textAnchor="middle" fontWeight="700">
+                          B{dataPos}
+                        </text>
+                      );
+                    }
+                  }
+                  return nodes;
+                })()}
               </svg>
-              <span className="text-xs font-medium text-slate-700">Path</span>
             </div>
+          )}
+
+          {/* Fixed Left Header - Row numbers */}
+          {viewMode === 'grid' && (
+            <div
+              ref={leftHeaderRef}
+              className="absolute top-0 left-0 bg-linear-to-r from-slate-100 to-slate-50 border-r border-slate-200"
+              style={{
+                top: `${headerSize}px`,
+                width: `${headerSize}px`,
+                height: `calc(100% - ${headerSize}px)`,
+                overflow: 'hidden',
+                zIndex: 10,
+                paddingBottom: '16px',
+              }}
+            >
+              <svg width={headerSize} height={svgHeight} xmlns="http://www.w3.org/2000/svg">
+                <rect width={headerSize} height={svgHeight} fill="none" />
+                {/* Axis labels - Row numbers (left side) */}
+                {(() => {
+                  const buffer = 2;
+                  const startRow = Math.max(1, Math.floor(viewport.top / cellHeight) + 1 - buffer);
+                  const endRow = Math.min(maxRow, Math.ceil((viewport.top + viewport.height) / cellHeight) + buffer);
+                  const nodes: React.ReactNode[] = [];
+                  for (let visualPos = startRow; visualPos <= endRow; visualPos++) {
+                    if (!isPathReservedPosition(visualPos, 2)) {
+                      const dataPos = getDataPosition(visualPos, 2);
+                      const i = visualPos - 1;
+                      nodes.push(
+                        <text key={`row-label-${i}`} x={headerSize / 2} y={cellStartY + i * cellHeight + cellHeight / 2} fontSize="12" fill="#475569" textAnchor="middle" dominantBaseline="middle" fontWeight="700">
+                          R{dataPos}
+                        </text>
+                      );
+                    }
+                  }
+                  return nodes;
+                })()}
+              </svg>
+            </div>
+          )}
+
+          {/* Top-left corner - empty cell */}
+          {viewMode === 'grid' && (
+            <div
+              className="absolute top-0 left-0 bg-linear-to-br from-slate-100 to-slate-50 border-b border-r border-slate-200"
+              style={{
+                width: `${headerSize}px`,
+                height: `${headerSize}px`,
+                zIndex: 20,
+              }}
+            />
+          )}
+        </div>
+      ) : (
+        // Table View
+        <div className="w-full bg-white border border-slate-200">
+          {/* Fixed Header */}
+          <div className="overflow-hidden">
+            <table className="w-full border-collapse text-sm">
+              <thead className="border-b border-blue-900 bg-blue-800 dark:bg-blue-700 text-white">
+                <tr>
+                  <th className="px-4 py-2 text-left font-semibold w-[10%]">Item Code</th>
+                  <th className="px-4 py-2 text-left font-semibold w-[50%]">Item Description</th>
+                  <th className="px-1.5 py-2 text-left font-semibold w-[30%]">Warehouse Locations</th>
+                  <th className="px-4 py-2 text-right font-semibold w-[10%]">Quantity</th>
+                </tr>
+              </thead>
+            </table>
           </div>
-        )}
 
-        {/* Fixed Top Header - Bay labels */}
-        <div
-          ref={topHeaderRef}
-          className="absolute top-0 left-0 right-0 bg-linear-to-b from-slate-100 to-slate-50 border-b border-slate-200"
-          style={{
-            left: `${headerSize}px`,
-            height: `${headerSize}px`,
-            overflow: 'hidden',
-            zIndex: 10,
-            paddingRight: '16px',
-          }}
-        >
-          <svg width={svgWidth} height={headerSize} xmlns="http://www.w3.org/2000/svg">
-            <rect width={svgWidth} height={headerSize} fill="none" />
-            {/* Axis labels - Bay numbers (top) */}
-            {(() => {
-              const buffer = 2;
-              const startBay = Math.max(1, Math.floor(viewport.left / cellWidth) + 1 - buffer);
-              const endBay = Math.min(maxBay, Math.ceil((viewport.left + viewport.width) / cellWidth) + buffer);
-              const nodes: React.ReactNode[] = [];
-              for (let visualPos = startBay; visualPos <= endBay; visualPos++) {
-                if (!isPathReservedPosition(visualPos, 6)) {
-                  const dataPos = getDataPosition(visualPos, 6);
-                  const i = visualPos - 1;
-                  nodes.push(
-                    <text key={`bay-label-${i}`} x={cellStartX + i * cellWidth + cellWidth / 2} y={headerSize - 10} fontSize="12" fill="#475569" textAnchor="middle" fontWeight="700">
-                      B{dataPos}
-                    </text>
-                  );
-                }
-              }
-              return nodes;
-            })()}
-          </svg>
+          {/* Scrollable Body */}
+          <div className="overflow-y-auto h-105">
+            <table className="w-full border-collapse text-sm">
+              <tbody>
+                {aggregatedItems.map((item, index) => (
+                  <tr
+                    key={`${item.item_code}-${index}`}
+                    className="border-b border-slate-200 hover:bg-slate-50 transition-colors"
+                  >
+                    <td className="px-4 py-3 font-medium text-slate-900 w-[10%]">{item.item_code}</td>
+                    <td className="px-4 py-3 text-slate-700 w-[50%]">{item.item_description}</td>
+                    <td className="px-4 py-3 font-mono text-blue-600 text-sm w-[30%]">{item.locations.join(', ')}</td>
+                    <td className="px-4 py-3 text-right text-slate-900 w-[10%]">
+                      <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded font-semibold">
+                        {item.quantity}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {itemsWithValidLocation.size === 0 && (
+              <div className="flex items-center justify-center h-full text-slate-500">
+                <p className="text-center">No items in warehouse</p>
+              </div>
+            )}
+          </div>
         </div>
-
-        {/* Fixed Left Header - Row numbers */}
-        <div
-          ref={leftHeaderRef}
-          className="absolute top-0 left-0 bg-linear-to-r from-slate-100 to-slate-50 border-r border-slate-200"
-          style={{
-            top: `${headerSize}px`,
-            width: `${headerSize}px`,
-            height: `calc(100% - ${headerSize}px)`,
-            overflow: 'hidden',
-            zIndex: 10,
-            paddingBottom: '16px',
-          }}
-        >
-          <svg width={headerSize} height={svgHeight} xmlns="http://www.w3.org/2000/svg">
-            <rect width={headerSize} height={svgHeight} fill="none" />
-            {/* Axis labels - Row numbers (left side) */}
-            {(() => {
-              const buffer = 2;
-              const startRow = Math.max(1, Math.floor(viewport.top / cellHeight) + 1 - buffer);
-              const endRow = Math.min(maxRow, Math.ceil((viewport.top + viewport.height) / cellHeight) + buffer);
-              const nodes: React.ReactNode[] = [];
-              for (let visualPos = startRow; visualPos <= endRow; visualPos++) {
-                if (!isPathReservedPosition(visualPos, 2)) {
-                  const dataPos = getDataPosition(visualPos, 2);
-                  const i = visualPos - 1;
-                  nodes.push(
-                    <text key={`row-label-${i}`} x={headerSize / 2} y={cellStartY + i * cellHeight + cellHeight / 2} fontSize="12" fill="#475569" textAnchor="middle" dominantBaseline="middle" fontWeight="700">
-                      R{dataPos}
-                    </text>
-                  );
-                }
-              }
-              return nodes;
-            })()}
-          </svg>
-        </div>
-
-        {/* Top-left corner - empty cell */}
-        <div
-          className="absolute top-0 left-0 bg-linear-to-br from-slate-100 to-slate-50 border-b border-r border-slate-200"
-          style={{
-            width: `${headerSize}px`,
-            height: `${headerSize}px`,
-            zIndex: 20,
-          }}
-        />
-      </div>
+      )}
     </div>
   );
 };
