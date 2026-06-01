@@ -21,6 +21,7 @@
         "products": "Products",
         "orders": "Orders",
         "dashboard": "Dashboard",
+        "omsSalesOrder": "OMS Sales Order",
         "purchaseOrder": "Purchase Order",
         "workOrder": "Work Order",
         "shipment": "Shipment",

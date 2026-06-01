@@ -33,6 +33,11 @@ const getNavItems = (t: (key: string) => string): NavItem[] => [
   },
   {
     icon: <ListIcon />,
+    name: t('sidebar.omsSalesOrder'),
+    path: "/oms-sales-order",
+  },
+  {
+    icon: <ListIcon />,
     name: t('sidebar.purchaseOrder'),
     path: "/purchase-order",
   },
